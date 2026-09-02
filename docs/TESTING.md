@@ -1,44 +1,37 @@
-# Automated tests (feature/automated-tests)
+# Automated tests
 
-## What is covered
+## Layout
 
-| Area | Class | Notes |
-|------|--------|--------|
-| Jalali conversion | `JalaliDateTest` | Pure unit tests |
-| English name validation | `InputValidatorsTest` | Pure unit tests |
-| Pickup / return / status | `RentalLifecycleTest` | Temp SQLite + seed |
-| Report filters | `ReportFilterTest` | Open/closed, name, day overlap |
-| Cars / device id | `CarServiceTest` | Duplicate plate, next id |
+Production code stays under `src/com/...` (legacy).
 
-**Not covered:** real ZK device, Swing UI clicks.
+Tests live under **`tests/java`** (not under `src/`), so they are never compiled as main sources without JUnit.
 
-## Seed data
-
-See `TestDataSeed`: employees `1001` / `1002`, cars `11B22233` / `22C33344`.
-
-Each test uses a **temporary SQLite file** (not `CarRental.db`).
-
-## How to run
-
-```bash
-mvn test
-```
-
-Or in IntelliJ: open as Maven project → run any `*Test` class.
-
-## Branch workflow
+## Run with Maven (recommended)
 
 ```bash
 git fetch origin
 git checkout feature/automated-tests
 git pull origin feature/automated-tests
+
 mvn test
 ```
 
-After review, merge into `master` via PR or:
+## IntelliJ
 
-```bash
-git checkout master
-git merge feature/automated-tests
-git push origin master
-```
+1. Open the project from the folder that contains `pom.xml` (Maven project).
+2. Maven tool window → Reload All Maven Projects.
+3. If `tests/java` is not green (test root):
+   - Right-click `tests/java` → Mark Directory as → **Test Sources Root**.
+4. If old `src/test` exists and is marked as Sources, unmark it or delete that folder locally.
+5. Do **not** run tests with the old `Pr` / non-Maven module if it has no Maven test classpath.
+
+Prefer: right-click `pom.xml` context → Maven → Reload, then run `mvn test` in the Terminal tool window.
+
+## What is covered
+
+- Jalali / validators (unit)
+- Pickup / return / mission locks
+- Report filters
+- Duplicate plate / next device user id
+
+Not covered: real ZK device, Swing UI.
