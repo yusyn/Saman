@@ -54,7 +54,8 @@ class RentalLifecycleTest {
         RentalRecord active = testDb.rentals().getActiveRentalByDeviceUserId(EMP_FREE_ID);
         assertNotNull(active);
         assertEquals(CAR_FREE_PLATE, active.plate);
-        assertNull(active.returnDate);
+        // RentalRecord maps SQL NULL return_date to UI placeholder
+        assertEquals("منتظر برگشت", active.returnDate);
     }
 
     @Test
