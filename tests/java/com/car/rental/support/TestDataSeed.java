@@ -62,11 +62,14 @@ public final class TestDataSeed {
     public static final String CAR_ARIZO_NAME = "Arizo 5";
     public static final String CAR_SHAHIN_NAME = "Shahin";
 
-    public static final int EMPLOYEE_COUNT = 12;
+    /** Number of employees in {@link #seedBase}. */
+    public static final int EMP_COUNT = 12;
+    /** @deprecated use {@link #EMP_COUNT} */
+    public static final int EMPLOYEE_COUNT = EMP_COUNT;
+
     public static final int CAR_COUNT = 10;
-    /** Closed trips created by {@link #seedWithHistory}. */
+
     public static final int HISTORY_CLOSED_TRIPS = 8;
-    /** Open trips left active by {@link #seedWithHistory}. */
     public static final int HISTORY_OPEN_TRIPS = 3;
     public static final int HISTORY_TOTAL_TRIPS = HISTORY_CLOSED_TRIPS + HISTORY_OPEN_TRIPS;
 
@@ -101,23 +104,7 @@ public final class TestDataSeed {
     }
 
     /**
-     * Catalog + multi-day history.
-     *
-     * <pre>
-     * Closed (8):
-     *   1001 Pride    05/18 → 05/18  Tehran
-     *   1003 Peugeot  05/19 → 05/20  Qom
-     *   1004 Dena     05/21 → 05/21  Karaj
-     *   1006 Tiba     05/22 → 05/22  Rasht
-     *   1007 Runna    05/23 → 05/23  Yazd
-     *   1001 Pride    05/24 → 05/24  Tehran   (2nd trip same person)
-     *   1008 Saina    05/25 → 05/25  Ahvaz
-     *   1009 Arizo    05/25 → 05/25  Kerman
-     * Open (3):
-     *   1002 Samand   from 05/26  Isfahan
-     *   1005 Quick    from 05/26  Shiraz
-     *   1010 Shahin   from 05/27  Mashhad
-     * </pre>
+     * Catalog + multi-day history (8 closed + 3 open).
      */
     public static void seedWithHistory(DatabaseManager db) throws SQLException {
         seedBase(db);
