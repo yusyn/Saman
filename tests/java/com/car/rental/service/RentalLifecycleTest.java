@@ -141,6 +141,13 @@ class RentalLifecycleTest {
     }
 
     @Test
+    void softDeletedCarCannotBeRented() throws Exception {
+        testDb.cars().deleteCar(CAR_FREE_PLATE);
+        assertThrows(SQLException.class,
+                () -> testDb.rentals().pickup(EMP_FREE_ID, CAR_FREE_PLATE, "1405/05/28 10:00:00", "Tehran"));
+    }
+
+    @Test
     void pickupRejectsBlankDestination() {
         assertThrows(IllegalArgumentException.class,
                 () -> testDb.rentals().pickup(EMP_FREE_ID, CAR_FREE_PLATE, "1405/05/25 10:00:00", "  "));

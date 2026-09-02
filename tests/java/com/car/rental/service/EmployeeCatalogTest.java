@@ -14,6 +14,7 @@ import static com.car.rental.support.TestDataSeed.EMP_COUNT;
 import static com.car.rental.support.TestDataSeed.EMP_FREE_ID;
 import static com.car.rental.support.TestDataSeed.EMP_FREE_NAME;
 import static com.car.rental.support.TestDataSeed.EMP_REZA_ID;
+import static com.car.rental.support.TestDataSeed.EMP_YAS_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -61,6 +62,7 @@ class EmployeeCatalogTest {
     @Test
     void deviceUserIdExists() throws Exception {
         assertTrue(testDb.db().isDeviceUserIdExists(EMP_REZA_ID));
+        assertTrue(testDb.db().isDeviceUserIdExists(EMP_YAS_ID));
         assertFalse(testDb.db().isDeviceUserIdExists("99999"));
     }
 
@@ -75,14 +77,13 @@ class EmployeeCatalogTest {
         testDb.db().deleteEmployeeByDeviceUserId(EMP_FREE_ID);
         assertNull(testDb.db().findByDeviceUserId(EMP_FREE_ID));
         assertEquals(EMP_COUNT - 1, testDb.db().getAllEmployees().size());
-        // id still reserved in table uniqueness sense
         assertTrue(testDb.db().isDeviceUserIdExists(EMP_FREE_ID));
     }
 
     @Test
     void nextIdAfterSeedIsAboveMax() throws Exception {
         String next = testDb.db().getNextDeviceUserId();
-        assertEquals("1009", next);
+        assertEquals("1013", next);
     }
 
     @Test

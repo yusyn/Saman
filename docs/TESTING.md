@@ -1,32 +1,27 @@
 # Automated tests (`feature/automated-tests`)
 
-## Seed data
+## Seed volume
 
-### `seedBase` — catalog only
-- **8 employees:** 1001 … 1008 (Free, Busy, Reza, Sara, Omid, Nima, Leila, Karim)
-- **6 cars:** Pride, Samand, Peugeot 206, Dena, Quick, Tiba
+| Fixture | Content |
+|---------|---------|
+| `seedBase` | **12** employees (1001–1012), **10** cars — all free |
+| `seedWithHistory` | same catalog + **8** closed trips + **3** open missions |
 
-### `seedWithHistory` — catalog + trips
-- 4 closed rentals (20, 22–23, 24, 25 Mordad 1405)
-- 2 open rentals on 26 (Busy/Samand → Isfahan, Omid/Quick → Shiraz)
+Constants: `EMP_COUNT`, `CAR_COUNT`, `HISTORY_*` in `TestDataSeed`.
 
-## Test classes
-
-| Class | Focus |
-|-------|--------|
-| `RentalLifecycleTest` | pickup/return rules on empty history |
-| `ReportFilterTest` | filters on history seed |
-| `HistorySeedIntegrationTest` | fixture integrity + parallel open trips |
-| `EmployeeCatalogTest` | list/find/soft-delete/duplicate id |
-| `CarServiceTest` | fleet size, plate, update, delete |
-| `JalaliDateTest` / `InputValidatorsTest` | pure unit |
+Each test uses a **temporary SQLite file** (not `CarRental.db`).
 
 ## Run
 
 ```bash
-cd <project-root>   # folder with pom.xml
+git fetch origin
+git checkout feature/automated-tests
 git pull origin feature/automated-tests
 mvn test
 ```
 
-Do **not** merge to `master` until explicitly requested.
+Do **not** merge to `master` until you decide.
+
+## Layout
+
+Tests under `tests/java` (outside main `src` tree).
