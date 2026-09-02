@@ -1,37 +1,32 @@
-# Automated tests
+# Automated tests (`feature/automated-tests`)
 
-## Layout
+## Seed data
 
-Production code stays under `src/com/...` (legacy).
+### `seedBase` — catalog only
+- **8 employees:** 1001 … 1008 (Free, Busy, Reza, Sara, Omid, Nima, Leila, Karim)
+- **6 cars:** Pride, Samand, Peugeot 206, Dena, Quick, Tiba
 
-Tests live under **`tests/java`** (not under `src/`), so they are never compiled as main sources without JUnit.
+### `seedWithHistory` — catalog + trips
+- 4 closed rentals (20, 22–23, 24, 25 Mordad 1405)
+- 2 open rentals on 26 (Busy/Samand → Isfahan, Omid/Quick → Shiraz)
 
-## Run with Maven (recommended)
+## Test classes
+
+| Class | Focus |
+|-------|--------|
+| `RentalLifecycleTest` | pickup/return rules on empty history |
+| `ReportFilterTest` | filters on history seed |
+| `HistorySeedIntegrationTest` | fixture integrity + parallel open trips |
+| `EmployeeCatalogTest` | list/find/soft-delete/duplicate id |
+| `CarServiceTest` | fleet size, plate, update, delete |
+| `JalaliDateTest` / `InputValidatorsTest` | pure unit |
+
+## Run
 
 ```bash
-git fetch origin
-git checkout feature/automated-tests
+cd <project-root>   # folder with pom.xml
 git pull origin feature/automated-tests
-
 mvn test
 ```
 
-## IntelliJ
-
-1. Open the project from the folder that contains `pom.xml` (Maven project).
-2. Maven tool window → Reload All Maven Projects.
-3. If `tests/java` is not green (test root):
-   - Right-click `tests/java` → Mark Directory as → **Test Sources Root**.
-4. If old `src/test` exists and is marked as Sources, unmark it or delete that folder locally.
-5. Do **not** run tests with the old `Pr` / non-Maven module if it has no Maven test classpath.
-
-Prefer: right-click `pom.xml` context → Maven → Reload, then run `mvn test` in the Terminal tool window.
-
-## What is covered
-
-- Jalali / validators (unit)
-- Pickup / return / mission locks
-- Report filters
-- Duplicate plate / next device user id
-
-Not covered: real ZK device, Swing UI.
+Do **not** merge to `master` until explicitly requested.

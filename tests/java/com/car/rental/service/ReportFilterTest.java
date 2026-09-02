@@ -11,13 +11,17 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static com.car.rental.support.TestDataSeed.CAR_BUSY_PLATE;
-import static com.car.rental.support.TestDataSeed.CAR_FREE_PLATE;
 import static com.car.rental.support.TestDataSeed.EMP_BUSY_ID;
 import static com.car.rental.support.TestDataSeed.EMP_BUSY_NAME;
 import static com.car.rental.support.TestDataSeed.EMP_FREE_ID;
+import static com.car.rental.support.TestDataSeed.EMP_OMID_ID;
+import static com.car.rental.support.TestDataSeed.EMP_REZA_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Uses {@link TestDataSeed#seedWithHistory} — 4 closed + 2 open trips.
+ */
 class ReportFilterTest {
 
     private TestDb testDb;
@@ -25,11 +29,7 @@ class ReportFilterTest {
     @BeforeEach
     void setUp() throws Exception {
         testDb = new TestDb();
-        TestDataSeed.seedBase(testDb.db());
-
-        testDb.rentals().pickup(EMP_FREE_ID, CAR_FREE_PLATE, "1405/05/25 09:00:00", "Tehran");
-        testDb.rentals().returnCar(EMP_FREE_ID, "1405/05/25 17:00:00");
-        testDb.rentals().pickup(EMP_BUSY_ID, CAR_BUSY_PLATE, "1405/05/26 08:00:00", "Isfahan");
+        TestDataSeed.seedWithHistory(testDb.db());
     }
 
     @AfterEach
@@ -40,12 +40,19 @@ class ReportFilterTest {
     }
 
     @Test
+    void fullHistoryHasSixTrips() throws Exception {
+        List<RentalRecord> all = testDb.rentals().getRentalReport();
+        assertEquals(6, all.size());
+    }
+
+    @Test
     void filterOpenOnly() throws Exception {
         RentalReportFilter f = new RentalReportFilter();
         f.setStatus(RentalReportFilter.Status.OPEN);
         List<RentalRecord> rows = testDb.rentals().getRentalReport(f);
-        assertEquals(1, rows.size());
-        assertEquals(EMP_BUSY_ID, rows.get(0).deviceUserId);
+        assertEquals(2, rows.size());
+        assertTrue(rows.stream().anyMatch(r -> EMP_BUSY_ID.equals(r.deviceUserId)));
+        assertTrue(rows.stream().anyMatch(r -> EMP_OMID_ID.equals(r.deviceUserId)));
     }
 
     @Test
@@ -53,8 +60,7 @@ class ReportFilterTest {
         RentalReportFilter f = new RentalReportFilter();
         f.setStatus(RentalReportFilter.Status.CLOSED);
         List<RentalRecord> rows = testDb.rentals().getRentalReport(f);
-        assertEquals(1, rows.size());
-        assertEquals(EMP_FREE_ID, rows.get(0).deviceUserId);
+        assertEquals(4, rows.size());
     }
 
     @Test
@@ -67,13 +73,22 @@ class ReportFilterTest {
     }
 
     @Test
+    void freeEmployeeHasTwoClosedTripsInHistory() throws Exception {
+        RentalReportFilter f = new RentalReportFilter();
+        f.setEmployeeName("Free");
+        f.setStatus(RentalReportFilter.Status.CLOSED);
+        List<RentalRecord> rows = testDb.rentals().getRentalReport(f);
+        assertEquals(2, rows.size());
+        assertTrue(rows.stream().allMatch(r -> EMP_FREE_ID.equals(r.deviceUserId)));
+    }
+
+    @Test
     void singleDayOverlapIncludesOpenTripStillActive() throws Exception {
         RentalReportFilter f = new RentalReportFilter();
         f.setDateFrom("1405/05/26");
         f.setDateTo("1405/05/26");
         List<RentalRecord> rows = testDb.rentals().getRentalReport(f);
-        assertEquals(1, rows.size());
-        assertEquals(EMP_BUSY_ID, rows.get(0).deviceUserId);
+        assertEquals(2, rows.size());
     }
 
     @Test
@@ -87,11 +102,40 @@ class ReportFilterTest {
     }
 
     @Test
+    void multiDayRangeSpansOvernightTrip() throws Exception {
+        // Reza: 22 → 23 Qom
+        RentalReportFilter f = new RentalReportFilter();
+        f.setDateFrom("1405/05/22");
+        f.setDateTo("1405/05/23");
+        List<RentalRecord> rows = testDb.rentals().getRentalReport(f);
+        assertTrue(rows.stream().anyMatch(r -> EMP_REZA_ID.equals(r.deviceUserId)));
+    }
+
+    @Test
     void filterByDestination() throws Exception {
         RentalReportFilter f = new RentalReportFilter();
         f.setDestination("Isfahan");
         List<RentalRecord> rows = testDb.rentals().getRentalReport(f);
         assertEquals(1, rows.size());
         assertTrue(rows.get(0).destination.contains("Isfahan"));
+    }
+
+    @Test
+    void filterByPlate() throws Exception {
+        RentalReportFilter f = new RentalReportFilter();
+        f.setPlate(CAR_BUSY_PLATE);
+        List<RentalRecord> rows = testDb.rentals().getRentalReport(f);
+        assertEquals(1, rows.size());
+        assertEquals(EMP_BUSY_ID, rows.get(0).deviceUserId);
+    }
+
+    @Test
+    void combinedNameAndStatus() throws Exception {
+        RentalReportFilter f = new RentalReportFilter();
+        f.setEmployeeName("Omid");
+        f.setStatus(RentalReportFilter.Status.OPEN);
+        List<RentalRecord> rows = testDb.rentals().getRentalReport(f);
+        assertEquals(1, rows.size());
+        assertEquals(EMP_OMID_ID, rows.get(0).deviceUserId);
     }
 }
