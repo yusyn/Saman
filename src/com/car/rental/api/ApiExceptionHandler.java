@@ -1,10 +1,12 @@
 package com.car.rental.api;
 
 import com.car.rental.api.dto.ApiError;
+import com.car.rental.service.FingerprintException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.SQLException;
 import java.util.logging.Level;
@@ -26,6 +28,20 @@ public class ApiExceptionHandler {
         log.log(Level.WARNING, "API SQL error", ex);
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ApiError(ex.getMessage(), 409));
+    }
+
+    @ExceptionHandler(FingerprintException.class)
+    public ResponseEntity<ApiError> fingerprint(FingerprintException ex) {
+        log.log(Level.INFO, "Fingerprint API: " + ex.getMessage());
+        return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT)
+                .body(new ApiError(ex.getMessage(), 504));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> status(ResponseStatusException ex) {
+        int code = ex.getStatusCode().value();
+        String msg = ex.getReason() != null ? ex.getReason() : ex.getMessage();
+        return ResponseEntity.status(ex.getStatusCode()).body(new ApiError(msg, code));
     }
 
     @ExceptionHandler(Exception.class)
