@@ -48,10 +48,6 @@ public class EmployeeController {
         return EmployeeDto.from(e);
     }
 
-    /**
-     * Official registration: blocks until fingerprint enroll finishes on the device,
-     * then writes the employee to the database. May take 30–60+ seconds.
-     */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public EmployeeDto register(@RequestBody RegisterEmployeeRequest body)
@@ -67,10 +63,10 @@ public class EmployeeController {
         return EmployeeDto.from(saved);
     }
 
-    /** Enroll an additional finger for an existing employee (device + DB already exist). */
     @PostMapping("/{deviceUserId}/fingers")
     public OkResponse addFinger(@PathVariable String deviceUserId,
-                                @RequestBody AddFingerRequest body) throws FingerprintException {
+                                @RequestBody AddFingerRequest body)
+            throws FingerprintException, SQLException {
         if (body == null) {
             throw new IllegalArgumentException("بدنه درخواست خالی است");
         }
