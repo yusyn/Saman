@@ -1,18 +1,13 @@
-# Saman API — seed and CRUD basics
+# Saman API — ثبت ماشین و کارمند (رسمی)
 
-## Empty database
+## پیش‌نیاز کارمند با اثر انگشت
 
-After server is running:
+- سرور در حالت `--server-only`
+- `FINGERPRINT_HOST` به IP دستگاه روی LAN سرور
+- نام کارمند **انگلیسی**
+- هنگام `register` تا پایان enroll روی دستگاه صبر کنید (۳۰–۶۰ ثانیه یا بیشتر)
 
-```bash
-# Demo pack (3 employees + 3 cars)
-curl -s -X POST http://127.0.0.1:8080/api/seed/demo; echo
-
-curl -s http://127.0.0.1:8080/api/employees; echo
-curl -s http://127.0.0.1:8080/api/cars; echo
-```
-
-### One car
+## ثبت ماشین
 
 ```bash
 curl -s -X POST http://127.0.0.1:8080/api/cars \
@@ -21,28 +16,46 @@ curl -s -X POST http://127.0.0.1:8080/api/cars \
 echo
 ```
 
-### One employee (DB only — no fingerprint on device yet)
+## ثبت کارمند + اثر انگشت (مسیر رسمی)
+
+`fingerIndex`: 0 انگشت کوچک چپ … 4 شست چپ، 5 شست راست … 9 کوچک راست.
 
 ```bash
-curl -s -X POST http://127.0.0.1:8080/api/employees \
+curl -s -X POST http://127.0.0.1:8080/api/employees/register \
   -H "Content-Type: application/json" \
-  -d '{"deviceUserId":"1001","name":"Ali Rezaei","phone":"09120000001"}'
-echo
-
-# or let server assign next id:
-curl -s -X POST http://127.0.0.1:8080/api/employees \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Sara Mohammadi","phone":"09120000002"}'
+  -d '{"name":"Ali Rezaei","phone":"09120000001","fingerIndex":5}'
 echo
 ```
 
-### Then test rental
+با شناسه ثابت:
 
 ```bash
-curl -s -X POST http://127.0.0.1:8080/api/rentals/pickup \
+curl -s -X POST http://127.0.0.1:8080/api/employees/register \
   -H "Content-Type: application/json" \
-  -d '{"deviceUserId":"1001","plate":"11B22233","destination":"Tehran"}'
+  -d '{"deviceUserId":"1001","name":"Ali Rezaei","phone":"09120000001","fingerIndex":5}'
 echo
 ```
 
-Note: employee create does **not** enroll on ZK. Fingerprint verify still needs the user on the device.
+ترتیب داخلی: اتصال ZK → ساخت user + enroll → در صورت موفقیت INSERT دیتابیس → در شکست enroll حذف از دستگاه؛ در شکست DB بعد از enroll تلاش برای حذف از دستگاه.
+
+## انگشت اضافه
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/api/employees/1001/fingers \
+  -H "Content-Type: application/json" \
+  -d '{"fingerIndex":6}'
+echo
+```
+
+## Verify (تحویل/برگشت)
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/api/fingerprint/verify \
+  -H "Content-Type: application/json" \
+  -d '{"timeoutSeconds":40}'
+echo
+```
+
+## نکته
+
+`POST /api/seed/demo` فقط برای دیتای آزمایشی بدون دستگاه است و مسیر رسمی ثبت کارمند نیست.

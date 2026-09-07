@@ -2,6 +2,7 @@ package com.car.rental.service;
 
 import com.car.rental.db.DatabaseManager;
 import com.car.rental.model.Employee;
+import com.car.rental.util.InputValidators;
 import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
@@ -10,8 +11,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Business logic for employees: DB + fingerprint device coordination.
- * Device sessions are short-lived (connect → work → disconnect) for multi-user readiness.
+ * Employees: coordinates fingerprint device and database.
+ * Registration order: ZK enroll success → DB insert; on DB failure → best-effort device rollback.
  */
 @Service
 public class EmployeeService {
@@ -20,10 +21,14 @@ public class EmployeeService {
 
     private final DatabaseManager db;
     private final FingerprintService fingerprintService;
+    private final FingerprintDeviceGate deviceGate;
 
-    public EmployeeService(DatabaseManager db, FingerprintService fingerprintService) {
+    public EmployeeService(DatabaseManager db,
+                           FingerprintService fingerprintService,
+                           FingerprintDeviceGate deviceGate) {
         this.db = db;
         this.fingerprintService = fingerprintService;
+        this.deviceGate = deviceGate;
     }
 
     public String getNextDeviceUserId() throws SQLException {
@@ -43,66 +48,149 @@ public class EmployeeService {
     }
 
     /**
-     * Enroll on device then save to DB. On enroll failure the device user is rolled back
-     * by the fingerprint implementation when possible.
+     * Full registration: allocate id if needed → enroll on ZK → save DB.
+     * Device work runs under {@link FingerprintDeviceGate}.
      */
-    public void registerWithFingerprint(String deviceUserId, String name, String phone, int fingerIndex)
+    public Employee registerWithFingerprint(String requestedDeviceUserId,
+                                            String name,
+                                            String phone,
+                                            int fingerIndex)
             throws SQLException, FingerprintException {
-        validateEnglishName(name);
-        if (deviceUserId == null || deviceUserId.isBlank()) {
-            throw new IllegalArgumentException("شناسه دستگاه خالی است");
+
+        String nameError = InputValidators.validateEnglishFullName(name);
+        if (nameError != null) {
+            throw new IllegalArgumentException(nameError);
         }
-        if (db.isDeviceUserIdExists(deviceUserId)) {
-            throw new SQLException("شناسه دستگاه قبلاً ثبت شده است: " + deviceUserId);
+        name = name.strip();
+        if (phone == null) {
+            phone = "";
+        }
+        validateFingerIndex(fingerIndex);
+
+        final String deviceUserId;
+        if (requestedDeviceUserId == null || requestedDeviceUserId.isBlank()) {
+            deviceUserId = db.getNextDeviceUserId();
+        } else {
+            deviceUserId = requestedDeviceUserId.strip();
+            if (db.isDeviceUserIdExists(deviceUserId)) {
+                throw new SQLException("شناسه کارمند قبلاً ثبت شده است: " + deviceUserId);
+            }
         }
 
-        ensureConnected();
+        final String finalName = name;
+        final String finalPhone = phone;
+
         try {
-            fingerprintService.registerUserWithFingerprint(deviceUserId, name, fingerIndex);
-            db.addEmployee(deviceUserId, name, phone);
-        } finally {
-            disconnectQuietly();
+            deviceGate.run(() -> {
+                ensureConnected();
+                try {
+                    fingerprintService.registerUserWithFingerprint(deviceUserId, finalName, fingerIndex);
+                    try {
+                        db.addEmployee(deviceUserId, finalName, finalPhone);
+                    } catch (SQLException dbEx) {
+                        logger.log(Level.SEVERE, "DB insert failed after ZK enroll; rolling back device user "
+                                + deviceUserId, dbEx);
+                        try {
+                            fingerprintService.deleteUser(deviceUserId);
+                        } catch (Exception delEx) {
+                            logger.log(Level.SEVERE,
+                                    "Device rollback failed for " + deviceUserId, delEx);
+                        }
+                        throw dbEx;
+                    }
+                } finally {
+                    disconnectQuietly();
+                }
+            });
+        } catch (SQLException | FingerprintException | IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            if (e.getCause() instanceof SQLException) {
+                throw (SQLException) e.getCause();
+            }
+            if (e.getCause() instanceof FingerprintException) {
+                throw (FingerprintException) e.getCause();
+            }
+            throw new FingerprintException(
+                    e.getMessage() != null ? e.getMessage() : "ثبت کارمند ناموفق بود", e);
         }
+
+        Employee saved = db.findByDeviceUserId(deviceUserId);
+        if (saved == null) {
+            throw new SQLException("کارمند بعد از ثبت یافت نشد: " + deviceUserId);
+        }
+        return saved;
     }
 
-    /** Update name on device first; only then update local DB. */
     public void updateEmployee(Employee emp) throws SQLException, FingerprintException {
         if (emp == null) {
             throw new IllegalArgumentException("employee is null");
         }
-        validateEnglishName(emp.getName());
+        String nameError = InputValidators.validateEnglishFullName(emp.getName());
+        if (nameError != null) {
+            throw new IllegalArgumentException(nameError);
+        }
 
-        ensureConnected();
         try {
-            fingerprintService.updateUserName(emp.getDeviceUserId(), emp.getName());
-            db.updateEmployee(emp);
-        } finally {
-            disconnectQuietly();
+            deviceGate.run(() -> {
+                ensureConnected();
+                try {
+                    fingerprintService.updateUserName(emp.getDeviceUserId(), emp.getName().strip());
+                    db.updateEmployee(emp);
+                } finally {
+                    disconnectQuietly();
+                }
+            });
+        } catch (SQLException | FingerprintException | IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            unwrapAndThrow(e);
         }
     }
 
-    /** Add another finger template without wiping existing ones. */
     public void addFingerprint(String deviceUserId, int fingerIndex) throws FingerprintException {
         if (deviceUserId == null || deviceUserId.isBlank()) {
-            throw new IllegalArgumentException("شناسه دستگاه خالی است");
+            throw new IllegalArgumentException("شناسه کارمند خالی است");
         }
-        ensureConnected();
+        validateFingerIndex(fingerIndex);
         try {
-            fingerprintService.enrollFingerOnly(deviceUserId, fingerIndex);
-        } finally {
-            disconnectQuietly();
+            if (!db.isDeviceUserIdExists(deviceUserId)) {
+                throw new IllegalArgumentException("کارمند در دیتابیس نیست: " + deviceUserId);
+            }
+        } catch (SQLException e) {
+            throw new FingerprintException("خطا در خواندن دیتابیس", e);
+        }
+
+        try {
+            deviceGate.run(() -> {
+                ensureConnected();
+                try {
+                    fingerprintService.enrollFingerOnly(deviceUserId, fingerIndex);
+                } finally {
+                    disconnectQuietly();
+                }
+            });
+        } catch (FingerprintException | IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            unwrapAndThrow(e);
         }
     }
 
-    /** Soft-delete in DB and best-effort remove from device. */
     public void deleteEmployee(String deviceUserId) throws SQLException {
         try {
-            ensureConnected();
-            fingerprintService.deleteUser(deviceUserId);
+            deviceGate.run(() -> {
+                try {
+                    ensureConnected();
+                    fingerprintService.deleteUser(deviceUserId);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Device deleteUser failed for " + deviceUserId, e);
+                } finally {
+                    disconnectQuietly();
+                }
+            });
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Device deleteUser failed for " + deviceUserId, e);
-        } finally {
-            disconnectQuietly();
+            logger.log(Level.WARNING, "Device gate during delete", e);
         }
         db.deleteEmployeeByDeviceUserId(deviceUserId);
     }
@@ -120,13 +208,23 @@ public class EmployeeService {
         }
     }
 
-    private static void validateEnglishName(String name) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("نام الزامی است");
+    private static void validateFingerIndex(int fingerIndex) {
+        if (fingerIndex < 0 || fingerIndex > 9) {
+            throw new IllegalArgumentException("ایندکس انگشت باید بین 0 و 9 باشد");
         }
-        if (!name.matches(".*[A-Za-z].*")) {
-            throw new IllegalArgumentException(
-                    "نام باید انگلیسی باشد (حداقل یک حرف لاتین). دستگاه نام فارسی را درست ذخیره نمی‌کند.");
+    }
+
+    private static void unwrapAndThrow(Exception e) throws FingerprintException, SQLException {
+        Throwable c = e.getCause() != null ? e.getCause() : e;
+        if (c instanceof FingerprintException) {
+            throw (FingerprintException) c;
         }
+        if (c instanceof SQLException) {
+            throw (SQLException) c;
+        }
+        if (c instanceof IllegalArgumentException) {
+            throw (IllegalArgumentException) c;
+        }
+        throw new FingerprintException(c.getMessage() != null ? c.getMessage() : "خطای دستگاه", c);
     }
 }

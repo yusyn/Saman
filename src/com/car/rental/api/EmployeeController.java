@@ -1,15 +1,20 @@
 package com.car.rental.api;
 
-import com.car.rental.api.dto.CreateEmployeeRequest;
+import com.car.rental.api.dto.AddFingerRequest;
 import com.car.rental.api.dto.EmployeeDto;
-import com.car.rental.db.DatabaseManager;
+import com.car.rental.api.dto.OkResponse;
+import com.car.rental.api.dto.RegisterEmployeeRequest;
 import com.car.rental.model.Employee;
+import com.car.rental.service.EmployeeService;
+import com.car.rental.service.FingerprintException;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,20 +26,22 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/employees")
 public class EmployeeController {
 
-    private final DatabaseManager db;
+    private final EmployeeService employeeService;
 
-    public EmployeeController(DatabaseManager db) {
-        this.db = db;
+    public EmployeeController(EmployeeService employeeService) {
+        this.employeeService = employeeService;
     }
 
     @GetMapping
     public List<EmployeeDto> list() throws SQLException {
-        return db.getAllEmployees().stream().map(EmployeeDto::from).collect(Collectors.toList());
+        return employeeService.getAllEmployees().stream()
+                .map(EmployeeDto::from)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{deviceUserId}")
     public EmployeeDto one(@PathVariable String deviceUserId) throws SQLException {
-        Employee e = db.findByDeviceUserId(deviceUserId);
+        Employee e = employeeService.findByDeviceUserId(deviceUserId);
         if (e == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "کارمند یافت نشد: " + deviceUserId);
         }
@@ -42,26 +49,38 @@ public class EmployeeController {
     }
 
     /**
-     * DB-only create (no fingerprint device). Enough to test rentals over API.
-     * Name should be English if you later sync the same id to ZK.
+     * Official registration: blocks until fingerprint enroll finishes on the device,
+     * then writes the employee to the database. May take 30–60+ seconds.
      */
-    @PostMapping
-    public EmployeeDto create(@RequestBody CreateEmployeeRequest body) throws SQLException {
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
+    public EmployeeDto register(@RequestBody RegisterEmployeeRequest body)
+            throws SQLException, FingerprintException {
         if (body == null) {
             throw new IllegalArgumentException("بدنه درخواست خالی است");
         }
-        if (body.getName() == null || body.getName().isBlank()) {
-            throw new IllegalArgumentException("نام الزامی است");
-        }
-        String id = body.getDeviceUserId();
-        if (id == null || id.isBlank()) {
-            id = db.getNextDeviceUserId();
-        } else if (db.isDeviceUserIdExists(id)) {
-            throw new SQLException("شناسه کارمند قبلاً ثبت شده است: " + id);
-        }
-        String phone = body.getPhone() != null ? body.getPhone() : "";
-        db.addEmployee(id, body.getName().trim(), phone);
-        Employee saved = db.findByDeviceUserId(id);
+        Employee saved = employeeService.registerWithFingerprint(
+                body.getDeviceUserId(),
+                body.getName(),
+                body.getPhone(),
+                body.getFingerIndex());
         return EmployeeDto.from(saved);
+    }
+
+    /** Enroll an additional finger for an existing employee (device + DB already exist). */
+    @PostMapping("/{deviceUserId}/fingers")
+    public OkResponse addFinger(@PathVariable String deviceUserId,
+                                @RequestBody AddFingerRequest body) throws FingerprintException {
+        if (body == null) {
+            throw new IllegalArgumentException("بدنه درخواست خالی است");
+        }
+        employeeService.addFingerprint(deviceUserId, body.getFingerIndex());
+        return OkResponse.ok("اثر انگشت اضافه شد");
+    }
+
+    @DeleteMapping("/{deviceUserId}")
+    public OkResponse delete(@PathVariable String deviceUserId) throws SQLException {
+        employeeService.deleteEmployee(deviceUserId);
+        return OkResponse.ok("کارمند حذف شد");
     }
 }
