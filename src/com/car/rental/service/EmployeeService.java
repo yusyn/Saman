@@ -47,10 +47,6 @@ public class EmployeeService {
         return db.getAllEmployees();
     }
 
-    /**
-     * Full registration: allocate id if needed → enroll on ZK → save DB.
-     * Device work runs under {@link FingerprintDeviceGate}.
-     */
     public Employee registerWithFingerprint(String requestedDeviceUserId,
                                             String name,
                                             String phone,
@@ -61,10 +57,8 @@ public class EmployeeService {
         if (nameError != null) {
             throw new IllegalArgumentException(nameError);
         }
-        name = name.strip();
-        if (phone == null) {
-            phone = "";
-        }
+        final String finalName = name.strip();
+        final String finalPhone = phone != null ? phone : "";
         validateFingerIndex(fingerIndex);
 
         final String deviceUserId;
@@ -77,42 +71,34 @@ public class EmployeeService {
             }
         }
 
-        final String finalName = name;
-        final String finalPhone = phone;
-
         try {
-            deviceGate.run(() -> {
+            deviceGate.call(() -> {
                 ensureConnected();
                 try {
                     fingerprintService.registerUserWithFingerprint(deviceUserId, finalName, fingerIndex);
                     try {
                         db.addEmployee(deviceUserId, finalName, finalPhone);
                     } catch (SQLException dbEx) {
-                        logger.log(Level.SEVERE, "DB insert failed after ZK enroll; rolling back device user "
-                                + deviceUserId, dbEx);
+                        logger.log(Level.SEVERE,
+                                "DB insert failed after ZK enroll; rolling back device user " + deviceUserId,
+                                dbEx);
                         try {
                             fingerprintService.deleteUser(deviceUserId);
                         } catch (Exception delEx) {
-                            logger.log(Level.SEVERE,
-                                    "Device rollback failed for " + deviceUserId, delEx);
+                            logger.log(Level.SEVERE, "Device rollback failed for " + deviceUserId, delEx);
                         }
                         throw dbEx;
                     }
                 } finally {
                     disconnectQuietly();
                 }
+                return null;
             });
         } catch (SQLException | FingerprintException | IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
-            if (e.getCause() instanceof SQLException) {
-                throw (SQLException) e.getCause();
-            }
-            if (e.getCause() instanceof FingerprintException) {
-                throw (FingerprintException) e.getCause();
-            }
-            throw new FingerprintException(
-                    e.getMessage() != null ? e.getMessage() : "ثبت کارمند ناموفق بود", e);
+            rethrowDeviceOrSql(e);
+            throw new FingerprintException("ثبت کارمند ناموفق بود", e);
         }
 
         Employee saved = db.findByDeviceUserId(deviceUserId);
@@ -130,56 +116,60 @@ public class EmployeeService {
         if (nameError != null) {
             throw new IllegalArgumentException(nameError);
         }
+        final String name = emp.getName().strip();
 
         try {
-            deviceGate.run(() -> {
+            deviceGate.call(() -> {
                 ensureConnected();
                 try {
-                    fingerprintService.updateUserName(emp.getDeviceUserId(), emp.getName().strip());
+                    fingerprintService.updateUserName(emp.getDeviceUserId(), name);
                     db.updateEmployee(emp);
                 } finally {
                     disconnectQuietly();
                 }
+                return null;
             });
         } catch (SQLException | FingerprintException | IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
-            unwrapAndThrow(e);
+            rethrowDeviceOrSql(e);
+            throw new FingerprintException("به‌روزرسانی کارمند ناموفق بود", e);
         }
     }
 
-    public void addFingerprint(String deviceUserId, int fingerIndex) throws FingerprintException {
+    public void addFingerprint(String deviceUserId, int fingerIndex)
+            throws FingerprintException, SQLException {
         if (deviceUserId == null || deviceUserId.isBlank()) {
             throw new IllegalArgumentException("شناسه کارمند خالی است");
         }
         validateFingerIndex(fingerIndex);
-        try {
-            if (!db.isDeviceUserIdExists(deviceUserId)) {
-                throw new IllegalArgumentException("کارمند در دیتابیس نیست: " + deviceUserId);
-            }
-        } catch (SQLException e) {
-            throw new FingerprintException("خطا در خواندن دیتابیس", e);
+        if (!db.isDeviceUserIdExists(deviceUserId)) {
+            throw new IllegalArgumentException("کارمند در دیتابیس نیست: " + deviceUserId);
         }
 
         try {
-            deviceGate.run(() -> {
+            deviceGate.call(() -> {
                 ensureConnected();
                 try {
                     fingerprintService.enrollFingerOnly(deviceUserId, fingerIndex);
                 } finally {
                     disconnectQuietly();
                 }
+                return null;
             });
         } catch (FingerprintException | IllegalArgumentException e) {
             throw e;
+        } catch (SQLException e) {
+            throw e;
         } catch (Exception e) {
-            unwrapAndThrow(e);
+            rethrowDeviceOrSql(e);
+            throw new FingerprintException("ثبت انگشت اضافه ناموفق بود", e);
         }
     }
 
     public void deleteEmployee(String deviceUserId) throws SQLException {
         try {
-            deviceGate.run(() -> {
+            deviceGate.call(() -> {
                 try {
                     ensureConnected();
                     fingerprintService.deleteUser(deviceUserId);
@@ -188,6 +178,7 @@ public class EmployeeService {
                 } finally {
                     disconnectQuietly();
                 }
+                return null;
             });
         } catch (Exception e) {
             logger.log(Level.WARNING, "Device gate during delete", e);
@@ -214,17 +205,20 @@ public class EmployeeService {
         }
     }
 
-    private static void unwrapAndThrow(Exception e) throws FingerprintException, SQLException {
-        Throwable c = e.getCause() != null ? e.getCause() : e;
-        if (c instanceof FingerprintException) {
-            throw (FingerprintException) c;
+    /** Prefer the original checked exception when the gate wraps it. */
+    private static void rethrowDeviceOrSql(Exception e) throws SQLException, FingerprintException {
+        Throwable c = e;
+        while (c != null) {
+            if (c instanceof SQLException) {
+                throw (SQLException) c;
+            }
+            if (c instanceof FingerprintException) {
+                throw (FingerprintException) c;
+            }
+            if (c instanceof IllegalArgumentException) {
+                throw (IllegalArgumentException) c;
+            }
+            c = c.getCause();
         }
-        if (c instanceof SQLException) {
-            throw (SQLException) c;
-        }
-        if (c instanceof IllegalArgumentException) {
-            throw (IllegalArgumentException) c;
-        }
-        throw new FingerprintException(c.getMessage() != null ? c.getMessage() : "خطای دستگاه", c);
     }
 }
