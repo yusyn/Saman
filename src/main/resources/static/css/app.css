@@ -246,3 +246,60 @@ th { color: var(--muted); font-weight: 600; }
 .toast.ok { border-color: var(--ok); }
 .toast.err { border-color: var(--danger); }
 .toast.hidden { display: none; }
+
+/* Iranian plate input (compact LTR): 32ل316ایران53 */
+.plate-input {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  direction: ltr;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+}
+
+.plate-input input {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.4rem 0.35rem;
+  font-size: 0.95rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.plate-input #plateFirst,
+.plate-input #plateCity {
+  width: 2.6rem;
+}
+
+.plate-input #plateMid {
+  width: 3.2rem;
+}
+
+.plate-input select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.4rem 0.25rem;
+  font-size: 0.9rem;
+  min-width: 3.2rem;
+}
+
+.plate-input .plate-iran {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  padding: 0 0.15rem;
+  user-select: none;
+}
+
+.plate-input input:focus,
+.plate-input select:focus {
+  outline: none;
+  border-color: var(--primary);
+}

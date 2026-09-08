@@ -96,12 +96,45 @@
 
   $("#btnRefreshCars").addEventListener("click", loadCars);
 
+  function getPlateFromWidget() {
+    const first = ($("#plateFirst").value || "").trim();
+    const letter = ($("#plateLetter").value || "").trim();
+    const mid = ($("#plateMid").value || "").trim();
+    const city = ($("#plateCity").value || "").trim();
+    if (!/^[0-9]{2}$/.test(first) || !letter || !/^[0-9]{3}$/.test(mid) || !/^[0-9]{2}$/.test(city)) {
+      return null;
+    }
+    // compact LTR format: 32ل316ایران53
+    return first + letter + mid + "ایران" + city;
+  }
+
+  function clearPlateWidget() {
+    $("#plateFirst").value = "";
+    $("#plateMid").value = "";
+    $("#plateCity").value = "";
+    $("#plateLetter").selectedIndex = 9; // ل
+  }
+
+  // Digits-only for plate numeric fields
+  ["plateFirst", "plateMid", "plateCity"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", () => {
+      el.value = el.value.replace(/\D/g, "");
+    });
+  });
+
   $("#formCar").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+    const plate = getPlateFromWidget();
+    if (!plate) {
+      toast("پلاک ناقص است. مثال: 32 ل 316 ایران 53", "err");
+      return;
+    }
     const body = {
       name: fd.get("name").toString().trim(),
-      plate: fd.get("plate").toString().trim(),
+      plate,
       color: fd.get("color").toString().trim(),
     };
     const btn = e.target.querySelector("[type=submit]");
@@ -110,6 +143,7 @@
       await Api.createCar(body);
       toast("ماشین ثبت شد");
       e.target.reset();
+      clearPlateWidget();
       await loadCars();
     } catch (err) {
       toast(err.message || "خطا در ثبت ماشین", "err");
@@ -148,13 +182,12 @@
   $("#formEmployee").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const idRaw = fd.get("deviceUserId").toString().trim();
+    // شناسه کارمند همیشه توسط سرور تخصیص داده می‌شود
     const body = {
       name: fd.get("name").toString().trim(),
       phone: fd.get("phone").toString().trim(),
       fingerIndex: Number(fd.get("fingerIndex")),
     };
-    if (idRaw) body.deviceUserId = idRaw;
 
     const btn = $("#btnRegisterEmp");
     const status = $("#empRegisterStatus");
@@ -162,7 +195,7 @@
     status.textContent = "در حال ارتباط با دستگاه اثر انگشت… انگشت را روی سنسور بگذارید.";
     try {
       const saved = await Api.registerEmployee(body);
-      status.textContent = "ثبت شد: " + (saved.deviceUserId || "");
+      status.textContent = "ثبت شد — شناسه: " + (saved.deviceUserId || "");
       toast("کارمند با اثر انگشت ثبت شد");
       e.target.reset();
       await loadEmployees();

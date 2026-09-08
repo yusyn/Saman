@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>سامان — پنل مدیریت</title>
+  <title>سمن — پنل مدیریت</title>
   <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body>
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
-        <span class="brand-mark">S</span>
+        <span class="brand-mark">س</span>
         <div>
-          <strong>سامان</strong>
-          <small>مدیریت ناوگان</small>
+          <strong>سمن</strong>
+          <small>سامانه مدیریت ناوگان</small>
         </div>
       </div>
       <nav class="nav" id="nav">
@@ -74,7 +74,31 @@
             <h3>ثبت ماشین جدید</h3>
             <form id="formCar" class="form">
               <label>نام / مدل<input name="name" required placeholder="Pride" /></label>
-              <label>پلاک<input name="plate" required placeholder="11B22233" dir="ltr" /></label>
+              <label>پلاک
+                <div class="plate-input" dir="ltr" id="plateWidget">
+                  <input type="text" id="plateFirst" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="32" aria-label="دو رقم اول" />
+                  <select id="plateLetter" aria-label="حرف پلاک">
+                    <option value="الف">الف</option>
+                    <option value="ب">ب</option>
+                    <option value="ج">ج</option>
+                    <option value="د">د</option>
+                    <option value="س">س</option>
+                    <option value="ص">ص</option>
+                    <option value="ط">ط</option>
+                    <option value="ق">ق</option>
+                    <option value="گ">گ</option>
+                    <option value="ل" selected>ل</option>
+                    <option value="م">م</option>
+                    <option value="ن">ن</option>
+                    <option value="و">و</option>
+                    <option value="هـ">هـ</option>
+                    <option value="ی">ی</option>
+                  </select>
+                  <input type="text" id="plateMid" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="316" aria-label="سه رقم وسط" />
+                  <span class="plate-iran">ایران</span>
+                  <input type="text" id="plateCity" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="53" aria-label="کد شهر" />
+                </div>
+              </label>
               <label>رنگ<input name="color" required placeholder="White" /></label>
               <button type="submit" class="btn btn-primary">ذخیره ماشین</button>
             </form>
@@ -105,7 +129,6 @@
             <form id="formEmployee" class="form">
               <label>نام کامل (انگلیسی)<input name="name" required placeholder="Ali Rezaei" dir="ltr" /></label>
               <label>تلفن<input name="phone" placeholder="0912…" dir="ltr" /></label>
-              <label>شناسه کارمند (اختیاری)<input name="deviceUserId" placeholder="خالی = خودکار" dir="ltr" /></label>
               <label>انگشت
                 <select name="fingerIndex">
                   <option value="0">0 — کوچک چپ</option>
