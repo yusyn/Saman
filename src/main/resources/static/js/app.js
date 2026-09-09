@@ -21,12 +21,17 @@
     toastEl._t = setTimeout(() => toastEl.classList.add("hidden"), 4500);
   }
 
+  // Build entities without raw & in source (avoids tool/XML stripping)
   function escapeHtml(s) {
-    return String(s ?? "")
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
+    const amp = String.fromCharCode(38) + "amp;";
+    const lt = String.fromCharCode(38) + "lt;";
+    const gt = String.fromCharCode(38) + "gt;";
+    const quot = String.fromCharCode(38) + "quot;";
+    return String(s == null ? "" : s)
+      .split(String.fromCharCode(38)).join(amp)
+      .split(String.fromCharCode(60)).join(lt)
+      .split(String.fromCharCode(62)).join(gt)
+      .split(String.fromCharCode(34)).join(quot);
   }
 
   function isOnMissionStatus(status) {
@@ -59,7 +64,7 @@
     document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
     document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
     const view = document.getElementById("view-" + name);
-    const btn = document.querySelector(`.nav-item[data-view="${name}"]`);
+    const btn = document.querySelector('.nav-item[data-view="' + name + '"]');
     if (view) view.classList.add("active");
     if (btn) btn.classList.add("active");
     const t = titles[name] || [name, ""];
@@ -152,12 +157,12 @@
 
   async function loadCars() {
     const tbody = $("#carsTable");
-    tbody.innerHTML = '<tr><td colspan="5">در حال بارگذاری…</td></tr>';
+    tbody.innerHTML = "<tr><td colspan=\"5\">در حال بارگذاری…</td></tr>";
     try {
       const rows = await Api.cars();
       carsCache = rows || [];
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="5">ماشینی ثبت نشده</td></tr>';
+        tbody.innerHTML = "<tr><td colspan=\"5\">ماشینی ثبت نشده</td></tr>";
         return;
       }
       tbody.innerHTML = rows
@@ -165,20 +170,19 @@
           const busy = isOnMissionStatus(c.status);
           const disabled = busy ? "disabled" : "";
           const title = busy ? "در مأموریت — قابل ویرایش/حذف نیست" : "";
-          return `<tr data-idx="${idx}">
-          <td>${escapeHtml(c.name)}</td>
-          <td dir="ltr">${escapeHtml(c.plate)}</td>
-          <td>${escapeHtml(c.color)}</td>
-          <td>${escapeHtml(c.status || "—")}</td>
-          <td class="actions">
-            <button type="button" class="btn btn-sm" data-action="edit-car" data-idx="${idx}" ${disabled} title="${title}">ویرایش</button>
-            <button type="button" class="btn btn-sm btn-danger" data-action="del-car" data-idx="${idx}" ${disabled} title="${title}">حذف</button>
-          </td>
-        </tr>`;
+          return "<tr data-idx=\"" + idx + "\">" +
+            "<td>" + escapeHtml(c.name) + "</td>" +
+            "<td dir=\"ltr\">" + escapeHtml(c.plate) + "</td>" +
+            "<td>" + escapeHtml(c.color) + "</td>" +
+            "<td>" + escapeHtml(c.status || "—") + "</td>" +
+            "<td class=\"actions\">" +
+            "<button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-car\" data-idx=\"" + idx + "\" " + disabled + " title=\"" + title + "\">ویرایش</button> " +
+            "<button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-car\" data-idx=\"" + idx + "\" " + disabled + " title=\"" + title + "\">حذف</button>" +
+            "</td></tr>";
         })
         .join("");
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="5">${escapeHtml(err.message)}</td></tr>`;
+      tbody.innerHTML = "<tr><td colspan=\"5\">" + escapeHtml(err.message) + "</td></tr>";
       toast(err.message, "err");
     }
   }
@@ -202,7 +206,7 @@
     }
 
     if (btn.dataset.action === "del-car") {
-      if (!confirm(`ماشین «${car.name}» با پلاک ${car.plate} حذف شود؟`)) return;
+      if (!confirm("ماشین «" + car.name + "» با پلاک " + car.plate + " حذف شود؟")) return;
       btn.disabled = true;
       try {
         await Api.deleteCar(car.plate);
@@ -225,7 +229,7 @@
     }
     const body = {
       name: fd.get("name").toString().trim(),
-      plate,
+      plate: plate,
       color: fd.get("color").toString().trim(),
     };
     const btn = e.target.querySelector("[type=submit]");
@@ -253,7 +257,7 @@
     const body = {
       oldPlate: $("#editCarOldPlate").value,
       name: $("#editCarName").value.trim(),
-      plate,
+      plate: plate,
       color: $("#editCarColor").value.trim(),
     };
     const btn = e.target.querySelector("[type=submit]");
@@ -272,12 +276,12 @@
 
   async function loadEmployees() {
     const tbody = $("#employeesTable");
-    tbody.innerHTML = '<tr><td colspan="5">در حال بارگذاری…</td></tr>';
+    tbody.innerHTML = "<tr><td colspan=\"5\">در حال بارگذاری…</td></tr>";
     try {
       const rows = await Api.employees();
       employeesCache = rows || [];
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="5">کارمندی ثبت نشده</td></tr>';
+        tbody.innerHTML = "<tr><td colspan=\"5\">کارمندی ثبت نشده</td></tr>";
         return;
       }
       tbody.innerHTML = rows
@@ -285,20 +289,19 @@
           const busy = !!r.renting;
           const disabled = busy ? "disabled" : "";
           const title = busy ? "در مأموریت — قابل ویرایش/حذف نیست" : "";
-          return `<tr data-idx="${idx}">
-          <td dir="ltr">${escapeHtml(r.deviceUserId)}</td>
-          <td dir="ltr">${escapeHtml(r.name)}</td>
-          <td dir="ltr">${escapeHtml(r.phone || "")}</td>
-          <td>${r.renting ? "بله" : "خیر"}</td>
-          <td class="actions">
-            <button type="button" class="btn btn-sm" data-action="edit-emp" data-idx="${idx}" ${disabled} title="${title}">ویرایش</button>
-            <button type="button" class="btn btn-sm btn-danger" data-action="del-emp" data-idx="${idx}" ${disabled} title="${title}">حذف</button>
-          </td>
-        </tr>`;
+          return "<tr data-idx=\"" + idx + "\">" +
+            "<td dir=\"ltr\">" + escapeHtml(r.deviceUserId) + "</td>" +
+            "<td dir=\"ltr\">" + escapeHtml(r.name) + "</td>" +
+            "<td dir=\"ltr\">" + escapeHtml(r.phone || "") + "</td>" +
+            "<td>" + (r.renting ? "بله" : "خیر") + "</td>" +
+            "<td class=\"actions\">" +
+            "<button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-emp\" data-idx=\"" + idx + "\" " + disabled + " title=\"" + title + "\">ویرایش</button> " +
+            "<button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-emp\" data-idx=\"" + idx + "\" " + disabled + " title=\"" + title + "\">حذف</button>" +
+            "</td></tr>";
         })
         .join("");
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="5">${escapeHtml(err.message)}</td></tr>`;
+      tbody.innerHTML = "<tr><td colspan=\"5\">" + escapeHtml(err.message) + "</td></tr>";
       toast(err.message, "err");
     }
   }
@@ -321,7 +324,7 @@
     }
 
     if (btn.dataset.action === "del-emp") {
-      if (!confirm(`کارمند «${emp.name}» (${emp.deviceUserId}) حذف شود؟`)) return;
+      if (!confirm("کارمند «" + emp.name + "» (" + emp.deviceUserId + ") حذف شود؟")) return;
       btn.disabled = true;
       try {
         await Api.deleteEmployee(emp.deviceUserId);
@@ -384,21 +387,21 @@
 
   async function loadAvailablePlates() {
     const sel = $("#pickupPlate");
-    sel.innerHTML = '<option value="">در حال بارگذاری…</option>';
+    sel.innerHTML = "<option value=\"\">در حال بارگذاری…</option>";
     try {
       const cars = await Api.carsAvailable();
       if (!cars.length) {
-        sel.innerHTML = '<option value="">ماشینی آزاد نیست</option>';
+        sel.innerHTML = "<option value=\"\">ماشینی آزاد نیست</option>";
         return;
       }
       sel.innerHTML = cars
-        .map(
-          (c) =>
-            `<option value="${escapeHtml(c.plate)}">${escapeHtml(c.name)} — ${escapeHtml(c.plate)}</option>`
-        )
+        .map(function (c) {
+          return "<option value=\"" + escapeHtml(c.plate) + "\">" +
+            escapeHtml(c.name) + " — " + escapeHtml(c.plate) + "</option>";
+        })
         .join("");
     } catch (err) {
-      sel.innerHTML = `<option value="">${escapeHtml(err.message)}</option>`;
+      sel.innerHTML = "<option value=\"\">" + escapeHtml(err.message) + "</option>";
     }
   }
 
@@ -465,28 +468,28 @@
 
   async function loadReport() {
     const tbody = $("#reportTable");
-    tbody.innerHTML = '<tr><td colspan="7">در حال بارگذاری…</td></tr>';
+    tbody.innerHTML = "<tr><td colspan=\"7\">در حال بارگذاری…</td></tr>";
     try {
       const rows = await Api.report();
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="7">گزارشی نیست</td></tr>';
+        tbody.innerHTML = "<tr><td colspan=\"7\">گزارشی نیست</td></tr>";
         return;
       }
       tbody.innerHTML = rows
-        .map(
-          (r) => `<tr>
-          <td dir="ltr">${escapeHtml(r.deviceUserId)}</td>
-          <td>${escapeHtml(r.employeeName)}</td>
-          <td>${escapeHtml(r.carName)}</td>
-          <td dir="ltr">${escapeHtml(r.plate)}</td>
-          <td>${escapeHtml(r.destination)}</td>
-          <td dir="ltr">${escapeHtml(r.pickupDate)}</td>
-          <td dir="ltr">${escapeHtml(r.returnDate)}</td>
-        </tr>`
-        )
+        .map(function (r) {
+          return "<tr>" +
+            "<td dir=\"ltr\">" + escapeHtml(r.deviceUserId) + "</td>" +
+            "<td>" + escapeHtml(r.employeeName) + "</td>" +
+            "<td>" + escapeHtml(r.carName) + "</td>" +
+            "<td dir=\"ltr\">" + escapeHtml(r.plate) + "</td>" +
+            "<td>" + escapeHtml(r.destination) + "</td>" +
+            "<td dir=\"ltr\">" + escapeHtml(r.pickupDate) + "</td>" +
+            "<td dir=\"ltr\">" + escapeHtml(r.returnDate) + "</td>" +
+            "</tr>";
+        })
         .join("");
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="7">${escapeHtml(err.message)}</td></tr>`;
+      tbody.innerHTML = "<tr><td colspan=\"7\">" + escapeHtml(err.message) + "</td></tr>";
       toast(err.message, "err");
     }
   }
