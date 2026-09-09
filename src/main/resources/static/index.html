@@ -34,7 +34,6 @@
 
       <div id="toast" class="toast hidden" role="status"></div>
 
-      <!-- Dashboard -->
       <section class="view active" id="view-dashboard">
         <div class="cards">
           <div class="card">
@@ -48,12 +47,12 @@
               <li>این صفحه از خود Spring روی پورت ۸۰۸۰ سرو می‌شود.</li>
               <li>ثبت کارمند با اثر انگشت ممکن است ۳۰ تا ۶۰ ثانیه طول بکشد.</li>
               <li>دستگاه ZK باید از سرور روی پورت ۴۳۷۰ در دسترس باشد.</li>
+              <li>ماشین یا کارمند در مأموریت قابل ویرایش/حذف نیست.</li>
             </ul>
           </div>
         </div>
       </section>
 
-      <!-- Cars -->
       <section class="view" id="view-cars">
         <div class="split">
           <div class="card">
@@ -64,7 +63,7 @@
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>نام</th><th>پلاک</th><th>رنگ</th><th>وضعیت</th></tr>
+                  <tr><th>نام</th><th>پلاک</th><th>رنگ</th><th>وضعیت</th><th>عملیات</th></tr>
                 </thead>
                 <tbody id="carsTable"></tbody>
               </table>
@@ -106,7 +105,6 @@
         </div>
       </section>
 
-      <!-- Employees -->
       <section class="view" id="view-employees">
         <div class="split">
           <div class="card">
@@ -117,7 +115,7 @@
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>شناسه</th><th>نام</th><th>تلفن</th><th>مأموریت</th></tr>
+                  <tr><th>شناسه</th><th>نام</th><th>تلفن</th><th>مأموریت</th><th>عملیات</th></tr>
                 </thead>
                 <tbody id="employeesTable"></tbody>
               </table>
@@ -150,7 +148,6 @@
         </div>
       </section>
 
-      <!-- Rentals -->
       <section class="view" id="view-rentals">
         <div class="cards three">
           <div class="card">
@@ -180,7 +177,6 @@
         </div>
       </section>
 
-      <!-- Report -->
       <section class="view" id="view-report">
         <div class="card">
           <div class="card-head">
@@ -202,6 +198,76 @@
       </section>
     </main>
   </div>
+
+  <div id="modalCar" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" data-close="modalCar"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>ویرایش ماشین</h3>
+        <button type="button" class="btn btn-ghost modal-close" data-close="modalCar" aria-label="بستن">×</button>
+      </div>
+      <form id="formEditCar" class="form">
+        <input type="hidden" name="oldPlate" id="editCarOldPlate" />
+        <label>نام / مدل<input name="name" id="editCarName" required /></label>
+        <label>پلاک
+          <div class="plate-input" dir="ltr" id="editPlateWidget">
+            <input type="text" id="editPlateFirst" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="32" />
+            <select id="editPlateLetter">
+              <option value="الف">الف</option>
+              <option value="ب">ب</option>
+              <option value="ج">ج</option>
+              <option value="د">د</option>
+              <option value="س">س</option>
+              <option value="ص">ص</option>
+              <option value="ط">ط</option>
+              <option value="ق">ق</option>
+              <option value="گ">گ</option>
+              <option value="ل" selected>ل</option>
+              <option value="م">م</option>
+              <option value="ن">ن</option>
+              <option value="و">و</option>
+              <option value="هـ">هـ</option>
+              <option value="ی">ی</option>
+            </select>
+            <input type="text" id="editPlateMid" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="316" />
+            <span class="plate-iran">ایران</span>
+            <input type="text" id="editPlateCity" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="53" />
+          </div>
+        </label>
+        <label>رنگ<input name="color" id="editCarColor" required /></label>
+        <div class="modal-actions">
+          <button type="button" class="btn" data-close="modalCar">انصراف</button>
+          <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalEmployee" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" data-close="modalEmployee"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>ویرایش کارمند</h3>
+        <button type="button" class="btn btn-ghost modal-close" data-close="modalEmployee" aria-label="بستن">×</button>
+      </div>
+      <form id="formEditEmployee" class="form">
+        <label>شناسه کارمند
+          <input name="deviceUserId" id="editEmpId" dir="ltr" readonly class="readonly" />
+        </label>
+        <label>نام کامل (انگلیسی)
+          <input name="name" id="editEmpName" required dir="ltr" />
+        </label>
+        <label>تلفن
+          <input name="phone" id="editEmpPhone" dir="ltr" />
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn" data-close="modalEmployee">انصراف</button>
+          <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
 </body>
