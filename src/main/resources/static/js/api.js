@@ -47,6 +47,8 @@ const Api = (() => {
     deleteCar: (plate) =>
       request("/api/cars?plate=" + encodeURIComponent(plate), { method: "DELETE" }),
     employees: () => request("/api/employees"),
+    employee: (deviceUserId) =>
+      request("/api/employees/" + encodeURIComponent(deviceUserId)),
     registerEmployee: (body) =>
       request("/api/employees/register", {
         method: "POST",
@@ -66,6 +68,8 @@ const Api = (() => {
         method: "POST",
         body: JSON.stringify({ timeoutSeconds }),
       }),
+    cancelListen: () =>
+      request("/api/fingerprint/cancel-listen", { method: "POST" }),
     pickup: (body) =>
       request("/api/rentals/pickup", {
         method: "POST",
