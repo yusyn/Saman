@@ -1,5 +1,6 @@
 package com.car.rental.api;
 
+import com.car.rental.api.dto.OkResponse;
 import com.car.rental.api.dto.VerificationResponse;
 import com.car.rental.api.dto.VerifyRequest;
 import com.car.rental.config.FingerprintProperties;
@@ -80,5 +81,19 @@ public class FingerprintController {
                         c.getMessage() != null ? c.getMessage() : "verify failed");
             }
         });
+    }
+
+    /** Cancel an in-progress verify (listenForVerification). */
+    @PostMapping("/cancel-listen")
+    public OkResponse cancelListen() {
+        fingerprintService.cancelListen();
+        return OkResponse.ok("احراز هویت لغو شد");
+    }
+
+    /** Cancel an in-progress enroll / register fingerprint. */
+    @PostMapping("/cancel-enroll")
+    public OkResponse cancelEnroll() {
+        fingerprintService.cancelEnroll();
+        return OkResponse.ok("ثبت اثر انگشت لغو شد");
     }
 }
