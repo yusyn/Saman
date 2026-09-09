@@ -42,32 +42,30 @@ const Api = (() => {
     carsAvailable: () => request("/api/cars/available"),
     createCar: (body) =>
       request("/api/cars", { method: "POST", body: JSON.stringify(body) }),
+    updateCar: (body) =>
+      request("/api/cars", { method: "PUT", body: JSON.stringify(body) }),
+    deleteCar: (plate) =>
+      request("/api/cars?plate=" + encodeURIComponent(plate), { method: "DELETE" }),
     employees: () => request("/api/employees"),
-    employee: (id) => request("/api/employees/" + encodeURIComponent(id)),
-    registerEmployee: (body, signal) =>
+    registerEmployee: (body) =>
       request("/api/employees/register", {
         method: "POST",
         body: JSON.stringify(body),
-        signal,
       }),
-    deleteEmployee: (id) =>
-      request("/api/employees/" + encodeURIComponent(id), { method: "DELETE" }),
-    addFinger: (id, fingerIndex, signal) =>
-      request("/api/employees/" + encodeURIComponent(id) + "/fingers", {
-        method: "POST",
-        body: JSON.stringify({ fingerIndex }),
-        signal,
+    updateEmployee: (deviceUserId, body) =>
+      request("/api/employees/" + encodeURIComponent(deviceUserId), {
+        method: "PUT",
+        body: JSON.stringify(body),
       }),
-    verify: (timeoutSeconds = 40, signal) =>
+    deleteEmployee: (deviceUserId) =>
+      request("/api/employees/" + encodeURIComponent(deviceUserId), {
+        method: "DELETE",
+      }),
+    verify: (timeoutSeconds = 40) =>
       request("/api/fingerprint/verify", {
         method: "POST",
         body: JSON.stringify({ timeoutSeconds }),
-        signal,
       }),
-    cancelListen: () =>
-      request("/api/fingerprint/cancel-listen", { method: "POST" }),
-    cancelEnroll: () =>
-      request("/api/fingerprint/cancel-enroll", { method: "POST" }),
     pickup: (body) =>
       request("/api/rentals/pickup", {
         method: "POST",
@@ -78,8 +76,6 @@ const Api = (() => {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    activeRental: (id) =>
-      request("/api/rentals/active/" + encodeURIComponent(id)),
     report: () => request("/api/rentals/report"),
   };
 })();
