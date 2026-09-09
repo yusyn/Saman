@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.sql.SQLException;
 import java.util.logging.Level;
@@ -42,6 +43,15 @@ public class ApiExceptionHandler {
         int code = ex.getStatusCode().value();
         String msg = ex.getReason() != null ? ex.getReason() : ex.getMessage();
         return ResponseEntity.status(ex.getStatusCode()).body(new ApiError(msg, code));
+    }
+
+    /**
+     * Browser auto-requests like {@code /favicon.ico} must not spam ERROR logs.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> missingStatic(NoResourceFoundException ex) {
+        log.fine("Static resource not found: " + ex.getResourcePath());
+        return ResponseEntity.notFound().build();
     }
 
     @ExceptionHandler(Exception.class)
