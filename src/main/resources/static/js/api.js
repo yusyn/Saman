@@ -43,16 +43,31 @@ const Api = (() => {
     createCar: (body) =>
       request("/api/cars", { method: "POST", body: JSON.stringify(body) }),
     employees: () => request("/api/employees"),
-    registerEmployee: (body) =>
+    employee: (id) => request("/api/employees/" + encodeURIComponent(id)),
+    registerEmployee: (body, signal) =>
       request("/api/employees/register", {
         method: "POST",
         body: JSON.stringify(body),
+        signal,
       }),
-    verify: (timeoutSeconds = 40) =>
+    deleteEmployee: (id) =>
+      request("/api/employees/" + encodeURIComponent(id), { method: "DELETE" }),
+    addFinger: (id, fingerIndex, signal) =>
+      request("/api/employees/" + encodeURIComponent(id) + "/fingers", {
+        method: "POST",
+        body: JSON.stringify({ fingerIndex }),
+        signal,
+      }),
+    verify: (timeoutSeconds = 40, signal) =>
       request("/api/fingerprint/verify", {
         method: "POST",
         body: JSON.stringify({ timeoutSeconds }),
+        signal,
       }),
+    cancelListen: () =>
+      request("/api/fingerprint/cancel-listen", { method: "POST" }),
+    cancelEnroll: () =>
+      request("/api/fingerprint/cancel-enroll", { method: "POST" }),
     pickup: (body) =>
       request("/api/rentals/pickup", {
         method: "POST",
@@ -63,6 +78,8 @@ const Api = (() => {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    activeRental: (id) =>
+      request("/api/rentals/active/" + encodeURIComponent(id)),
     report: () => request("/api/rentals/report"),
   };
 })();
