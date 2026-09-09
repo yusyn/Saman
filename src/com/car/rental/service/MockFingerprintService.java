@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
@@ -23,6 +24,7 @@ public class MockFingerprintService implements FingerprintService {
     });
     private ScheduledFuture<?> pendingListen;
     private volatile boolean listening;
+    private final AtomicBoolean enrolling = new AtomicBoolean(false);
 
     private String mockUserId = "1001";
 
@@ -38,6 +40,7 @@ public class MockFingerprintService implements FingerprintService {
     @Override
     public void disconnect() {
         cancelListen();
+        cancelEnroll();
         connected = false;
     }
 
@@ -108,6 +111,11 @@ public class MockFingerprintService implements FingerprintService {
     }
 
     @Override
+    public void cancelEnroll() {
+        enrolling.set(false);
+    }
+
+    @Override
     public List<DeviceUser> getUsers() {
         return new ArrayList<>(users);
     }
@@ -136,20 +144,60 @@ public class MockFingerprintService implements FingerprintService {
     }
 
     @Override
-    public void registerUserWithFingerprint(String deviceUserId, String name, int fingerIndex) {
-        createUser(deviceUserId, name);
+    public void registerUserWithFingerprint(String deviceUserId, String name, int fingerIndex)
+            throws FingerprintException {
+        enrolling.set(true);
+        try {
+            for (int i = 0; i < 6; i++) {
+                if (!enrolling.get()) {
+                    throw new FingerprintException("ثبت اثر انگشت توسط کاربر لغو شد");
+                }
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new FingerprintException("ثبت اثر انگشت توسط کاربر لغو شد");
+                }
+            }
+            createUser(deviceUserId, name);
+        } finally {
+            enrolling.set(false);
+        }
     }
 
     @Override
-    public void enrollFingerOnly(String deviceUserId, int fingerIndex) {
-        // no-op success for mock
+    public void enrollFingerOnly(String deviceUserId, int fingerIndex) throws FingerprintException {
+        enrolling.set(true);
+        try {
+            for (int i = 0; i < 4; i++) {
+                if (!enrolling.get()) {
+                    throw new FingerprintException("ثبت اثر انگشت توسط کاربر لغو شد");
+                }
+                try {
+                    Thread.sleep(400);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new FingerprintException("ثبت اثر انگشت توسط کاربر لغو شد");
+                }
+            }
+        } finally {
+            enrolling.set(false);
+        }
     }
 
     @Override
     public void startEnroll(String deviceUserId, int fingerIndex,
                             Consumer<EnrollResult> onFinished,
                             Consumer<FingerprintException> onError) {
+        enrolling.set(true);
         scheduler.schedule(() -> {
+            if (!enrolling.get()) {
+                if (onError != null) {
+                    onError.accept(new FingerprintException("ثبت اثر انگشت توسط کاربر لغو شد"));
+                }
+                return;
+            }
+            enrolling.set(false);
             if (onFinished != null) {
                 onFinished.accept(new EnrollResult(true, "Mock enroll OK for user " + deviceUserId));
             }
