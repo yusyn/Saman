@@ -4,6 +4,7 @@ import com.car.rental.api.dto.AddFingerRequest;
 import com.car.rental.api.dto.EmployeeDto;
 import com.car.rental.api.dto.OkResponse;
 import com.car.rental.api.dto.RegisterEmployeeRequest;
+import com.car.rental.api.dto.UpdateEmployeeRequest;
 import com.car.rental.model.Employee;
 import com.car.rental.service.EmployeeService;
 import com.car.rental.service.FingerprintException;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -63,6 +65,31 @@ public class EmployeeController {
         return EmployeeDto.from(saved);
     }
 
+    /**
+     * Update name (device + DB) and phone (DB). Blocked while on active rental.
+     */
+    @PutMapping("/{deviceUserId}")
+    public EmployeeDto update(@PathVariable String deviceUserId,
+                              @RequestBody UpdateEmployeeRequest body)
+            throws SQLException, FingerprintException {
+        if (body == null) {
+            throw new IllegalArgumentException("بدنه درخواست خالی است");
+        }
+        Employee emp = employeeService.findByDeviceUserId(deviceUserId);
+        if (emp == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "کارمند یافت نشد: " + deviceUserId);
+        }
+        if (emp.isRenting()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "کارمند در مأموریت است و قابل ویرایش نیست");
+        }
+        emp.setName(body.getName());
+        emp.setPhone(body.getPhone() != null ? body.getPhone() : "");
+        employeeService.updateEmployee(emp);
+        Employee refreshed = employeeService.findByDeviceUserId(deviceUserId);
+        return EmployeeDto.from(refreshed != null ? refreshed : emp);
+    }
+
     @PostMapping("/{deviceUserId}/fingers")
     public OkResponse addFinger(@PathVariable String deviceUserId,
                                 @RequestBody AddFingerRequest body)
@@ -76,6 +103,14 @@ public class EmployeeController {
 
     @DeleteMapping("/{deviceUserId}")
     public OkResponse delete(@PathVariable String deviceUserId) throws SQLException {
+        Employee emp = employeeService.findByDeviceUserId(deviceUserId);
+        if (emp == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "کارمند یافت نشد: " + deviceUserId);
+        }
+        if (emp.isRenting()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "کارمند در مأموریت است و قابل حذف نیست");
+        }
         employeeService.deleteEmployee(deviceUserId);
         return OkResponse.ok("کارمند حذف شد");
     }
