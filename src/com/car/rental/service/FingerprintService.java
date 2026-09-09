@@ -29,6 +29,14 @@ public interface FingerprintService {
 
     void cancelListen();
 
+    /**
+     * Cancel an in-progress enroll (register / enrollFingerOnly).
+     * Default is no-op; implementations should flip their enrolling flag
+     * so the blocking wait exits promptly.
+     */
+    default void cancelEnroll() {
+    }
+
     List<DeviceUser> getUsers() throws FingerprintException;
 
     void createUser(String deviceUserId, String name) throws FingerprintException;
