@@ -32,6 +32,13 @@ public final class ReportExcelExporter {
     }
 
     public static void export(List<RentalRecord> records, Path target) throws IOException {
+        Files.createDirectories(target.getParent() != null ? target.getParent() : Path.of("."));
+        try (OutputStream out = Files.newOutputStream(target)) {
+            export(records, out);
+        }
+    }
+
+    public static void export(List<RentalRecord> records, OutputStream out) throws IOException {
         try (Workbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet("گزارش سفرها");
 
@@ -51,26 +58,26 @@ public final class ReportExcelExporter {
             }
 
             int rowIdx = 1;
-            for (RentalRecord r : records) {
-                Row row = sheet.createRow(rowIdx++);
-                row.createCell(0).setCellValue(nullToEmpty(r.deviceUserId));
-                row.createCell(1).setCellValue(nullToEmpty(r.employeeName));
-                row.createCell(2).setCellValue(nullToEmpty(r.carName));
-                row.createCell(3).setCellValue(nullToEmpty(r.carColor));
-                row.createCell(4).setCellValue(nullToEmpty(r.plate));
-                row.createCell(5).setCellValue(nullToEmpty(r.pickupDate));
-                row.createCell(6).setCellValue(nullToEmpty(r.returnDate));
-                row.createCell(7).setCellValue(nullToEmpty(r.destination));
+            if (records != null) {
+                for (RentalRecord r : records) {
+                    Row row = sheet.createRow(rowIdx++);
+                    row.createCell(0).setCellValue(nullToEmpty(r.deviceUserId));
+                    row.createCell(1).setCellValue(nullToEmpty(r.employeeName));
+                    row.createCell(2).setCellValue(nullToEmpty(r.carName));
+                    row.createCell(3).setCellValue(nullToEmpty(r.carColor));
+                    row.createCell(4).setCellValue(nullToEmpty(r.plate));
+                    row.createCell(5).setCellValue(nullToEmpty(r.pickupDate));
+                    row.createCell(6).setCellValue(nullToEmpty(r.returnDate));
+                    row.createCell(7).setCellValue(nullToEmpty(r.destination));
+                }
             }
 
             for (int i = 0; i < HEADERS.length; i++) {
                 sheet.autoSizeColumn(i);
             }
 
-            Files.createDirectories(target.getParent() != null ? target.getParent() : Path.of("."));
-            try (OutputStream out = Files.newOutputStream(target)) {
-                wb.write(out);
-            }
+            wb.write(out);
+            out.flush();
         }
     }
 
