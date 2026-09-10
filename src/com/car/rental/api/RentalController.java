@@ -5,6 +5,7 @@ import com.car.rental.api.dto.PickupRequest;
 import com.car.rental.api.dto.RentalRecordDto;
 import com.car.rental.api.dto.ReturnRequest;
 import com.car.rental.model.RentalRecord;
+import com.car.rental.model.RentalReportFilter;
 import com.car.rental.service.RentalService;
 import com.car.rental.util.JalaliDate;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -70,8 +72,28 @@ public class RentalController {
     }
 
     @GetMapping("/report")
-    public List<RentalRecordDto> report() throws SQLException {
-        return rentalService.getRentalReport().stream()
+    public List<RentalRecordDto> report(
+            @RequestParam(required = false) String employeeName,
+            @RequestParam(required = false) String plate,
+            @RequestParam(required = false) String carName,
+            @RequestParam(required = false) String destination,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false, defaultValue = "ALL") String status
+    ) throws SQLException {
+        RentalReportFilter filter = new RentalReportFilter();
+        filter.setEmployeeName(employeeName);
+        filter.setPlate(plate);
+        filter.setCarName(carName);
+        filter.setDestination(destination);
+        filter.setDateFrom(dateFrom);
+        filter.setDateTo(dateTo);
+        try {
+            filter.setStatus(RentalReportFilter.Status.valueOf(status.trim().toUpperCase()));
+        } catch (Exception e) {
+            filter.setStatus(RentalReportFilter.Status.ALL);
+        }
+        return rentalService.getRentalReport(filter).stream()
                 .map(RentalRecordDto::from)
                 .collect(Collectors.toList());
     }
