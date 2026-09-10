@@ -197,21 +197,74 @@ body {
 
 .btn-ghost { background: transparent; }
 
-.table-wrap { overflow: auto; max-height: 420px; }
+.table-wrap {
+  overflow: auto;
+  max-height: 420px;
+  max-width: 100%;
+}
 
 table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
+  table-layout: fixed;
+  font-size: 0.85rem;
 }
 
 th, td {
   text-align: right;
-  padding: 0.55rem 0.4rem;
+  padding: 0.4rem 0.35rem;
   border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 th { color: var(--muted); font-weight: 600; }
+
+#carsTable {
+  width: 100%;
+}
+
+.table-wrap table thead th:nth-child(1),
+.table-wrap table tbody td:nth-child(1) {
+  width: 18%;
+  max-width: 9rem;
+}
+
+.table-wrap table thead th:nth-child(2),
+.table-wrap table tbody td:nth-child(2) {
+  width: 32%;
+  max-width: 11.5rem;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.table-wrap table thead th:nth-child(3),
+.table-wrap table tbody td:nth-child(3) {
+  width: 12%;
+  max-width: 5.5rem;
+}
+
+.table-wrap table thead th:nth-child(4),
+.table-wrap table tbody td:nth-child(4) {
+  width: 16%;
+  max-width: 7rem;
+}
+
+.table-wrap table thead th:nth-child(5),
+.table-wrap table tbody td:nth-child(5) {
+  width: 22%;
+  max-width: 9rem;
+}
+
+#reportTable td:nth-child(5) {
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 8rem;
+}
 
 .code-block {
   background: var(--bg);
@@ -328,16 +381,21 @@ th { color: var(--muted); font-weight: 600; }
 
 td.actions {
   white-space: nowrap;
-  display: flex;
-  gap: 0.35rem;
-  justify-content: flex-start;
-  flex-wrap: wrap;
+  overflow: hidden;
+  text-align: left;
+}
+
+td.actions .btn {
+  display: inline-block;
+  margin-left: 0.25rem;
+  vertical-align: middle;
 }
 
 .btn-sm {
-  padding: 0.3rem 0.55rem;
-  font-size: 0.8rem;
+  padding: 0.22rem 0.45rem;
+  font-size: 0.75rem;
   min-height: 0;
+  line-height: 1.2;
 }
 
 .btn-danger {
@@ -508,14 +566,17 @@ input.readonly {
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.55rem;
+  gap: 0.2rem;
+  padding: 0.12rem 0.45rem;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.25;
   white-space: nowrap;
   border: 1px solid transparent;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .badge-free {
@@ -541,8 +602,10 @@ input.readonly {
   display: inline-flex;
   flex-direction: row;
   align-items: stretch;
-  height: 1.85rem;
-  max-width: 100%;
+  height: 1.55rem;
+  width: 10.5rem;
+  max-width: 10.5rem;
+  min-width: 10.5rem;
   border: 1.5px solid #1a1a1a;
   border-radius: 3px;
   background: #fff;
@@ -553,6 +616,7 @@ input.readonly {
   font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
   line-height: 1;
   user-select: none;
+  box-sizing: border-box;
 }
 
 .iran-plate-blue {
@@ -560,12 +624,12 @@ input.readonly {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.05rem;
-  width: 1.35rem;
-  flex: 0 0 1.35rem;
+  gap: 0.02rem;
+  width: 1.15rem;
+  flex: 0 0 1.15rem;
   background: #0047a0;
   color: #fff;
-  padding: 0.1rem 0.05rem;
+  padding: 0.08rem 0.04rem;
 }
 
 .iran-plate-flag {
@@ -602,18 +666,18 @@ input.readonly {
 }
 
 .iran-plate-num {
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   color: #111;
 }
 
 .iran-plate-letter {
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #111;
-  min-width: 0.85rem;
+  min-width: 0.7rem;
   text-align: center;
 }
 
@@ -622,22 +686,23 @@ input.readonly {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.05rem;
-  padding: 0.1rem 0.28rem;
+  gap: 0.02rem;
+  padding: 0.08rem 0.2rem;
   border-left: 1.5px solid #1a1a1a;
   background: #fff;
-  min-width: 1.7rem;
+  min-width: 1.45rem;
+  flex: 0 0 auto;
 }
 
 .iran-plate-iran {
-  font-size: 0.55rem;
+  font-size: 0.48rem;
   font-weight: 700;
   color: #111;
   line-height: 1;
 }
 
 .iran-plate-city {
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: #111;
@@ -676,5 +741,13 @@ input.readonly {
 }
 
 td .iran-plate {
-  margin: 0.1rem 0;
+  margin: 0;
+  vertical-align: middle;
+}
+
+td .iran-plate-fallback {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
