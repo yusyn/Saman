@@ -535,3 +535,146 @@ input.readonly {
   color: var(--muted);
   border-color: var(--border);
 }
+
+/* Iranian license plate — display only (tables/lists) */
+.iran-plate {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: 1.85rem;
+  max-width: 100%;
+  border: 1.5px solid #1a1a1a;
+  border-radius: 3px;
+  background: #fff;
+  color: #111;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  vertical-align: middle;
+  font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
+  line-height: 1;
+  user-select: none;
+}
+
+.iran-plate-blue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  width: 1.35rem;
+  flex: 0 0 1.35rem;
+  background: #0047a0;
+  color: #fff;
+  padding: 0.1rem 0.05rem;
+}
+
+.iran-plate-flag {
+  width: 0.85rem;
+  height: 0.5rem;
+  border-radius: 1px;
+  background: linear-gradient(
+    to bottom,
+    #239f40 0 33%,
+    #fff 33% 66%,
+    #da0000 66% 100%
+  );
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+
+.iran-plate-ir {
+  font-size: 0.38rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.iran-plate-main {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0 0.35rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #fff;
+}
+
+.iran-plate-num {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: #111;
+}
+
+.iran-plate-letter {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111;
+  min-width: 0.85rem;
+  text-align: center;
+}
+
+.iran-plate-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  padding: 0.1rem 0.28rem;
+  border-left: 1.5px solid #1a1a1a;
+  background: #fff;
+  min-width: 1.7rem;
+}
+
+.iran-plate-iran {
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #111;
+  line-height: 1;
+}
+
+.iran-plate-city {
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111;
+  line-height: 1;
+}
+
+.iran-plate-fallback {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.iran-plate.iran-plate-lg {
+  height: 2.35rem;
+}
+.iran-plate.iran-plate-lg .iran-plate-blue {
+  width: 1.7rem;
+  flex-basis: 1.7rem;
+}
+.iran-plate.iran-plate-lg .iran-plate-num,
+.iran-plate.iran-plate-lg .iran-plate-letter {
+  font-size: 1.15rem;
+}
+.iran-plate.iran-plate-lg .iran-plate-city {
+  font-size: 1rem;
+}
+.iran-plate.iran-plate-lg .iran-plate-iran {
+  font-size: 0.65rem;
+}
+.iran-plate.iran-plate-lg .iran-plate-ir {
+  font-size: 0.45rem;
+}
+.iran-plate.iran-plate-lg .iran-plate-flag {
+  width: 1.05rem;
+  height: 0.6rem;
+}
+
+td .iran-plate {
+  margin: 0.1rem 0;
+}
