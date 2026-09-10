@@ -35,6 +35,56 @@
       .split(String.fromCharCode(34)).join(quot);
   }
 
+  function toPersianDigits(s) {
+    const map = "۰۱۲۳۴۵۶۷۸۹";
+    return String(s == null ? "" : s).replace(/[0-9]/g, (d) => map[d.charCodeAt(0) - 48]);
+  }
+
+  function parsePlate(plate) {
+    const raw = String(plate || "").replace(/\s+/g, "");
+    if (!raw) return null;
+    const m = raw.match(/^(\d{2})(.+?)(\d{3})ایران(\d{2})$/);
+    if (!m) return null;
+    return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
+  }
+
+  function renderIranPlate(plate) {
+    const p = parsePlate(plate);
+    if (!p) {
+      return '<span class="iran-plate-fallback" dir="ltr">' + escapeHtml(plate || "—") + "</span>";
+    }
+    return (
+      '<span class="iran-plate" dir="ltr" title="' +
+      escapeHtml(plate) +
+      '" role="img" aria-label="' +
+      escapeHtml(plate) +
+      '">' +
+      '<span class="iran-plate-blue">' +
+      '<span class="iran-plate-flag" aria-hidden="true"></span>' +
+      '<span class="iran-plate-ir">I.R.</span>' +
+      '<span class="iran-plate-ir">IRAN</span>' +
+      "</span>" +
+      '<span class="iran-plate-main">' +
+      '<span class="iran-plate-num">' +
+      toPersianDigits(p.first) +
+      "</span>" +
+      '<span class="iran-plate-letter">' +
+      escapeHtml(p.letter) +
+      "</span>" +
+      '<span class="iran-plate-num">' +
+      toPersianDigits(p.mid) +
+      "</span>" +
+      "</span>" +
+      '<span class="iran-plate-side">' +
+      '<span class="iran-plate-iran">ایران</span>' +
+      '<span class="iran-plate-city">' +
+      toPersianDigits(p.city) +
+      "</span>" +
+      "</span>" +
+      "</span>"
+    );
+  }
+
   function isOnMissionStatus(status) {
     if (!status) return false;
     return status.includes("مأموریت") || status.includes("ماموریت");
@@ -199,7 +249,7 @@
         return (
           '<tr data-idx="' + idx + '">' +
           "<td>" + escapeHtml(c.name) + "</td>" +
-          '<td dir="ltr">' + escapeHtml(c.plate) + "</td>" +
+          "<td>" + renderIranPlate(c.plate) + "</td>" +
           "<td>" + escapeHtml(c.color) + "</td>" +
           "<td>" + carStatusBadge(c.status) + "</td>" +
           '<td class="actions">' +
@@ -686,8 +736,8 @@
             escapeHtml(r.employeeName) +
             "</td><td>" +
             escapeHtml(r.carName) +
-            '</td><td dir="ltr">' +
-            escapeHtml(r.plate) +
+            "</td><td>" +
+            renderIranPlate(r.plate) +
             "</td><td>" +
             escapeHtml(r.destination) +
             '</td><td dir="ltr">' +
