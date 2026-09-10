@@ -40,6 +40,26 @@
     return status.includes("مأموریت") || status.includes("ماموریت");
   }
 
+  function statusBadge(kind, label) {
+    const cls =
+      kind === "busy"
+        ? "badge badge-busy"
+        : kind === "free"
+          ? "badge badge-free"
+          : "badge badge-muted";
+    return '<span class="' + cls + '">' + escapeHtml(label) + "</span>";
+  }
+
+  function carStatusBadge(status) {
+    if (!status) return statusBadge("unknown", "—");
+    if (isOnMissionStatus(status)) return statusBadge("busy", status);
+    return statusBadge("free", status);
+  }
+
+  function employeeRentingBadge(renting) {
+    return renting ? statusBadge("busy", "در مأموریت") : statusBadge("free", "آزاد");
+  }
+
   function openModal(id) {
     const el = document.getElementById(id);
     if (el) el.classList.remove("hidden");
@@ -163,12 +183,38 @@
         tbody.innerHTML = "<tr><td colspan=\"5\">ماشینی ثبت نشده</td></tr>";
         return;
       }
-      tbody.innerHTML = rows.map((c, idx) => {
-        const busy = isOnMissionStatus(c.status);
-        const disabled = busy ? "disabled" : "";
-        const title = busy ? "در مأموریت — قابل ویرایش/حذف نیست" : "";
-        return "<tr data-idx=\"" + idx + "\"><td>" + escapeHtml(c.name) + "</td><td dir=\"ltr\">" + escapeHtml(c.plate) + "</td><td>" + escapeHtml(c.color) + "</td><td>" + escapeHtml(c.status || "—") + "</td><td class=\"actions\"><button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-car\" data-idx=\"" + idx + "\" " + disabled + " title=\"" + title + "\">ویرایش</button> <button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-car\" data-idx=\"" + idx + "\" " + disabled + " title=\"" + title + "\">حذف</button></td></tr>";
-      }).join("");
+      tbody.innerHTML = rows
+        .map((c, idx) => {
+          const busy = isOnMissionStatus(c.status);
+          const disabled = busy ? "disabled" : "";
+          const title = busy ? "در مأموریت — قابل ویرایش/حذف نیست" : "";
+          return (
+            "<tr data-idx=\"" +
+            idx +
+            '\"><td>" +
+            escapeHtml(c.name) +
+            '</td><td dir=\"ltr\">" +
+            escapeHtml(c.plate) +
+            "</td><td>" +
+            escapeHtml(c.color) +
+            "</td><td>" +
+            carStatusBadge(c.status) +
+            '</td><td class=\"actions\"><button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-car\" data-idx=\"' +
+            idx +
+            '\" ' +
+            disabled +
+            ' title=\"' +
+            title +
+            '\">ویرایش</button> <button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-car\" data-idx=\"' +
+            idx +
+            '\" ' +
+            disabled +
+            ' title=\"' +
+            title +
+            '\">حذف</button></td></tr>'
+          );
+        })
+        .join("");
     } catch (err) {
       tbody.innerHTML = "<tr><td colspan=\"5\">" + escapeHtml(err.message) + "</td></tr>";
       toast(err.message, "err");
@@ -213,7 +259,11 @@
       toast("پلاک ناقص است. مثال: 32 ل 316 ایران 53", "err");
       return;
     }
-    const body = { name: fd.get("name").toString().trim(), plate: plate, color: fd.get("color").toString().trim() };
+    const body = {
+      name: fd.get("name").toString().trim(),
+      plate: plate,
+      color: fd.get("color").toString().trim(),
+    };
     const btn = e.target.querySelector("[type=submit]");
     btn.disabled = true;
     try {
@@ -236,7 +286,12 @@
       toast("پلاک ناقص است", "err");
       return;
     }
-    const body = { oldPlate: $("#editCarOldPlate").value, name: $("#editCarName").value.trim(), plate: plate, color: $("#editCarColor").value.trim() };
+    const body = {
+      oldPlate: $("#editCarOldPlate").value,
+      name: $("#editCarName").value.trim(),
+      plate: plate,
+      color: $("#editCarColor").value.trim(),
+    };
     const btn = e.target.querySelector("[type=submit]");
     btn.disabled = true;
     try {
@@ -261,12 +316,38 @@
         tbody.innerHTML = "<tr><td colspan=\"5\">کارمندی ثبت نشده</td></tr>";
         return;
       }
-      tbody.innerHTML = rows.map((r, idx) => {
-        const busy = !!r.renting;
-        const disabled = busy ? "disabled" : "";
-        const title = busy ? "در مأموریت — قابل ویرایش/حذف نیست" : "";
-        return "<tr data-idx=\"" + idx + "\"><td dir=\"ltr\">" + escapeHtml(r.deviceUserId) + "</td><td dir=\"ltr\">" + escapeHtml(r.name) + "</td><td dir=\"ltr\">" + escapeHtml(r.phone || "") + "</td><td>" + (r.renting ? "بله" : "خیر") + "</td><td class=\"actions\"><button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-emp\" data-idx=\"" + idx + "\" " + disabled + " title=\"" + title + "\">ویرایش</button> <button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-emp\" data-idx=\"" + idx + "\" " + disabled + " title=\"" + title + "\">حذف</button></td></tr>";
-      }).join("");
+      tbody.innerHTML = rows
+        .map((r, idx) => {
+          const busy = !!r.renting;
+          const disabled = busy ? "disabled" : "";
+          const title = busy ? "در مأموریت — قابل ویرایش/حذف نیست" : "";
+          return (
+            "<tr data-idx=\"" +
+            idx +
+            '\"><td dir=\"ltr\">" +
+            escapeHtml(r.deviceUserId) +
+            '</td><td dir=\"ltr\">" +
+            escapeHtml(r.name) +
+            '</td><td dir=\"ltr\">" +
+            escapeHtml(r.phone || "") +
+            "</td><td>" +
+            employeeRentingBadge(r.renting) +
+            '</td><td class=\"actions\"><button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-emp\" data-idx=\"' +
+            idx +
+            '\" ' +
+            disabled +
+            ' title=\"' +
+            title +
+            '\">ویرایش</button> <button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-emp\" data-idx=\"' +
+            idx +
+            '\" ' +
+            disabled +
+            ' title=\"' +
+            title +
+            '\">حذف</button></td></tr>'
+          );
+        })
+        .join("");
     } catch (err) {
       tbody.innerHTML = "<tr><td colspan=\"5\">" + escapeHtml(err.message) + "</td></tr>";
       toast(err.message, "err");
@@ -305,7 +386,11 @@
   $("#formEmployee").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const body = { name: fd.get("name").toString().trim(), phone: fd.get("phone").toString().trim(), fingerIndex: Number(fd.get("fingerIndex")) };
+    const body = {
+      name: fd.get("name").toString().trim(),
+      phone: fd.get("phone").toString().trim(),
+      fingerIndex: Number(fd.get("fingerIndex")),
+    };
     const btn = $("#btnRegisterEmp");
     const status = $("#empRegisterStatus");
     btn.disabled = true;
@@ -327,7 +412,10 @@
   $("#formEditEmployee").addEventListener("submit", async (e) => {
     e.preventDefault();
     const id = $("#editEmpId").value.trim();
-    const body = { name: $("#editEmpName").value.trim(), phone: $("#editEmpPhone").value.trim() };
+    const body = {
+      name: $("#editEmpName").value.trim(),
+      phone: $("#editEmpPhone").value.trim(),
+    };
     const btn = e.target.querySelector("[type=submit]");
     btn.disabled = true;
     try {
@@ -395,7 +483,9 @@
     $(isPickup ? "#pickupAuthName" : "#returnAuthName").textContent = auth.name || "—";
     $(isPickup ? "#pickupAuthId" : "#returnAuthId").textContent = auth.deviceUserId || "—";
     $(isPickup ? "#pickupAuthPhone" : "#returnAuthPhone").textContent = auth.phone || "—";
-    $(isPickup ? "#pickupAuthRenting" : "#returnAuthRenting").textContent = auth.renting ? "در مأموریت" : "آزاد";
+    $(isPickup ? "#pickupAuthRenting" : "#returnAuthRenting").textContent = auth.renting
+      ? "در مأموریت"
+      : "آزاد";
     if (isPickup) box.classList.add(auth.renting ? "warn" : "ok");
     else box.classList.add(auth.renting ? "ok" : "warn");
   }
@@ -504,9 +594,19 @@
         sel.innerHTML = "<option value=\"\">ماشینی آزاد نیست</option>";
         return;
       }
-      sel.innerHTML = cars.map(function (c) {
-        return "<option value=\"" + escapeHtml(c.plate) + "\">" + escapeHtml(c.name) + " — " + escapeHtml(c.plate) + "</option>";
-      }).join("");
+      sel.innerHTML = cars
+        .map(function (c) {
+          return (
+            '<option value=\"' +
+            escapeHtml(c.plate) +
+            '\">' +
+            escapeHtml(c.name) +
+            " — " +
+            escapeHtml(c.plate) +
+            "</option>"
+          );
+        })
+        .join("");
     } catch (err) {
       sel.innerHTML = "<option value=\"\">" + escapeHtml(err.message) + "</option>";
     }
@@ -557,7 +657,10 @@
     btn.disabled = true;
     try {
       const r = await Api.returnCar(body);
-      toast(r.message || (r.ok === false ? "ناموفق" : "برگشت ثبت شد"), r.ok === false ? "err" : "ok");
+      toast(
+        r.message || (r.ok === false ? "ناموفق" : "برگشت ثبت شد"),
+        r.ok === false ? "err" : "ok"
+      );
       clearAuth("return");
       await loadAvailablePlates();
     } catch (err) {
@@ -575,9 +678,27 @@
         tbody.innerHTML = "<tr><td colspan=\"7\">گزارشی نیست</td></tr>";
         return;
       }
-      tbody.innerHTML = rows.map(function (r) {
-        return "<tr><td dir=\"ltr\">" + escapeHtml(r.deviceUserId) + "</td><td>" + escapeHtml(r.employeeName) + "</td><td>" + escapeHtml(r.carName) + "</td><td dir=\"ltr\">" + escapeHtml(r.plate) + "</td><td>" + escapeHtml(r.destination) + "</td><td dir=\"ltr\">" + escapeHtml(r.pickupDate) + "</td><td dir=\"ltr\">" + escapeHtml(r.returnDate) + "</td></tr>";
-      }).join("");
+      tbody.innerHTML = rows
+        .map(function (r) {
+          return (
+            '<tr><td dir=\"ltr\">' +
+            escapeHtml(r.deviceUserId) +
+            "</td><td>" +
+            escapeHtml(r.employeeName) +
+            "</td><td>" +
+            escapeHtml(r.carName) +
+            '</td><td dir=\"ltr\">' +
+            escapeHtml(r.plate) +
+            "</td><td>" +
+            escapeHtml(r.destination) +
+            '</td><td dir=\"ltr\">' +
+            escapeHtml(r.pickupDate) +
+            '</td><td dir=\"ltr\">' +
+            escapeHtml(r.returnDate) +
+            "</td></tr>"
+          );
+        })
+        .join("");
     } catch (err) {
       tbody.innerHTML = "<tr><td colspan=\"7\">" + escapeHtml(err.message) + "</td></tr>";
       toast(err.message, "err");
