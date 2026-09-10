@@ -1,5 +1,18 @@
 (() => {
-  /* RESTORE: please replace this file with full app.js from commit e5a10648 or local artifacts after pull */
-  console.error('app.js needs full restore - run: git checkout e5a10648 -- src/main/resources/static/js/app.js');
-  document.body && (document.body.innerHTML = '<p dir="rtl" style="padding:2rem;font-family:Tahoma">لطفاً app.js را از کامیت e5a106 بازگردانی کنید: <code>git checkout e5a10648 -- src/main/resources/static/js/app.js</code></p>');
+  const parts = ["/js/app_part_0.js", "/js/app_part_1.js", "/js/app_part_2.js", "/js/app_part_3.js", "/js/app_part_4.js"];
+  async function boot() {
+    let code = "";
+    for (const p of parts) {
+      const r = await fetch(p, { cache: "no-store" });
+      if (!r.ok) throw new Error("load " + p + " " + r.status);
+      code += await r.text();
+    }
+    (0, eval)("(() => {\n" + code + "\n})();");
+  }
+  boot().catch(function (e) {
+    console.error(e);
+    document.body.insertAdjacentHTML("afterbegin",
+      "<p dir=\"rtl\" style=\"padding:1rem;background:#400;color:#fff\">خطا در بارگذاری app.js: " +
+      String(e.message || e) + "</p>");
+  });
 })();
