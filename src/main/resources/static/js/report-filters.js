@@ -1,6 +1,7 @@
 (() => {
   const $ = (sel) => document.querySelector(sel);
 
+  // Avoid HTML entities in source (tools may decode them and break the file)
   function escapeHtml(s) {
     const amp = String.fromCharCode(38) + "amp;";
     const lt = String.fromCharCode(38) + "lt;";
@@ -54,32 +55,18 @@
       return '<span class="iran-plate-fallback" dir="ltr">' + escapeHtml(plate || "—") + "</span>";
     }
     return (
-      '<span class="iran-plate" dir="ltr" title="' +
-      escapeHtml(plate) +
-      '">' +
+      '<span class="iran-plate" dir="ltr" title="' + escapeHtml(plate) + '">' +
       '<span class="iran-plate-blue">' +
       '<span class="iran-plate-flag" aria-hidden="true"></span>' +
       '<span class="iran-plate-ir">I.R.</span>' +
-      '<span class="iran-plate-ir">IRAN</span>' +
-      "</span>" +
+      '<span class="iran-plate-ir">IRAN</span></span>' +
       '<span class="iran-plate-main">' +
-      '<span class="iran-plate-num">' +
-      toPersianDigits(p.first) +
-      "</span>" +
-      '<span class="iran-plate-letter">' +
-      escapeHtml(p.letter) +
-      "</span>" +
-      '<span class="iran-plate-num">' +
-      toPersianDigits(p.mid) +
-      "</span>" +
-      "</span>" +
+      '<span class="iran-plate-num">' + toPersianDigits(p.first) + "</span>" +
+      '<span class="iran-plate-letter">' + escapeHtml(p.letter) + "</span>" +
+      '<span class="iran-plate-num">' + toPersianDigits(p.mid) + "</span></span>" +
       '<span class="iran-plate-side">' +
       '<span class="iran-plate-iran">ایران</span>' +
-      '<span class="iran-plate-city">' +
-      toPersianDigits(p.city) +
-      "</span>" +
-      "</span>" +
-      "</span>"
+      '<span class="iran-plate-city">' + toPersianDigits(p.city) + "</span></span></span>"
     );
   }
 
@@ -160,6 +147,28 @@
     return parts.length ? "فیلتر فعال: " + parts.join(" · ") : "بدون فیلتر — همهٔ سفرها";
   }
 
+  function buildExportQuery() {
+    document.querySelectorAll(".jalali-date-parts").forEach(syncJalaliHidden);
+    const f = getFilters();
+    const q = new URLSearchParams();
+    Object.keys(f).forEach(function (k) {
+      const v = f[k];
+      if (v != null && String(v).trim() !== "") q.set(k, String(v).trim());
+    });
+    const qs = q.toString();
+    return qs ? "?" + qs : "";
+  }
+
+  function downloadExport(path) {
+    const a = document.createElement("a");
+    a.href = path + buildExportQuery();
+    a.setAttribute("download", "");
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
   async function loadReportFiltered() {
     const tbody = $("#reportTable");
     const summary = $("#reportFilterSummary");
@@ -190,28 +199,32 @@
             "<tr>" +
             '<td dir="ltr">' +
             escapeHtml(r.deviceUserId || "—") +
-            "</td><td>" +
+            "</td>" +
+            "<td>" +
             escapeHtml(r.employeeName || "—") +
-            "</td><td>" +
+            "</td>" +
+            "<td>" +
             escapeHtml(r.carName || "—") +
-            (r.carColor
-              ? ' <span class="muted small">(' + escapeHtml(r.carColor) + ")</span>"
-              : "") +
-            "</td><td>" +
+            "</td>" +
+            "<td>" +
             renderIranPlate(r.plate) +
-            "</td><td>" +
+            "</td>" +
+            "<td>" +
             escapeHtml(r.destination || "—") +
-            '</td><td dir="ltr" class="small">' +
+            "</td>" +
+            '<td dir="ltr">' +
             escapeHtml(r.pickupDate || "—") +
-            '</td><td class="small">' +
+            "</td>" +
+            "<td>" +
             ret +
-            "</td></tr>"
+            "</td>" +
+            "</tr>"
           );
         })
         .join("");
-    } catch (err) {
+    } catch (e) {
       tbody.innerHTML =
-        '<tr><td colspan="7">' + escapeHtml(err.message || err) + "</td></tr>";
+        '<tr><td colspan="7">خطا: ' + escapeHtml(e.message || String(e)) + "</td></tr>";
     }
   }
 
@@ -224,7 +237,6 @@
         e.preventDefault();
         e.stopPropagation();
         loadReportFiltered();
-        return false;
       });
     }
 
@@ -255,6 +267,24 @@
         e.preventDefault();
         e.stopPropagation();
         loadReportFiltered();
+      });
+    }
+
+    const btnCsv = $("#btnExportCsv");
+    if (btnCsv) {
+      btnCsv.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        downloadExport("/api/rentals/report/export.csv");
+      });
+    }
+
+    const btnXlsx = $("#btnExportXlsx");
+    if (btnXlsx) {
+      btnXlsx.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        downloadExport("/api/rentals/report/export.xlsx");
       });
     }
 
