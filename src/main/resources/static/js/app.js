@@ -1,18 +1,21 @@
 (() => {
-  const parts = ["/js/part0.js", "/js/part1.js", "/js/part2.js", "/js/part3.js", "/js/part4.js"];
-  async function boot() {
-    let code = "";
-    for (const p of parts) {
-      const r = await fetch(p + "?v=2", { cache: "no-store" });
-      if (!r.ok) throw new Error("load " + p + " " + r.status);
-      code += await r.text();
-    }
-    (0, eval)("(() => {\n" + code + "\n})();");
-  }
-  boot().catch(function (e) {
-    console.error(e);
-    document.body.insertAdjacentHTML("afterbegin",
-      '<p dir="rtl" style="padding:1rem;background:#400;color:#fff">خطا در بارگذاری app.js: ' +
-      String(e && e.message || e) + "</p>");
-  });
+  const URL =
+    "https://raw.githubusercontent.com/yusyn/Saman/e5a10648df39cca704a2aaf11ca4181569683174/src/main/resources/static/js/app.js";
+  fetch(URL, { cache: "no-store" })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.text();
+    })
+    .then(function (code) {
+      (0, eval)(code);
+    })
+    .catch(function (e) {
+      console.error(e);
+      document.body.insertAdjacentHTML(
+        "afterbegin",
+        '<p dir="rtl" style="padding:1rem;background:#400;color:#fff">خطا در بارگذاری app.js: ' +
+          String(e && e.message || e) +
+          " — از git checkout e5a10648 -- src/main/resources/static/js/app.js استفاده کنید</p>"
+      );
+    });
 })();
