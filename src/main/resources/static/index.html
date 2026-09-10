@@ -165,7 +165,12 @@
               </div>
               <div class="auth-actions">
                 <button type="button" class="btn btn-primary" id="btnVerifyPickup">احراز هویت برای تحویل</button>
+                <button type="button" class="btn btn-danger hidden" id="btnCancelPickupVerify">انصراف از احراز</button>
                 <button type="button" class="btn btn-ghost hidden" id="btnClearPickupAuth">پاک کردن احراز</button>
+              </div>
+              <div class="verify-wait hidden" id="pickupVerifyWait" role="status" aria-live="polite">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>منتظر اثر انگشت روی دستگاه…</span>
               </div>
               <p class="status-line" id="pickupVerifyStatus"></p>
             </div>
@@ -191,7 +196,12 @@
               </div>
               <div class="auth-actions">
                 <button type="button" class="btn btn-primary" id="btnVerifyReturn">احراز هویت برای برگشت</button>
+                <button type="button" class="btn btn-danger hidden" id="btnCancelReturnVerify">انصراف از احراز</button>
                 <button type="button" class="btn btn-ghost hidden" id="btnClearReturnAuth">پاک کردن احراز</button>
+              </div>
+              <div class="verify-wait hidden" id="returnVerifyWait" role="status" aria-live="polite">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>منتظر اثر انگشت روی دستگاه…</span>
               </div>
               <p class="status-line" id="returnVerifyStatus"></p>
             </div>
