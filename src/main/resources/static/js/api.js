@@ -99,6 +99,14 @@ const Api = (() => {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    report: () => request("/api/rentals/report"),
+    report: (params = {}) => {
+      const q = new URLSearchParams();
+      Object.keys(params || {}).forEach((k) => {
+        const v = params[k];
+        if (v != null && String(v).trim() !== "") q.set(k, String(v).trim());
+      });
+      const qs = q.toString();
+      return request("/api/rentals/report" + (qs ? "?" + qs : ""));
+    },
   };
 })();
