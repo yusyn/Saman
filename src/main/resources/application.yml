@@ -22,7 +22,7 @@ saman:
     enabled: ${SAMAN_UI_ENABLED:true}
 
 fingerprint:
-  host: ${FINGERPRINT_HOST:192.168.30.200}
+  host: ${FINGERPRINT_HOST:192.168.30.210}
   port: ${FINGERPRINT_PORT:4370}
   mock: ${FINGERPRINT_MOCK:false}
   connect-timeout-ms: ${FINGERPRINT_CONNECT_TIMEOUT_MS:8000}
