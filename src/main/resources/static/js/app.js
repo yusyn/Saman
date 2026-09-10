@@ -184,48 +184,43 @@
 
   async function loadCars() {
     const tbody = $("#carsTable");
-    tbody.innerHTML = "<tr><td colspan=\"5\">در حال بارگذاری…</td></tr>";
+    tbody.innerHTML = '<tr><td colspan="5">در حال بارگذاری…</td></tr>';
     try {
       const rows = await Api.cars();
       carsCache = rows || [];
       if (!rows.length) {
-        tbody.innerHTML = "<tr><td colspan=\"5\">ماشینی ثبت نشده</td></tr>";
+        tbody.innerHTML = '<tr><td colspan="5">ماشینی ثبت نشده</td></tr>';
         return;
       }
-      tbody.innerHTML = rows
-        .map((c, idx) => {
-          const busy = isOnMissionStatus(c.status);
-          const disabled = busy ? "disabled" : "";
-          const title = busy ? "در مأموریت — قابل ویرایش/حذف نیست" : "";
-          return (
-            "<tr data-idx=\"" +
-            idx +
-            "\"><td>" +
-            escapeHtml(c.name) +
-            "</td><td dir=\"ltr\">" +
-            escapeHtml(c.plate) +
-            "</td><td>" +
-            escapeHtml(c.color) +
-            "</td><td>" +
-            carStatusBadge(c.status) +
-            "</td><td class=\"actions\"><button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-car\" data-idx=\"" +
-            idx +
-            "\" " +
-            disabled +
-            " title=\"" +
-            title +
-            "\">ویرایش</button> <button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-car\" data-idx=\"" +
-            idx +
-            "\" " +
-            disabled +
-            " title=\"" +
-            title +
-            "\">حذف</button></td></tr>"
-          );
-        })
-        .join("");
+      tbody.innerHTML = rows.map(function (c, idx) {
+        const busy = isOnMissionStatus(c.status);
+        const disabled = busy ? "disabled" : "";
+        const title = busy ? "در مأموریت — قابل ویرایش/حذف نیست" : "";
+        return (
+          '<tr data-idx="' + idx + '">' +
+          "<td>" + escapeHtml(c.name) + "</td>" +
+          '<td dir="ltr">' + escapeHtml(c.plate) + "</td>" +
+          "<td>" + escapeHtml(c.color) + "</td>" +
+          "<td>" + carStatusBadge(c.status) + "</td>" +
+          '<td class="actions">' +
+          '<button type="button" class="btn btn-sm" data-action="edit-car" data-idx="' +
+          idx +
+          '" ' +
+          disabled +
+          ' title="' +
+          title +
+          '">ویرایش</button> ' +
+          '<button type="button" class="btn btn-sm btn-danger" data-action="del-car" data-idx="' +
+          idx +
+          '" ' +
+          disabled +
+          ' title="' +
+          title +
+          '">حذف</button></td></tr>'
+        );
+      }).join("");
     } catch (err) {
-      tbody.innerHTML = "<tr><td colspan=\"5\">" + escapeHtml(err.message) + "</td></tr>";
+      tbody.innerHTML = '<tr><td colspan="5">' + escapeHtml(err.message) + "</td></tr>";
       toast(err.message, "err");
     }
   }
@@ -317,48 +312,43 @@
 
   async function loadEmployees() {
     const tbody = $("#employeesTable");
-    tbody.innerHTML = "<tr><td colspan=\"5\">در حال بارگذاری…</td></tr>";
+    tbody.innerHTML = '<tr><td colspan="5">در حال بارگذاری…</td></tr>';
     try {
       const rows = await Api.employees();
       employeesCache = rows || [];
       if (!rows.length) {
-        tbody.innerHTML = "<tr><td colspan=\"5\">کارمندی ثبت نشده</td></tr>";
+        tbody.innerHTML = '<tr><td colspan="5">کارمندی ثبت نشده</td></tr>';
         return;
       }
-      tbody.innerHTML = rows
-        .map((r, idx) => {
-          const busy = !!r.renting;
-          const disabled = busy ? "disabled" : "";
-          const title = busy ? "در مأموریت — قابل ویرایش/حذف نیست" : "";
-          return (
-            "<tr data-idx=\"" +
-            idx +
-            "\"><td dir=\"ltr\">" +
-            escapeHtml(r.deviceUserId) +
-            "</td><td dir=\"ltr\">" +
-            escapeHtml(r.name) +
-            "</td><td dir=\"ltr\">" +
-            escapeHtml(r.phone || "") +
-            "</td><td>" +
-            employeeRentingBadge(r.renting) +
-            "</td><td class=\"actions\"><button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-emp\" data-idx=\"" +
-            idx +
-            "\" " +
-            disabled +
-            " title=\"" +
-            title +
-            "\">ویرایش</button> <button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-emp\" data-idx=\"" +
-            idx +
-            "\" " +
-            disabled +
-            " title=\"" +
-            title +
-            "\">حذف</button></td></tr>"
-          );
-        })
-        .join("");
+      tbody.innerHTML = rows.map(function (r, idx) {
+        const busy = !!r.renting;
+        const disabled = busy ? "disabled" : "";
+        const title = busy ? "در مأموریت — قابل ویرایش/حذف نیست" : "";
+        return (
+          '<tr data-idx="' + idx + '">' +
+          '<td dir="ltr">' + escapeHtml(r.deviceUserId) + "</td>" +
+          '<td dir="ltr">' + escapeHtml(r.name) + "</td>" +
+          '<td dir="ltr">' + escapeHtml(r.phone || "") + "</td>" +
+          "<td>" + employeeRentingBadge(r.renting) + "</td>" +
+          '<td class="actions">' +
+          '<button type="button" class="btn btn-sm" data-action="edit-emp" data-idx="' +
+          idx +
+          '" ' +
+          disabled +
+          ' title="' +
+          title +
+          '">ویرایش</button> ' +
+          '<button type="button" class="btn btn-sm btn-danger" data-action="del-emp" data-idx="' +
+          idx +
+          '" ' +
+          disabled +
+          ' title="' +
+          title +
+          '">حذف</button></td></tr>'
+        );
+      }).join("");
     } catch (err) {
-      tbody.innerHTML = "<tr><td colspan=\"5\">" + escapeHtml(err.message) + "</td></tr>";
+      tbody.innerHTML = '<tr><td colspan="5">' + escapeHtml(err.message) + "</td></tr>";
       toast(err.message, "err");
     }
   }
@@ -596,11 +586,11 @@
 
   async function loadAvailablePlates() {
     const sel = $("#pickupPlate");
-    sel.innerHTML = "<option value=\"\">در حال بارگذاری…</option>";
+    sel.innerHTML = '<option value="">در حال بارگذاری…</option>';
     try {
       const cars = await Api.carsAvailable();
       if (!cars.length) {
-        sel.innerHTML = "<option value=\"\">ماشینی آزاد نیست</option>";
+        sel.innerHTML = '<option value="">ماشینی آزاد نیست</option>';
         return;
       }
       sel.innerHTML = cars
@@ -617,7 +607,7 @@
         })
         .join("");
     } catch (err) {
-      sel.innerHTML = "<option value=\"\">" + escapeHtml(err.message) + "</option>";
+      sel.innerHTML = '<option value="">' + escapeHtml(err.message) + "</option>";
     }
   }
 
@@ -680,11 +670,11 @@
 
   async function loadReport() {
     const tbody = $("#reportTable");
-    tbody.innerHTML = "<tr><td colspan=\"7\">در حال بارگذاری…</td></tr>";
+    tbody.innerHTML = '<tr><td colspan="7">در حال بارگذاری…</td></tr>';
     try {
       const rows = await Api.report();
       if (!rows.length) {
-        tbody.innerHTML = "<tr><td colspan=\"7\">گزارشی نیست</td></tr>";
+        tbody.innerHTML = '<tr><td colspan="7">گزارشی نیست</td></tr>';
         return;
       }
       tbody.innerHTML = rows
@@ -709,7 +699,7 @@
         })
         .join("");
     } catch (err) {
-      tbody.innerHTML = "<tr><td colspan=\"7\">" + escapeHtml(err.message) + "</td></tr>";
+      tbody.innerHTML = '<tr><td colspan="7">' + escapeHtml(err.message) + "</td></tr>";
       toast(err.message, "err");
     }
   }
