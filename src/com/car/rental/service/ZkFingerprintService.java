@@ -22,6 +22,9 @@ import java.util.logging.Logger;
  * ZKTeco TCP client (port 4370).
  * Verification: ENABLE + STARTVERIFY + REG_EVENT, wait for ATTLOG.
  * Enroll: STARTENROLL + EF_ENROLLFINGER realtime events.
+ *
+ * NOTE: Full enroll implementation should be restored from commit 31788419 if device enroll is needed.
+ * Verify path is functional. With FINGERPRINT_MOCK=true this class is not used.
  */
 public class ZkFingerprintService implements FingerprintService {
 
@@ -367,31 +370,40 @@ public class ZkFingerprintService implements FingerprintService {
     @Override
     public synchronized void createUser(String deviceUserId, String name) throws FingerprintException {
         ensureConnected();
-        throw new FingerprintException("createUser not fully restored — pull previous full file from commit 31788419");
+        throw new FingerprintException("createUser not fully restored — restore full ZkFingerprintService from commit 31788419");
+    }
+
+    @Override
+    public synchronized void updateUserName(String deviceUserId, String name) throws FingerprintException {
+        ensureConnected();
+        throw new FingerprintException("updateUserName not fully restored — restore full ZkFingerprintService from commit 31788419");
     }
 
     @Override
     public synchronized void deleteUser(String deviceUserId) throws FingerprintException {
         ensureConnected();
-        throw new FingerprintException("deleteUser not fully restored — pull previous full file from commit 31788419");
+        throw new FingerprintException("deleteUser not fully restored — restore full ZkFingerprintService from commit 31788419");
     }
 
     @Override
-    public synchronized EnrollResult enrollFingerOnly(String deviceUserId, int fingerIndex) throws FingerprintException {
+    public synchronized void enrollFingerOnly(String deviceUserId, int fingerIndex) throws FingerprintException {
         ensureConnected();
-        throw new FingerprintException("enrollFingerOnly not fully restored — pull previous full file from commit 31788419");
+        throw new FingerprintException("enrollFingerOnly not fully restored — restore full ZkFingerprintService from commit 31788419");
     }
 
     @Override
-    public synchronized EnrollResult registerUserWithFingerprint(String deviceUserId, String name, int fingerIndex)
+    public synchronized void registerUserWithFingerprint(String deviceUserId, String name, int fingerIndex)
             throws FingerprintException {
         ensureConnected();
-        throw new FingerprintException("registerUserWithFingerprint not fully restored — pull previous full file from commit 31788419");
+        throw new FingerprintException("registerUserWithFingerprint not fully restored — restore full ZkFingerprintService from commit 31788419");
     }
 
     @Override
-    public void cancelEnroll() {
-        // no-op in reduced restore
+    public void startEnroll(String deviceUserId, int fingerIndex,
+                            Consumer<EnrollResult> onFinished,
+                            Consumer<FingerprintException> onError) throws FingerprintException {
+        ensureConnected();
+        throw new FingerprintException("startEnroll not fully restored — restore full ZkFingerprintService from commit 31788419");
     }
 
     @Override
