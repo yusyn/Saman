@@ -1,7 +1,6 @@
 (() => {
   const $ = (sel) => document.querySelector(sel);
 
-  // Avoid HTML entities in source (tools may decode them and break the file)
   function escapeHtml(s) {
     const amp = String.fromCharCode(38) + "amp;";
     const lt = String.fromCharCode(38) + "lt;";
@@ -55,18 +54,32 @@
       return '<span class="iran-plate-fallback" dir="ltr">' + escapeHtml(plate || "—") + "</span>";
     }
     return (
-      '<span class="iran-plate" dir="ltr" title="' + escapeHtml(plate) + '">' +
+      '<span class="iran-plate" dir="ltr" title="' +
+      escapeHtml(plate) +
+      '">' +
       '<span class="iran-plate-blue">' +
       '<span class="iran-plate-flag" aria-hidden="true"></span>' +
       '<span class="iran-plate-ir">I.R.</span>' +
-      '<span class="iran-plate-ir">IRAN</span></span>' +
+      '<span class="iran-plate-ir">IRAN</span>' +
+      "</span>" +
       '<span class="iran-plate-main">' +
-      '<span class="iran-plate-num">' + toPersianDigits(p.first) + "</span>" +
-      '<span class="iran-plate-letter">' + escapeHtml(p.letter) + "</span>" +
-      '<span class="iran-plate-num">' + toPersianDigits(p.mid) + "</span></span>' +
+      '<span class="iran-plate-num">' +
+      toPersianDigits(p.first) +
+      "</span>" +
+      '<span class="iran-plate-letter">' +
+      escapeHtml(p.letter) +
+      "</span>" +
+      '<span class="iran-plate-num">' +
+      toPersianDigits(p.mid) +
+      "</span>" +
+      "</span>" +
       '<span class="iran-plate-side">' +
       '<span class="iran-plate-iran">ایران</span>' +
-      '<span class="iran-plate-city">' + toPersianDigits(p.city) + "</span></span></span>"
+      '<span class="iran-plate-city">' +
+      toPersianDigits(p.city) +
+      "</span>" +
+      "</span>" +
+      "</span>"
     );
   }
 
