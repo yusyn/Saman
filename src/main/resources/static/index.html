@@ -1,1 +1,355 @@
-SEE_LOCAL_FILE
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>سمن — پنل مدیریت</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="stylesheet" href="/css/report-extra.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">س</span>
+        <div>
+          <strong>سمن</strong>
+          <small>سامانه مدیریت ناوگان</small>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <button type="button" class="nav-item active" data-view="dashboard">وضعیت</button>
+        <button type="button" class="nav-item" data-view="cars">ماشین‌ها</button>
+        <button type="button" class="nav-item" data-view="employees">کارمندان</button>
+        <button type="button" class="nav-item" data-view="rentals">تحویل / برگشت</button>
+        <button type="button" class="nav-item" data-view="report">گزارش</button>
+      </nav>
+      <div class="sidebar-foot" id="healthBadge">در حال بررسی…</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <h1 id="pageTitle">وضعیت</h1>
+        <p class="muted" id="pageHint">اتصال به API همین سرور</p>
+      </header>
+
+      <div id="toast" class="toast hidden" role="status"></div>
+
+      <section class="view active" id="view-dashboard">
+        <div class="cards">
+          <div class="card">
+            <h3>سلامت سرویس</h3>
+            <pre id="healthJson" class="code-block">—</pre>
+            <button type="button" class="btn" id="btnRefreshHealth">بروزرسانی</button>
+          </div>
+          <div class="card">
+            <h3>راهنمای سریع</h3>
+            <ul class="tips">
+              <li>این صفحه از خود Spring روی پورت ۸۰۸۰ سرو می‌شود.</li>
+              <li>ثبت کارمند با اثر انگشت ممکن است ۳۰ تا ۶۰ ثانیه طول بکشد.</li>
+              <li>دستگاه ZK باید از سرور روی پورت ۴۳۷۰ در دسترس باشد.</li>
+              <li>ماشین یا کارمند در مأموریت قابل ویرایش/حذف نیست.</li>
+              <li>تحویل و برگشت هر کدام احراز اثرانگشت جدا دارند؛ شناسه دستی نیست.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-cars">
+        <div class="split">
+          <div class="card">
+            <div class="card-head">
+              <h3>لیست ماشین‌ها</h3>
+              <button type="button" class="btn btn-ghost" id="btnRefreshCars">بروزرسانی</button>
+            </div>
+            <div class="table-wrap">
+              <table class="table-cars">
+                <thead>
+                  <tr><th>نام</th><th>پلاک</th><th>رنگ</th><th>وضعیت</th><th>عملیات</th></tr>
+                </thead>
+                <tbody id="carsTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <h3>ثبت ماشین جدید</h3>
+            <form id="formCar" class="form">
+              <label>نام / مدل<input name="name" required placeholder="Pride" /></label>
+              <label>پلاک
+                <div class="plate-input" dir="ltr" id="plateWidget">
+                  <input type="text" id="plateFirst" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="32" aria-label="دو رقم اول" />
+                  <select id="plateLetter" aria-label="حرف پلاک">
+                    <option value="الف">الف</option>
+                    <option value="ب">ب</option>
+                    <option value="ج">ج</option>
+                    <option value="د">د</option>
+                    <option value="س">س</option>
+                    <option value="ص">ص</option>
+                    <option value="ط">ط</option>
+                    <option value="ق">ق</option>
+                    <option value="گ">گ</option>
+                    <option value="ل" selected>ل</option>
+                    <option value="م">م</option>
+                    <option value="ن">ن</option>
+                    <option value="و">و</option>
+                    <option value="هـ">هـ</option>
+                    <option value="ی">ی</option>
+                  </select>
+                  <input type="text" id="plateMid" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="316" aria-label="سه رقم وسط" />
+                  <span class="plate-iran">ایران</span>
+                  <input type="text" id="plateCity" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="53" aria-label="کد شهر" />
+                </div>
+              </label>
+              <label>رنگ<input name="color" required placeholder="White" /></label>
+              <button type="submit" class="btn btn-primary">ذخیره ماشین</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-employees">
+        <div class="split">
+          <div class="card">
+            <div class="card-head">
+              <h3>لیست کارمندان</h3>
+              <button type="button" class="btn btn-ghost" id="btnRefreshEmployees">بروزرسانی</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>شناسه</th><th>نام</th><th>تلفن</th><th>مأموریت</th><th>عملیات</th></tr>
+                </thead>
+                <tbody id="employeesTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <h3>ثبت کارمند + اثر انگشت</h3>
+            <p class="muted small">نام انگلیسی؛ بعد از ارسال انگشت را روی دستگاه بگذارید.</p>
+            <form id="formEmployee" class="form">
+              <label>نام کامل (انگلیسی)<input name="name" required placeholder="Ali Rezaei" dir="ltr" /></label>
+              <label>تلفن<input name="phone" placeholder="0912…" dir="ltr" /></label>
+              <label>انگشت
+                <select name="fingerIndex">
+                  <option value="0">0 — کوچک چپ</option>
+                  <option value="1">1 — انگشتری چپ</option>
+                  <option value="2">2 — میانی چپ</option>
+                  <option value="3">3 — اشاره چپ</option>
+                  <option value="4">4 — شست چپ</option>
+                  <option value="5" selected>5 — شست راست</option>
+                  <option value="6">6 — اشاره راست</option>
+                  <option value="7">7 — میانی راست</option>
+                  <option value="8">8 — انگشتری راست</option>
+                  <option value="9">9 — کوچک راست</option>
+                </select>
+              </label>
+              <button type="submit" class="btn btn-primary" id="btnRegisterEmp">ثبت و دریافت اثر انگشت</button>
+            </form>
+            <p class="status-line" id="empRegisterStatus"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-rentals">
+        <div class="cards two">
+          <div class="card rental-card">
+            <h3>تحویل ماشین</h3>
+            <p class="muted small">ابتدا با اثر انگشت احراز کنید؛ شناسه به‌صورت دستی وارد نمی‌شود.</p>
+            <div class="auth-box" id="pickupAuthBox">
+              <p class="auth-placeholder" id="pickupAuthPlaceholder">کارمند احراز نشده</p>
+              <div class="auth-profile hidden" id="pickupAuthProfile">
+                <div class="auth-row"><span>نام</span><strong id="pickupAuthName">—</strong></div>
+                <div class="auth-row"><span>شناسه</span><strong dir="ltr" id="pickupAuthId">—</strong></div>
+                <div class="auth-row"><span>تلفن</span><strong dir="ltr" id="pickupAuthPhone">—</strong></div>
+                <div class="auth-row"><span>وضعیت مأموریت</span><strong id="pickupAuthRenting">—</strong></div>
+              </div>
+              <div class="auth-actions">
+                <button type="button" class="btn btn-primary" id="btnVerifyPickup">احراز هویت برای تحویل</button>
+                <button type="button" class="btn btn-danger hidden" id="btnCancelPickupVerify">انصراف از احراز</button>
+                <button type="button" class="btn btn-ghost hidden" id="btnClearPickupAuth">پاک کردن احراز</button>
+              </div>
+              <div class="verify-wait hidden" id="pickupVerifyWait" role="status" aria-live="polite">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>منتظر اثر انگشت روی دستگاه…</span>
+              </div>
+              <p class="status-line" id="pickupVerifyStatus"></p>
+            </div>
+            <form id="formPickup" class="form">
+              <label>پلاک آزاد
+                <select name="plate" id="pickupPlate" required></select>
+              </label>
+              <label>مقصد<input name="destination" required placeholder="تهران" /></label>
+              <button type="submit" class="btn btn-primary" id="btnPickupSubmit" disabled>ثبت تحویل</button>
+            </form>
+          </div>
+
+          <div class="card rental-card">
+            <h3>برگشت ماشین</h3>
+            <p class="muted small">احراز جدا از تحویل است؛ فقط کارمند در مأموریت می‌تواند برگشت بزند.</p>
+            <div class="auth-box" id="returnAuthBox">
+              <p class="auth-placeholder" id="returnAuthPlaceholder">کارمند احراز نشده</p>
+              <div class="auth-profile hidden" id="returnAuthProfile">
+                <div class="auth-row"><span>نام</span><strong id="returnAuthName">—</strong></div>
+                <div class="auth-row"><span>شناسه</span><strong dir="ltr" id="returnAuthId">—</strong></div>
+                <div class="auth-row"><span>تلفن</span><strong dir="ltr" id="returnAuthPhone">—</strong></div>
+                <div class="auth-row"><span>وضعیت مأموریت</span><strong id="returnAuthRenting">—</strong></div>
+              </div>
+              <div class="auth-actions">
+                <button type="button" class="btn btn-primary" id="btnVerifyReturn">احراز هویت برای برگشت</button>
+                <button type="button" class="btn btn-danger hidden" id="btnCancelReturnVerify">انصراف از احراز</button>
+                <button type="button" class="btn btn-ghost hidden" id="btnClearReturnAuth">پاک کردن احراز</button>
+              </div>
+              <div class="verify-wait hidden" id="returnVerifyWait" role="status" aria-live="polite">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>منتظر اثر انگشت روی دستگاه…</span>
+              </div>
+              <p class="status-line" id="returnVerifyStatus"></p>
+            </div>
+            <form id="formReturn" class="form">
+              <button type="submit" class="btn btn-primary" id="btnReturnSubmit" disabled>ثبت برگشت</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-report">
+        <div class="card">
+          <div class="card-head">
+            <h3>گزارش سفرها</h3>
+            <button type="button" class="btn btn-ghost" id="btnRefreshReport">بروزرسانی</button>
+          </div>
+          <form id="formReportFilter" class="report-filters" autocomplete="off" onsubmit="return false;">
+            <label>نام کارمند
+              <input type="text" id="filterEmployeeName" name="employeeName" dir="ltr" placeholder="جستجو…" />
+            </label>
+            <label>نام ماشین
+              <input type="text" id="filterCarName" name="carName" placeholder="جستجو…" />
+            </label>
+            <label>پلاک
+              <input type="text" id="filterPlate" name="plate" dir="ltr" placeholder="بخشی از پلاک" />
+            </label>
+            <label>مقصد
+              <input type="text" id="filterDestination" name="destination" placeholder="جستجو…" />
+            </label>
+            <label>وضعیت
+              <select id="filterStatus" name="status">
+                <option value="ALL">همه</option>
+                <option value="OPEN">باز (برگشت‌نشده)</option>
+                <option value="CLOSED">بسته‌شده</option>
+              </select>
+            </label>
+            <div class="jalali-date-wrap">
+              <span class="small muted">از تاریخ (شمسی)</span>
+              <div class="jalali-date-parts" data-jalali-target="filterDateFrom">
+                <select data-part="year" aria-label="سال از"><option value="">—</option><option value="1406">1406</option><option value="1405">1405</option><option value="1404">1404</option><option value="1403">1403</option><option value="1402">1402</option><option value="1401">1401</option><option value="1400">1400</option><option value="1399">1399</option><option value="1398">1398</option><option value="1397">1397</option><option value="1396">1396</option><option value="1395">1395</option><option value="1394">1394</option><option value="1393">1393</option><option value="1392">1392</option><option value="1391">1391</option><option value="1390">1390</option></select>
+                <select data-part="month" aria-label="ماه از"><option value="">—</option><option value="01">01 فروردین</option><option value="02">02 اردیبهشت</option><option value="03">03 خرداد</option><option value="04">04 تیر</option><option value="05">05 مرداد</option><option value="06">06 شهریور</option><option value="07">07 مهر</option><option value="08">08 آبان</option><option value="09">09 آذر</option><option value="10">10 دی</option><option value="11">11 بهمن</option><option value="12">12 اسفند</option></select>
+                <select data-part="day" aria-label="روز از"><option value="">—</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select>
+              </div>
+              <input type="hidden" id="filterDateFrom" name="dateFrom" />
+            </div>
+            <div class="jalali-date-wrap">
+              <span class="small muted">تا تاریخ (شمسی)</span>
+              <div class="jalali-date-parts" data-jalali-target="filterDateTo">
+                <select data-part="year" aria-label="سال تا"><option value="">—</option><option value="1406">1406</option><option value="1405">1405</option><option value="1404">1404</option><option value="1403">1403</option><option value="1402">1402</option><option value="1401">1401</option><option value="1400">1400</option><option value="1399">1399</option><option value="1398">1398</option><option value="1397">1397</option><option value="1396">1396</option><option value="1395">1395</option><option value="1394">1394</option><option value="1393">1393</option><option value="1392">1392</option><option value="1391">1391</option><option value="1390">1390</option></select>
+                <select data-part="month" aria-label="ماه تا"><option value="">—</option><option value="01">01 فروردین</option><option value="02">02 اردیبهشت</option><option value="03">03 خرداد</option><option value="04">04 تیر</option><option value="05">05 مرداد</option><option value="06">06 شهریور</option><option value="07">07 مهر</option><option value="08">08 آبان</option><option value="09">09 آذر</option><option value="10">10 دی</option><option value="11">11 بهمن</option><option value="12">12 اسفند</option></select>
+                <select data-part="day" aria-label="روز تا"><option value="">—</option><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select>
+              </div>
+              <input type="hidden" id="filterDateTo" name="dateTo" />
+            </div>
+            <div class="filter-actions">
+              <button type="button" class="btn btn-primary" id="btnApplyReportFilter">اعمال فیلتر</button>
+              <button type="button" class="btn btn-ghost" id="btnClearReportFilter">پاک‌کردن همه</button>
+            </div>
+          </form>
+          <p class="status-line small" id="reportFilterSummary"></p>
+          <div class="table-wrap">
+            <table class="table-report">
+              <thead>
+                <tr>
+                  <th>شناسه</th><th>کارمند</th><th>ماشین</th><th>پلاک</th>
+                  <th>مقصد</th><th>تحویل</th><th>برگشت</th>
+                </tr>
+              </thead>
+              <tbody id="reportTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modalCar" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" data-close="modalCar"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>ویرایش ماشین</h3>
+        <button type="button" class="btn btn-ghost modal-close" data-close="modalCar" aria-label="بستن">×</button>
+      </div>
+      <form id="formEditCar" class="form">
+        <input type="hidden" name="oldPlate" id="editCarOldPlate" />
+        <label>نام / مدل<input name="name" id="editCarName" required /></label>
+        <label>پلاک
+          <div class="plate-input" dir="ltr" id="editPlateWidget">
+            <input type="text" id="editPlateFirst" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="32" />
+            <select id="editPlateLetter">
+              <option value="الف">الف</option>
+              <option value="ب">ب</option>
+              <option value="ج">ج</option>
+              <option value="د">د</option>
+              <option value="س">س</option>
+              <option value="ص">ص</option>
+              <option value="ط">ط</option>
+              <option value="ق">ق</option>
+              <option value="گ">گ</option>
+              <option value="ل" selected>ل</option>
+              <option value="م">م</option>
+              <option value="ن">ن</option>
+              <option value="و">و</option>
+              <option value="هـ">هـ</option>
+              <option value="ی">ی</option>
+            </select>
+            <input type="text" id="editPlateMid" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="316" />
+            <span class="plate-iran">ایران</span>
+            <input type="text" id="editPlateCity" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="53" />
+          </div>
+        </label>
+        <label>رنگ<input name="color" id="editCarColor" required /></label>
+        <div class="modal-actions">
+          <button type="button" class="btn" data-close="modalCar">انصراف</button>
+          <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalEmployee" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" data-close="modalEmployee"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>ویرایش کارمند</h3>
+        <button type="button" class="btn btn-ghost modal-close" data-close="modalEmployee" aria-label="بستن">×</button>
+      </div>
+      <form id="formEditEmployee" class="form">
+        <label>شناسه کارمند
+          <input name="deviceUserId" id="editEmpId" dir="ltr" readonly class="readonly" />
+        </label>
+        <label>نام کامل (انگلیسی)
+          <input name="name" id="editEmpName" required dir="ltr" />
+        </label>
+        <label>تلفن
+          <input name="phone" id="editEmpPhone" dir="ltr" />
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn" data-close="modalEmployee">انصراف</button>
+          <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/report-filters.js"></script>
+</body>
+</html>
