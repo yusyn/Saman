@@ -1,8 +1,15 @@
 /**
  * Thin HTTP client for Saman API (same origin as this page).
+ * Works for local laptop and production server without code changes.
  */
 const Api = (() => {
+  const DEFAULT_TIMEOUT_MS = 12000;
+
   async function request(path, options = {}) {
+    const timeoutMs = options.timeoutMs != null ? options.timeoutMs : DEFAULT_TIMEOUT_MS;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
     const opts = {
       headers: {
         Accept: "application/json",
@@ -10,34 +17,45 @@ const Api = (() => {
         ...options.headers,
       },
       ...options,
+      signal: controller.signal,
     };
+    delete opts.timeoutMs;
 
-    const res = await fetch(path, opts);
-    const text = await res.text();
-    let data = null;
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = text;
+    try {
+      const res = await fetch(path, opts);
+      const text = await res.text();
+      let data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;
+        }
       }
-    }
 
-    if (!res.ok) {
-      const msg =
-        (data && (data.message || data.error)) ||
-        (typeof data === "string" ? data : null) ||
-        `HTTP ${res.status}`;
-      const err = new Error(msg);
-      err.status = res.status;
-      err.data = data;
-      throw err;
+      if (!res.ok) {
+        const msg =
+          (data && (data.message || data.error)) ||
+          (typeof data === "string" ? data : null) ||
+          "HTTP " + res.status;
+        const err = new Error(msg);
+        err.status = res.status;
+        err.data = data;
+        throw err;
+      }
+      return data;
+    } catch (e) {
+      if (e && e.name === "AbortError") {
+        throw new Error("پاسخی از سرور نیامد (timeout)");
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
     }
-    return data;
   }
 
   return {
-    health: () => request("/api/health"),
+    health: () => request("/api/health", { timeoutMs: 8000 }),
     cars: () => request("/api/cars"),
     carsAvailable: () => request("/api/cars/available"),
     createCar: (body) =>
@@ -67,9 +85,10 @@ const Api = (() => {
       request("/api/fingerprint/verify", {
         method: "POST",
         body: JSON.stringify({ timeoutSeconds }),
+        timeoutMs: (timeoutSeconds + 10) * 1000,
       }),
     cancelListen: () =>
-      request("/api/fingerprint/cancel-listen", { method: "POST" }),
+      request("/api/fingerprint/cancel-listen", { method: "POST", timeoutMs: 5000 }),
     pickup: (body) =>
       request("/api/rentals/pickup", {
         method: "POST",
