@@ -1,12 +1,17 @@
 (() => {
   const $ = (sel) => document.querySelector(sel);
 
+  // Avoid HTML entities in source (tools may decode them and break the file)
   function escapeHtml(s) {
+    const amp = String.fromCharCode(38) + "amp;";
+    const lt = String.fromCharCode(38) + "lt;";
+    const gt = String.fromCharCode(38) + "gt;";
+    const quot = String.fromCharCode(38) + "quot;";
     return String(s == null ? "" : s)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
+      .split(String.fromCharCode(38)).join(amp)
+      .split(String.fromCharCode(60)).join(lt)
+      .split(String.fromCharCode(62)).join(gt)
+      .split(String.fromCharCode(34)).join(quot);
   }
 
   function toPersianDigits(s) {
@@ -58,7 +63,7 @@
       '<span class="iran-plate-main">' +
       '<span class="iran-plate-num">' + toPersianDigits(p.first) + "</span>" +
       '<span class="iran-plate-letter">' + escapeHtml(p.letter) + "</span>" +
-      '<span class="iran-plate-num">' + toPersianDigits(p.mid) + "</span></span>" +
+      '<span class="iran-plate-num">' + toPersianDigits(p.mid) + "</span></span>' +
       '<span class="iran-plate-side">' +
       '<span class="iran-plate-iran">ایران</span>' +
       '<span class="iran-plate-city">' + toPersianDigits(p.city) + "</span></span></span>"
@@ -118,10 +123,10 @@
 
   function getFilters() {
     return {
-      employeeName: ($("#filterEmployeeName") && $("#filterEmployeeName").value) || "",
-      carName: ($("#filterCarName") && $("#filterCarName").value) || "",
-      plate: ($("#filterPlate") && $("#filterPlate").value) || "",
-      destination: ($("#filterDestination") && $("#filterDestination").value) || "",
+      employeeName: ($("#filterEmployeeName") && $("#filterEmployeeName").value.trim()) || "",
+      carName: ($("#filterCarName") && $("#filterCarName").value.trim()) || "",
+      plate: ($("#filterPlate") && $("#filterPlate").value.trim()) || "",
+      destination: ($("#filterDestination") && $("#filterDestination").value.trim()) || "",
       status: ($("#filterStatus") && $("#filterStatus").value) || "ALL",
       dateFrom: ($("#filterDateFrom") && $("#filterDateFrom").value) || "",
       dateTo: ($("#filterDateTo") && $("#filterDateTo").value) || "",
@@ -231,6 +236,15 @@
       });
     }
 
+    const btnRefresh = $("#btnRefreshReport");
+    if (btnRefresh) {
+      btnRefresh.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        loadReportFiltered();
+      });
+    }
+
     const nav = $("#nav");
     if (nav) {
       nav.addEventListener("click", function (e) {
@@ -238,7 +252,8 @@
         if (!btn) return;
         setTimeout(function () {
           document.querySelectorAll(".jalali-date-parts").forEach(syncJalaliHidden);
-        }, 0);
+          loadReportFiltered();
+        }, 50);
       });
     }
   }
