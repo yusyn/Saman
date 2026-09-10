@@ -41,12 +41,11 @@
   }
 
   function statusBadge(kind, label) {
-    const cls =
-      kind === "busy"
-        ? "badge badge-busy"
-        : kind === "free"
-          ? "badge badge-free"
-          : "badge badge-muted";
+    const cls = kind === "busy"
+      ? "badge badge-busy"
+      : kind === "free"
+        ? "badge badge-free"
+        : "badge badge-muted";
     return '<span class="' + cls + '">' + escapeHtml(label) + "</span>";
   }
 
@@ -107,17 +106,27 @@
   async function loadHealth() {
     const badge = $("#healthBadge");
     const pre = $("#healthJson");
+    if (badge) {
+      badge.textContent = "در حال بررسی…";
+      badge.classList.remove("up", "down");
+    }
+    if (pre) pre.textContent = "…";
     try {
       const h = await Api.health();
-      pre.textContent = JSON.stringify(h, null, 2);
-      badge.textContent = h.status === "UP" ? "API: فعال" : "API: " + h.status;
-      badge.classList.toggle("up", h.status === "UP");
-      badge.classList.toggle("down", h.status !== "UP");
+      if (pre) pre.textContent = JSON.stringify(h, null, 2);
+      if (badge) {
+        const up = h && h.status === "UP";
+        badge.textContent = up ? "API: فعال" : "API: " + ((h && h.status) || "نامشخص");
+        badge.classList.toggle("up", !!up);
+        badge.classList.toggle("down", !up);
+      }
     } catch (err) {
-      pre.textContent = String(err.message || err);
-      badge.textContent = "API: قطع";
-      badge.classList.add("down");
-      badge.classList.remove("up");
+      if (pre) pre.textContent = String(err.message || err);
+      if (badge) {
+        badge.textContent = "API: قطع";
+        badge.classList.add("down");
+        badge.classList.remove("up");
+      }
     }
   }
 
@@ -191,27 +200,27 @@
           return (
             "<tr data-idx=\"" +
             idx +
-            '\"><td>" +
+            "\"><td>" +
             escapeHtml(c.name) +
-            '</td><td dir=\"ltr\">" +
+            "</td><td dir=\"ltr\">" +
             escapeHtml(c.plate) +
             "</td><td>" +
             escapeHtml(c.color) +
             "</td><td>" +
             carStatusBadge(c.status) +
-            '</td><td class=\"actions\"><button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-car\" data-idx=\"' +
+            "</td><td class=\"actions\"><button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-car\" data-idx=\"" +
             idx +
-            '\" ' +
+            "\" " +
             disabled +
-            ' title=\"' +
+            " title=\"" +
             title +
-            '\">ویرایش</button> <button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-car\" data-idx=\"' +
+            "\">ویرایش</button> <button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-car\" data-idx=\"" +
             idx +
-            '\" ' +
+            "\" " +
             disabled +
-            ' title=\"' +
+            " title=\"" +
             title +
-            '\">حذف</button></td></tr>'
+            "\">حذف</button></td></tr>"
           );
         })
         .join("");
@@ -324,27 +333,27 @@
           return (
             "<tr data-idx=\"" +
             idx +
-            '\"><td dir=\"ltr\">" +
+            "\"><td dir=\"ltr\">" +
             escapeHtml(r.deviceUserId) +
-            '</td><td dir=\"ltr\">" +
+            "</td><td dir=\"ltr\">" +
             escapeHtml(r.name) +
-            '</td><td dir=\"ltr\">" +
+            "</td><td dir=\"ltr\">" +
             escapeHtml(r.phone || "") +
             "</td><td>" +
             employeeRentingBadge(r.renting) +
-            '</td><td class=\"actions\"><button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-emp\" data-idx=\"' +
+            "</td><td class=\"actions\"><button type=\"button\" class=\"btn btn-sm\" data-action=\"edit-emp\" data-idx=\"" +
             idx +
-            '\" ' +
+            "\" " +
             disabled +
-            ' title=\"' +
+            " title=\"" +
             title +
-            '\">ویرایش</button> <button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-emp\" data-idx=\"' +
+            "\">ویرایش</button> <button type=\"button\" class=\"btn btn-sm btn-danger\" data-action=\"del-emp\" data-idx=\"" +
             idx +
-            '\" ' +
+            "\" " +
             disabled +
-            ' title=\"' +
+            " title=\"" +
             title +
-            '\">حذف</button></td></tr>'
+            "\">حذف</button></td></tr>"
           );
         })
         .join("");
@@ -597,9 +606,9 @@
       sel.innerHTML = cars
         .map(function (c) {
           return (
-            '<option value=\"' +
+            '<option value="' +
             escapeHtml(c.plate) +
-            '\">' +
+            '">' +
             escapeHtml(c.name) +
             " — " +
             escapeHtml(c.plate) +
@@ -681,19 +690,19 @@
       tbody.innerHTML = rows
         .map(function (r) {
           return (
-            '<tr><td dir=\"ltr\">' +
+            '<tr><td dir="ltr">' +
             escapeHtml(r.deviceUserId) +
             "</td><td>" +
             escapeHtml(r.employeeName) +
             "</td><td>" +
             escapeHtml(r.carName) +
-            '</td><td dir=\"ltr\">' +
+            '</td><td dir="ltr">' +
             escapeHtml(r.plate) +
             "</td><td>" +
             escapeHtml(r.destination) +
-            '</td><td dir=\"ltr\">' +
+            '</td><td dir="ltr">' +
             escapeHtml(r.pickupDate) +
-            '</td><td dir=\"ltr\">' +
+            '</td><td dir="ltr">' +
             escapeHtml(r.returnDate) +
             "</td></tr>"
           );
