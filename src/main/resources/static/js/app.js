@@ -40,12 +40,49 @@
     return String(s == null ? "" : s).replace(/[0-9]/g, (d) => map[d.charCodeAt(0) - 48]);
   }
 
+  function toLatinDigits(s) {
+    const persian = "۰۱۲۳۴۵۶۷۸۹";
+    const arabic = "٠١٢٣٤٥٦٧٨٩";
+    return String(s == null ? "" : s)
+      .split("")
+      .map(function (ch) {
+        const pi = persian.indexOf(ch);
+        if (pi >= 0) return String(pi);
+        const ai = arabic.indexOf(ch);
+        if (ai >= 0) return String(ai);
+        return ch;
+      })
+      .join("");
+  }
+
+  /**
+   * Supports both storage formats:
+   * - Swing: "11 ایران 345 ب 12"  (city ایران mid letter first)
+   * - Web:   "12ب345ایران11"      (first letter mid ایران city)
+   */
   function parsePlate(plate) {
-    const raw = String(plate || "").replace(/\s+/g, "");
-    if (!raw) return null;
-    const m = raw.match(/^(\d{2})(.+?)(\d{3})ایران(\d{2})$/);
-    if (!m) return null;
-    return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
+    if (plate == null) return null;
+    let s = toLatinDigits(String(plate)).trim();
+    if (!s) return null;
+    s = s.replace(/ايران/g, "ایران").replace(/ايرآن/g, "ایران");
+
+    let m = s.match(/^(\d{2})\s+ایران\s+(\d{3})\s+(\S+)\s+(\d{2})$/);
+    if (m) {
+      return { city: m[1], mid: m[2], letter: m[3], first: m[4] };
+    }
+
+    const compact = s.replace(/\s+/g, "");
+    m = compact.match(/^(\d{2})(.+?)(\d{3})ایران(\d{2})$/);
+    if (m) {
+      return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
+    }
+
+    m = s.match(/^(\d{2})\s+(\S+)\s+(\d{3})\s+ایران\s+(\d{2})$/);
+    if (m) {
+      return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
+    }
+
+    return null;
   }
 
   function renderIranPlate(plate) {
@@ -192,26 +229,34 @@
   }
 
   function setPlateToIds(plate, firstId, letterId, midId, cityId) {
-    const raw = (plate || "").replace(/\s+/g, "");
-    const m = raw.match(/^(\d{2})(.+?)(\d{3})ایران(\d{2})$/);
-    if (!m) {
+    const p = parsePlate(plate);
+    if (!p) {
       $(firstId).value = "";
       $(midId).value = "";
       $(cityId).value = "";
       return;
     }
-    $(firstId).value = m[1];
-    $(midId).value = m[3];
-    $(cityId).value = m[4];
-    let letter = m[2];
+    $(firstId).value = p.first;
+    $(midId).value = p.mid;
+    $(cityId).value = p.city;
+    let letter = p.letter;
     if (letter === "ه") letter = "هـ";
     const sel = $(letterId);
     let found = false;
     for (let i = 0; i < sel.options.length; i++) {
-      if (sel.options[i].value === letter) {
+      if (sel.options[i].value === letter || sel.options[i].text === letter) {
         sel.selectedIndex = i;
         found = true;
         break;
+      }
+    }
+    if (!found) {
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value.indexOf(letter) >= 0 || letter.indexOf(sel.options[i].value) >= 0) {
+          sel.selectedIndex = i;
+          found = true;
+          break;
+        }
       }
     }
     if (!found) sel.selectedIndex = 9;
