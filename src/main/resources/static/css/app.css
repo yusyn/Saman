@@ -276,7 +276,11 @@ th { color: var(--muted); font-weight: 600; }
   padding: 0 0.1rem;
 }
 
-td.actions { white-space: nowrap; overflow: hidden; text-align: left; }
+td.actions {
+  white-space: nowrap;
+  overflow: visible;
+  text-align: right;
+}
 input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2); }
 
 .modal {
@@ -392,32 +396,58 @@ input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2);
 .table-cars th:nth-child(4),
 .table-cars td:nth-child(4) { width: 16%; }
 .table-cars th:nth-child(5),
-.table-cars td:nth-child(5) {
+.table-cars td:nth-child(5),
+.table-cars td.actions {
   width: 22%;
   overflow: visible;
   white-space: nowrap;
+  text-align: right;
+  text-overflow: clip;
 }
 
-/* Employees table */
-.table-employees { table-layout: fixed; width: 100%; }
+/* Employees table (also plain table under view-employees) */
+.table-employees,
+#view-employees table {
+  table-layout: fixed;
+  width: 100%;
+}
 .table-employees th:nth-child(1),
-.table-employees td:nth-child(1) { width: 14%; }
+.table-employees td:nth-child(1),
+#view-employees table th:nth-child(1),
+#view-employees table td:nth-child(1) { width: 14%; }
 .table-employees th:nth-child(2),
-.table-employees td:nth-child(2) { width: 28%; }
+.table-employees td:nth-child(2),
+#view-employees table th:nth-child(2),
+#view-employees table td:nth-child(2) { width: 28%; }
 .table-employees th:nth-child(3),
-.table-employees td:nth-child(3) { width: 18%; }
+.table-employees td:nth-child(3),
+#view-employees table th:nth-child(3),
+#view-employees table td:nth-child(3) { width: 18%; }
 .table-employees th:nth-child(4),
-.table-employees td:nth-child(4) { width: 16%; }
+.table-employees td:nth-child(4),
+#view-employees table th:nth-child(4),
+#view-employees table td:nth-child(4) { width: 16%; }
 .table-employees th:nth-child(5),
-.table-employees td:nth-child(5) {
+.table-employees td:nth-child(5),
+.table-employees td.actions,
+#view-employees table th:nth-child(5),
+#view-employees table td:nth-child(5),
+#view-employees table td.actions {
   width: 24%;
   overflow: visible;
   white-space: nowrap;
+  text-align: right;
+  text-overflow: clip;
 }
 
 td.actions {
   overflow: visible !important;
   text-overflow: clip;
+  text-align: right;
+  white-space: nowrap;
+}
+td.actions .btn {
+  margin-inline-start: 0.2rem;
 }
 
 .iran-plate {
