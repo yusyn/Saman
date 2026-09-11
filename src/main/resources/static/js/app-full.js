@@ -433,7 +433,7 @@
     verifyBtn.disabled = true;
     status.textContent = "";
     try {
-      const r = await Api.verifyFingerprint();
+      const r = await Api.verify(40);
       if (kind === "pickup") pickupAuth = r;
       else returnAuth = r;
       renderAuth(kind);
@@ -453,6 +453,7 @@
     $("#" + kind + "VerifyWait").classList.add("hidden");
     $("#btnCancel" + (kind === "pickup" ? "Pickup" : "Return") + "Verify").classList.add("hidden");
     $("#btnVerify" + (kind === "pickup" ? "Pickup" : "Return")).disabled = false;
+    try { Api.cancelListen && Api.cancelListen(); } catch (e) {}
   }
 
   $("#btnVerifyPickup").addEventListener("click", () => runVerify("pickup"));
