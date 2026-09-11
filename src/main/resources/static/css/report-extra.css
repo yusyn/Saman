@@ -9,25 +9,39 @@
 .table-report th:nth-child(1),
 .table-report td:nth-child(1) { width: 8%; }
 .table-report th:nth-child(2),
-.table-report td:nth-child(2) { width: 12%; }
+.table-report td:nth-child(2) { width: 13%; }
 .table-report th:nth-child(3),
 .table-report td:nth-child(3) { width: 12%; }
 .table-report th:nth-child(4),
-.table-report td:nth-child(4) { width: 22%; overflow: visible; }
+.table-report td:nth-child(4) {
+  width: 9.2rem;
+  min-width: 9.2rem;
+  overflow: visible;
+  text-overflow: clip;
+}
 .table-report th:nth-child(5),
-.table-report td:nth-child(5) { width: 12%; white-space: normal; }
+.table-report td:nth-child(5) { width: 12%; white-space: normal; overflow: hidden; }
 .table-report th:nth-child(6),
 .table-report td:nth-child(6) { width: 14%; }
 .table-report th:nth-child(7),
 .table-report td:nth-child(7) { width: 14%; }
 
-/* Report filters */
+/* Report filters — stable grid, actions on their own row */
 .report-filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.65rem 0.75rem;
   margin-bottom: 0.9rem;
   align-items: end;
+}
+@media (max-width: 1100px) {
+  .report-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 800px) {
+  .report-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .report-filters { grid-template-columns: 1fr; }
 }
 .report-filters label {
   display: flex;
@@ -47,26 +61,31 @@
   font-size: 0.88rem;
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
 }
 .report-filters .filter-actions {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.45rem;
   align-items: center;
+  margin-top: 0.15rem;
 }
 .jalali-date-wrap {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  min-width: 0;
 }
 .jalali-date-parts {
   display: flex;
   gap: 0.25rem;
   direction: ltr;
+  min-width: 0;
 }
 .jalali-date-parts select {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
-  padding: 0.35rem 0.2rem;
-  font-size: 0.8rem;
+  padding: 0.35rem 0.15rem;
+  font-size: 0.78rem;
 }
