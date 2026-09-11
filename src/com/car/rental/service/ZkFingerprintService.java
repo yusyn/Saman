@@ -91,7 +91,7 @@ public class ZkFingerprintService implements FingerprintService {
     }
 
     public ZkFingerprintService() {
-        this("192.168.30.210", 4370, 8000);
+        this("192.168.20.200", 4370, 8000);
     }
 
     @Override
