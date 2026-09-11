@@ -176,9 +176,11 @@
               <p class="status-line" id="pickupVerifyStatus"></p>
             </div>
             <form id="formPickup" class="form">
-              <label>پلاک آزاد
-                <select name="plate" id="pickupPlate" required></select>
-              </label>
+              <div class="field">
+                <span class="field-label">ماشین‌های آزاد</span>
+                <div id="pickupCarList" class="car-pick-list" role="listbox" aria-label="ماشین‌های آزاد"></div>
+                <input type="hidden" name="plate" id="pickupPlate" value="" required />
+              </div>
               <label>مقصد<input name="destination" required placeholder="تهران" /></label>
               <button type="submit" class="btn btn-primary" id="btnPickupSubmit" disabled>ثبت تحویل</button>
             </form>
@@ -259,10 +261,11 @@
             </div>
             <div class="filter-actions">
               <button type="button" class="btn btn-primary" id="btnApplyReportFilter">اعمال فیلتر</button>
-              <button type="button" class="btn btn-ghost" id="btnClearReportFilter">پاک‌کردن همه</button>
+              <button type="button" class="btn btn-ghost" id="btnResetReportFilter">پاک‌کردن فیلتر</button>
+              <button type="button" class="btn btn-ghost" id="btnExportCsv">خروجی CSV</button>
+              <button type="button" class="btn btn-ghost" id="btnExportExcel">خروجی Excel</button>
             </div>
           </form>
-          <p class="status-line small" id="reportFilterSummary"></p>
           <div class="table-wrap">
             <table class="table-report">
               <thead>
@@ -279,12 +282,12 @@
     </main>
   </div>
 
-  <div id="modalCar" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal hidden" id="modalCar" role="dialog" aria-modal="true">
     <div class="modal-backdrop" data-close="modalCar"></div>
     <div class="modal-panel">
       <div class="modal-head">
         <h3>ویرایش ماشین</h3>
-        <button type="button" class="btn btn-ghost modal-close" data-close="modalCar" aria-label="بستن">×</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-close="modalCar">بستن</button>
       </div>
       <form id="formEditCar" class="form">
         <input type="hidden" name="oldPlate" id="editCarOldPlate" />
@@ -302,7 +305,7 @@
               <option value="ط">ط</option>
               <option value="ق">ق</option>
               <option value="گ">گ</option>
-              <option value="ل" selected>ل</option>
+              <option value="ل">ل</option>
               <option value="م">م</option>
               <option value="ن">ن</option>
               <option value="و">و</option>
@@ -316,33 +319,8 @@
         </label>
         <label>رنگ<input name="color" id="editCarColor" required /></label>
         <div class="modal-actions">
-          <button type="button" class="btn" data-close="modalCar">انصراف</button>
-          <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div id="modalEmployee" class="modal hidden" role="dialog" aria-modal="true">
-    <div class="modal-backdrop" data-close="modalEmployee"></div>
-    <div class="modal-panel">
-      <div class="modal-head">
-        <h3>ویرایش کارمند</h3>
-        <button type="button" class="btn btn-ghost modal-close" data-close="modalEmployee" aria-label="بستن">×</button>
-      </div>
-      <form id="formEditEmployee" class="form">
-        <label>شناسه کارمند
-          <input name="deviceUserId" id="editEmpId" dir="ltr" readonly class="readonly" />
-        </label>
-        <label>نام کامل (انگلیسی)
-          <input name="name" id="editEmpName" required dir="ltr" />
-        </label>
-        <label>تلفن
-          <input name="phone" id="editEmpPhone" dir="ltr" />
-        </label>
-        <div class="modal-actions">
-          <button type="button" class="btn" data-close="modalEmployee">انصراف</button>
-          <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+          <button type="submit" class="btn btn-primary">ذخیره</button>
+          <button type="button" class="btn btn-ghost" data-close="modalCar">انصراف</button>
         </div>
       </form>
     </div>
