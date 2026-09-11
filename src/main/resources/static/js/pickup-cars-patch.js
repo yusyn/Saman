@@ -1,6 +1,6 @@
 (() => {
   function waitFor(fn, tries) {
-    tries = tries || 80;
+    tries = tries == null ? 100 : tries;
     return new Promise(function (resolve, reject) {
       (function tick(n) {
         try {
@@ -22,19 +22,26 @@
 
   function toPersianDigits(s) {
     var map = "۰۱۲۳۴۵۶۷۸۹";
-    return String(s == null ? "" : s).replace(/[0-9]/g, function (d) { return map[d.charCodeAt(0) - 48]; });
+    return String(s == null ? "" : s).replace(/[0-9]/g, function (d) {
+      return map[d.charCodeAt(0) - 48];
+    });
   }
+
   function toLatinDigits(s) {
     var persian = "۰۱۲۳۴۵۶۷۸۹";
     var arabic = "٠١٢٣٤٥٦٧٨٩";
-    return String(s == null ? "" : s).split("").map(function (ch) {
-      var pi = persian.indexOf(ch);
-      if (pi >= 0) return String(pi);
-      var ai = arabic.indexOf(ch);
-      if (ai >= 0) return String(ai);
-      return ch;
-    }).join("");
+    return String(s == null ? "" : s)
+      .split("")
+      .map(function (ch) {
+        var pi = persian.indexOf(ch);
+        if (pi >= 0) return String(pi);
+        var ai = arabic.indexOf(ch);
+        if (ai >= 0) return String(ai);
+        return ch;
+      })
+      .join("");
   }
+
   function parsePlate(plate) {
     if (plate == null) return null;
     var s = toLatinDigits(String(plate)).trim();
@@ -48,94 +55,103 @@
     if (m) return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
     return null;
   }
+
   function renderIranPlateLocal(plate) {
     var p = parsePlate(plate);
     if (!p) {
       return '<span class="iran-plate-fallback" dir="ltr">' + escapeHtml(plate || "—") + "</span>";
     }
     return (
-      '<span class="iran-plate" dir="ltr" title="' + escapeHtml(plate) + '">' +
+      '<span class="iran-plate" dir="ltr" title="' +
+      escapeHtml(plate) +
+      '">' +
       '<span class="iran-plate-blue">' +
       '<span class="iran-plate-flag" aria-hidden="true"></span>' +
       '<span class="iran-plate-ir">I.R.</span>' +
       '<span class="iran-plate-ir">IRAN</span>' +
       "</span>" +
       '<span class="iran-plate-main">' +
-      '<span class="iran-plate-num">' + escapeHtml(toPersianDigits(p.first)) + "</span>" +
-      '<span class="iran-plate-letter">' + escapeHtml(p.letter) + "</span>" +
-      '<span class="iran-plate-num">' + escapeHtml(toPersianDigits(p.mid)) + "</span>" +
+      '<span class="iran-plate-num">' +
+      escapeHtml(toPersianDigits(p.first)) +
+      "</span>" +
+      '<span class="iran-plate-letter">' +
+      escapeHtml(p.letter) +
+      "</span>" +
+      '<span class="iran-plate-num">' +
+      escapeHtml(toPersianDigits(p.mid)) +
+      "</span>" +
       "</span>" +
       '<span class="iran-plate-side">' +
       '<span class="iran-plate-iran">ایران</span>' +
-      '<span class="iran-plate-city">' + escapeHtml(toPersianDigits(p.city)) + "</span>" +
+      '<span class="iran-plate-city">' +
+      escapeHtml(toPersianDigits(p.city)) +
+      "</span>" +
       "</span>" +
       "</span>"
     );
   }
 
-  waitFor(function () {
-    return typeof Api !== "undefined" && document.getElementById("pickupCarList");
-  }).then(function () {
-    var $ = function (sel) { return document.querySelector(sel); };
+  function $(sel) {
+    return document.querySelector(sel);
+  }
 
-    function plateHtml(plate) {
-      return renderIranPlateLocal(plate);
-    }
-
-    async function loadAvailablePlates() {
-      var list = $("#pickupCarList");
-      var hidden = $("#pickupPlate");
-      if (!list || !hidden) return;
-      var prev = hidden.value;
-      hidden.value = "";
-      list.innerHTML = '<div class="car-pick-empty">در حال بارگذاری…</div>';
-      try {
-        var cars = await Api.carsAvailable();
-        if (!cars.length) {
-          list.innerHTML = '<div class="car-pick-empty">ماشینی آزاد نیست</div>';
-          return;
-        }
-        list.innerHTML = cars
-          .map(function (c) {
-            var plate = c.plate || "";
-            var selected = plate && plate === prev ? " is-selected" : "";
-            return (
-              '<button type="button" class="car-pick-item' +
-              selected +
-              '" role="option" data-plate="' +
-              escapeHtml(plate) +
-              '" aria-selected="' +
-              (selected ? "true" : "false") +
-              '">' +
-              '<span class="car-pick-name">' +
-              escapeHtml(c.name || "—") +
-              "</span>" +
-              plateHtml(plate) +
-              "</button>"
-            );
-          })
-          .join("");
-        if (prev) {
-          var items = list.querySelectorAll(".car-pick-item");
-          for (var i = 0; i < items.length; i++) {
-            if (items[i].getAttribute("data-plate") === prev) {
-              items[i].classList.add("is-selected");
-              items[i].setAttribute("aria-selected", "true");
-              hidden.value = prev;
-              break;
-            }
+  async function loadAvailablePlates() {
+    var list = $("#pickupCarList");
+    var hidden = $("#pickupPlate");
+    if (!list || !hidden) return;
+    var prev = hidden.value;
+    hidden.value = "";
+    list.innerHTML = '<div class="car-pick-empty">در حال بارگذاری…</div>';
+    try {
+      if (typeof Api === "undefined" || !Api.carsAvailable) {
+        list.innerHTML = '<div class="car-pick-empty">API آماده نیست</div>';
+        return;
+      }
+      var cars = await Api.carsAvailable();
+      if (!cars || !cars.length) {
+        list.innerHTML = '<div class="car-pick-empty">ماشینی آزاد نیست</div>';
+        return;
+      }
+      list.innerHTML = cars
+        .map(function (c) {
+          var plate = c.plate || "";
+          var selected = plate && plate === prev ? " is-selected" : "";
+          return (
+            '<button type="button" class="car-pick-item' +
+            selected +
+            '" role="option" data-plate="' +
+            escapeHtml(plate) +
+            '" aria-selected="' +
+            (selected ? "true" : "false") +
+            '">' +
+            '<span class="car-pick-name">' +
+            escapeHtml(c.name || "—") +
+            "</span>" +
+            renderIranPlateLocal(plate) +
+            "</button>"
+          );
+        })
+        .join("");
+      if (prev) {
+        var items = list.querySelectorAll(".car-pick-item");
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].getAttribute("data-plate") === prev) {
+            items[i].classList.add("is-selected");
+            items[i].setAttribute("aria-selected", "true");
+            hidden.value = prev;
+            break;
           }
         }
-      } catch (err) {
-        list.innerHTML =
-          '<div class="car-pick-empty">' +
-          escapeHtml((err && err.message) || "خطا در بارگذاری") +
-          "</div>";
       }
+    } catch (err) {
+      list.innerHTML =
+        '<div class="car-pick-empty">' +
+        escapeHtml((err && err.message) || "خطا در بارگذاری") +
+        "</div>";
     }
+  }
 
-    window.loadAvailablePlates = loadAvailablePlates;
-
+  function bindOnce() {
     var listEl = document.getElementById("pickupCarList");
     if (listEl && !listEl._pickBound) {
       listEl._pickBound = true;
@@ -144,6 +160,7 @@
         if (!item) return;
         var list = $("#pickupCarList");
         var hidden = $("#pickupPlate");
+        if (!list) return;
         list.querySelectorAll(".car-pick-item").forEach(function (el) {
           el.classList.remove("is-selected");
           el.setAttribute("aria-selected", "false");
@@ -160,7 +177,7 @@
       nav.addEventListener("click", function (e) {
         var btn = e.target.closest(".nav-item");
         if (btn && btn.dataset.view === "rentals") {
-          setTimeout(loadAvailablePlates, 0);
+          setTimeout(loadAvailablePlates, 30);
         }
       });
     }
@@ -172,7 +189,7 @@
         "submit",
         function (e) {
           var hidden = document.getElementById("pickupPlate");
-          var plate = hidden && hidden.value ? hidden.value.trim() : "";
+          var plate = hidden && hidden.value ? String(hidden.value).trim() : "";
           if (!plate) {
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -186,13 +203,27 @@
         },
         true
       );
+      form.addEventListener("submit", function () {
+        setTimeout(loadAvailablePlates, 1200);
+      });
     }
 
-    if (document.getElementById("view-rentals") &&
-        document.getElementById("view-rentals").classList.contains("active")) {
+    window.loadAvailablePlates = loadAvailablePlates;
+  }
+
+  waitFor(function () {
+    return typeof Api !== "undefined" && document.getElementById("pickupCarList");
+  })
+    .then(function () {
+      bindOnce();
       loadAvailablePlates();
-    }
-  }).catch(function (err) {
-    console.warn("pickup-cars-patch:", err);
-  });
+    })
+    .catch(function (err) {
+      console.warn("pickup-cars-patch:", err);
+      var list = document.getElementById("pickupCarList");
+      if (list) {
+        list.innerHTML =
+          '<div class="car-pick-empty">خطا در آماده‌سازی لیست ماشین‌ها</div>';
+      }
+    });
 })();
