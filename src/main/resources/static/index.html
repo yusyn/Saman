@@ -162,7 +162,6 @@
                 <div class="auth-row"><span>نام</span><strong id="pickupAuthName">—</strong></div>
                 <div class="auth-row"><span>شناسه</span><strong dir="ltr" id="pickupAuthId">—</strong></div>
                 <div class="auth-row"><span>تلفن</span><strong dir="ltr" id="pickupAuthPhone">—</strong></div>
-                <div class="auth-row"><span>وضعیت مأموریت</span><strong id="pickupAuthRenting">—</strong></div>
               </div>
               <div class="auth-actions">
                 <button type="button" class="btn btn-primary" id="btnVerifyPickup">احراز هویت برای تحویل</button>
@@ -195,7 +194,6 @@
                 <div class="auth-row"><span>نام</span><strong id="returnAuthName">—</strong></div>
                 <div class="auth-row"><span>شناسه</span><strong dir="ltr" id="returnAuthId">—</strong></div>
                 <div class="auth-row"><span>تلفن</span><strong dir="ltr" id="returnAuthPhone">—</strong></div>
-                <div class="auth-row"><span>وضعیت مأموریت</span><strong id="returnAuthRenting">—</strong></div>
               </div>
               <div class="auth-actions">
                 <button type="button" class="btn btn-primary" id="btnVerifyReturn">احراز هویت برای برگشت</button>
@@ -266,6 +264,7 @@
               <button type="button" class="btn btn-ghost" id="btnExportExcel">خروجی Excel</button>
             </div>
           </form>
+          <p class="muted small" id="reportFilterSummary">بدون فیلتر — همهٔ سفرها</p>
           <div class="table-wrap">
             <table class="table-report">
               <thead>
@@ -282,19 +281,19 @@
     </main>
   </div>
 
-  <div class="modal hidden" id="modalCar" role="dialog" aria-modal="true">
+  <div id="modalCar" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-backdrop" data-close="modalCar"></div>
     <div class="modal-panel">
       <div class="modal-head">
         <h3>ویرایش ماشین</h3>
-        <button type="button" class="btn btn-ghost btn-sm" data-close="modalCar">بستن</button>
+        <button type="button" class="btn btn-ghost" data-close="modalCar">بستن</button>
       </div>
       <form id="formEditCar" class="form">
-        <input type="hidden" name="oldPlate" id="editCarOldPlate" />
-        <label>نام / مدل<input name="name" id="editCarName" required /></label>
+        <input type="hidden" id="editCarOldPlate" />
+        <label>نام / مدل<input id="editCarName" required /></label>
         <label>پلاک
-          <div class="plate-input" dir="ltr" id="editPlateWidget">
-            <input type="text" id="editPlateFirst" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="32" />
+          <div class="plate-input" dir="ltr">
+            <input type="text" id="editPlateFirst" maxlength="2" inputmode="numeric" pattern="[0-9]*" />
             <select id="editPlateLetter">
               <option value="الف">الف</option>
               <option value="ب">ب</option>
@@ -312,12 +311,12 @@
               <option value="هـ">هـ</option>
               <option value="ی">ی</option>
             </select>
-            <input type="text" id="editPlateMid" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="316" />
+            <input type="text" id="editPlateMid" maxlength="3" inputmode="numeric" pattern="[0-9]*" />
             <span class="plate-iran">ایران</span>
-            <input type="text" id="editPlateCity" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="53" />
+            <input type="text" id="editPlateCity" maxlength="2" inputmode="numeric" pattern="[0-9]*" />
           </div>
         </label>
-        <label>رنگ<input name="color" id="editCarColor" required /></label>
+        <label>رنگ<input id="editCarColor" required /></label>
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary">ذخیره</button>
           <button type="button" class="btn btn-ghost" data-close="modalCar">انصراف</button>
@@ -331,21 +330,15 @@
     <div class="modal-panel">
       <div class="modal-head">
         <h3>ویرایش کارمند</h3>
-        <button type="button" class="btn btn-ghost modal-close" data-close="modalEmployee" aria-label="بستن">×</button>
+        <button type="button" class="btn btn-ghost" data-close="modalEmployee">بستن</button>
       </div>
       <form id="formEditEmployee" class="form">
-        <label>شناسه دستگاه
-          <input name="deviceUserId" id="editEmpId" dir="ltr" readonly class="readonly" />
-        </label>
-        <label>نام کامل (انگلیسی)
-          <input name="name" id="editEmpName" required dir="ltr" />
-        </label>
-        <label>تلفن
-          <input name="phone" id="editEmpPhone" dir="ltr" />
-        </label>
+        <input type="hidden" id="editEmpId" />
+        <label>نام<input id="editEmpName" required dir="ltr" /></label>
+        <label>تلفن<input id="editEmpPhone" dir="ltr" /></label>
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary">ذخیره</button>
-          <button type="button" class="btn" data-close="modalEmployee">انصراف</button>
+          <button type="button" class="btn btn-ghost" data-close="modalEmployee">انصراف</button>
         </div>
       </form>
     </div>
