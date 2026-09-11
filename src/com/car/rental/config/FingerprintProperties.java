@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "fingerprint")
 public class FingerprintProperties {
 
-    private String host = "192.168.30.210";
+    private String host = "192.168.20.200";
     private int port = 4370;
     private boolean mock = false;
     private int connectTimeoutMs = 8000;
