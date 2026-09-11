@@ -114,6 +114,33 @@
     );
   }
 
+  function isOnMissionStatus(status) {
+    if (!status) return false;
+    return String(status).includes("مأموریت") || String(status).includes("ماموریت");
+  }
+
+  function statusBadge(kind, label) {
+    const cls =
+      kind === "busy"
+        ? "badge badge-busy"
+        : kind === "free"
+          ? "badge badge-free"
+          : "badge badge-muted";
+    return '<span class="' + cls + '">' + escapeHtml(label) + "</span>";
+  }
+
+  function carStatusBadge(status) {
+    if (!status) return statusBadge("unknown", "—");
+    if (isOnMissionStatus(status)) return statusBadge("busy", status);
+    return statusBadge("free", status);
+  }
+
+  function employeeRentingBadge(renting) {
+    return renting
+      ? statusBadge("busy", "در مأموریت")
+      : statusBadge("free", "آزاد");
+  }
+
   function closeModal(id) {
     const el = document.getElementById(id);
     if (el) el.classList.add("hidden");
@@ -215,7 +242,7 @@
             "</td><td>" +
             escapeHtml(c.color) +
             "</td><td>" +
-            escapeHtml(c.status) +
+            carStatusBadge(c.status) +
             '</td><td class="actions">' +
             '<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-plate="' +
             escapeHtml(c.plate) +
@@ -314,7 +341,7 @@
             '</td><td dir="ltr">' +
             escapeHtml(emp.phone) +
             "</td><td>" +
-            (emp.renting ? "در مأموریت" : "آزاد") +
+            employeeRentingBadge(!!emp.renting) +
             '</td><td class="actions">' +
             '<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-id="' +
             escapeHtml(emp.deviceUserId) +
