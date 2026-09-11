@@ -427,21 +427,24 @@
     const ph = $("#" + kind + "AuthPlaceholder");
     const profile = $("#" + kind + "AuthProfile");
     const clearBtn = $("#btnClear" + (kind === "pickup" ? "Pickup" : "Return") + "Auth");
+    const submitBtn = $("#btn" + (kind === "pickup" ? "Pickup" : "Return") + "Submit");
     if (!auth) {
-      ph.classList.remove("hidden");
-      profile.classList.add("hidden");
-      clearBtn.classList.add("hidden");
-      $("#btn" + (kind === "pickup" ? "Pickup" : "Return") + "Submit").disabled = true;
+      if (ph) ph.classList.remove("hidden");
+      if (profile) profile.classList.add("hidden");
+      if (clearBtn) clearBtn.classList.add("hidden");
+      if (submitBtn) submitBtn.disabled = true;
       return;
     }
-    ph.classList.add("hidden");
-    profile.classList.remove("hidden");
-    clearBtn.classList.remove("hidden");
-    $("#" + kind + "AuthName").textContent = auth.name || "—";
-    $("#" + kind + "AuthId").textContent = auth.deviceUserId || "—";
-    $("#" + kind + "AuthPhone").textContent = auth.phone || "—";
-    $("#" + kind + "AuthRenting").textContent = auth.renting ? "در مأموریت" : "آزاد";
-    $("#btn" + (kind === "pickup" ? "Pickup" : "Return") + "Submit").disabled = false;
+    if (ph) ph.classList.add("hidden");
+    if (profile) profile.classList.remove("hidden");
+    if (clearBtn) clearBtn.classList.remove("hidden");
+    const nameEl = $("#" + kind + "AuthName");
+    const idEl = $("#" + kind + "AuthId");
+    const phoneEl = $("#" + kind + "AuthPhone");
+    if (nameEl) nameEl.textContent = auth.name || "—";
+    if (idEl) idEl.textContent = auth.deviceUserId || "—";
+    if (phoneEl) phoneEl.textContent = auth.phone || "—";
+    if (submitBtn) submitBtn.disabled = false;
   }
 
   function clearAuth(kind) {
@@ -461,6 +464,19 @@
     status.textContent = "";
     try {
       const r = await Api.verify(40);
+      // Enrich with employee profile (name/phone/renting) if API only returned deviceUserId
+      if (r && r.deviceUserId && (!r.name || !r.phone)) {
+        try {
+          const emp = await Api.employee(r.deviceUserId);
+          if (emp) {
+            r.name = emp.name || r.name;
+            r.phone = emp.phone || r.phone;
+            if (typeof emp.renting === "boolean") r.renting = emp.renting;
+          }
+        } catch (lookupErr) {
+          console.warn("employee lookup after verify", lookupErr);
+        }
+      }
       if (kind === "pickup") pickupAuth = r;
       else returnAuth = r;
       renderAuth(kind);
