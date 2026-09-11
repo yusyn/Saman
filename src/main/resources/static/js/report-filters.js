@@ -63,7 +63,7 @@
       '<span class="iran-plate-main">' +
       '<span class="iran-plate-num">' + toPersianDigits(p.first) + "</span>" +
       '<span class="iran-plate-letter">' + escapeHtml(p.letter) + "</span>" +
-      '<span class="iran-plate-num">' + toPersianDigits(p.mid) + "</span></span>" +
+      '<span class="iran-plate-num">' + toPersianDigits(p.mid) + "</span></span>' +
       '<span class="iran-plate-side">' +
       '<span class="iran-plate-iran">ایران</span>' +
       '<span class="iran-plate-city">' + toPersianDigits(p.city) + "</span></span></span>"
@@ -249,7 +249,7 @@
       });
     }
 
-    const btnClear = $("#btnClearReportFilter");
+    const btnClear = $("#btnResetReportFilter");
     if (btnClear) {
       btnClear.addEventListener("click", function (e) {
         e.preventDefault();
@@ -279,7 +279,7 @@
       });
     }
 
-    const btnXlsx = $("#btnExportXlsx");
+    const btnXlsx = $("#btnExportExcel");
     if (btnXlsx) {
       btnXlsx.addEventListener("click", function (e) {
         e.preventDefault();
