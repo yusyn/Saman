@@ -14,10 +14,10 @@
 
   function escapeHtml(s) {
     return String(s == null ? "" : s)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
+      .replace(/&/g, "&" + "amp;")
+      .replace(/</g, "&" + "lt;")
+      .replace(/>/g, "&" + "gt;")
+      .replace(/"/g, "&" + "quot;");
   }
 
   function toPersianDigits(s) {
@@ -47,9 +47,9 @@
     var s = toLatinDigits(String(plate)).trim();
     if (!s) return null;
     s = s.replace(/\s+/g, "");
-    var m = s.match(/^(\d{2})([\u0600-\u06FF]+)(\d{3})ایران(\d{2})$/);
+    var m = s.match(/^(\d{2})([\u0600-\u06FF]+)(\d{3})\u0627\u06CC\u0631\u0627\u0646(\d{2})$/);
     if (m) return { city: m[4], mid: m[3], letter: m[2], first: m[1] };
-    m = s.match(/^(\d{2})([A-Za-z\u0600-\u06FF]+)(\d{3})(?:ایران)?(\d{2})$/);
+    m = s.match(/^(\d{2})([A-Za-z\u0600-\u06FF]+)(\d{3})(?:\u0627\u06CC\u0631\u0627\u0646)?(\d{2})$/);
     if (m) return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
     m = s.match(/^(\d{2})[-\/]?([A-Za-z\u0600-\u06FF]+)[-\/]?(\d{3})[-\/]?(\d{2})$/);
     if (m) return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
@@ -59,7 +59,7 @@
   function renderIranPlateLocal(plate) {
     var p = parsePlate(plate);
     if (!p) {
-      return '<span class="iran-plate-fallback" dir="ltr">' + escapeHtml(plate || "—") + "</span>";
+      return '<span class="iran-plate-fallback" dir="ltr">' + escapeHtml(plate || "\u2014") + "</span>";
     }
     return (
       '<span class="iran-plate" dir="ltr" title="' +
@@ -82,7 +82,7 @@
       "</span>" +
       "</span>" +
       '<span class="iran-plate-side">' +
-      '<span class="iran-plate-iran">ایران</span>' +
+      '<span class="iran-plate-iran">\u0627\u06CC\u0631\u0627\u0646</span>' +
       '<span class="iran-plate-city">' +
       escapeHtml(toPersianDigits(p.city)) +
       "</span>" +
@@ -101,15 +101,15 @@
     if (!list || !hidden) return;
     var prev = hidden.value;
     hidden.value = "";
-    list.innerHTML = '<div class="car-pick-empty">در حال بارگذاری…</div>';
+    list.innerHTML = '<div class="car-pick-empty">\u062f\u0631 \u062d\u0627\u0644 \u0628\u0627\u0631\u06af\u0630\u0627\u0631\u06cc\u2026</div>';
     try {
       if (typeof Api === "undefined" || !Api.carsAvailable) {
-        list.innerHTML = '<div class="car-pick-empty">API آماده نیست</div>';
+        list.innerHTML = '<div class="car-pick-empty">API \u0622\u0645\u0627\u062f\u0647 \u0646\u06cc\u0633\u062a</div>';
         return;
       }
       var cars = await Api.carsAvailable();
       if (!cars || !cars.length) {
-        list.innerHTML = '<div class="car-pick-empty">ماشینی آزاد نیست</div>';
+        list.innerHTML = '<div class="car-pick-empty">\u0645\u0627\u0634\u06cc\u0646\u06cc \u0622\u0632\u0627\u062f \u0646\u06cc\u0633\u062a</div>';
         return;
       }
       list.innerHTML = cars
@@ -125,7 +125,7 @@
             (selected ? "true" : "false") +
             '">' +
             '<span class="car-pick-name">' +
-            escapeHtml(c.name || "—") +
+            escapeHtml(c.name || "\u2014") +
             "</span>" +
             renderIranPlateLocal(plate) +
             "</button>"
@@ -146,7 +146,7 @@
     } catch (err) {
       list.innerHTML =
         '<div class="car-pick-empty">' +
-        escapeHtml((err && err.message) || "خطا در بارگذاری") +
+        escapeHtml((err && err.message) || "\u062e\u0637\u0627 \u062f\u0631 \u0628\u0627\u0631\u06af\u0630\u0627\u0631\u06cc") +
         "</div>";
     }
   }
@@ -195,7 +195,7 @@
             e.stopImmediatePropagation();
             var t = document.getElementById("toast");
             if (t) {
-              t.textContent = "یک ماشین آزاد انتخاب کنید";
+              t.textContent = "\u06cc\u06a9 \u0645\u0627\u0634\u06cc\u0646 \u0622\u0632\u0627\u062f \u0627\u0646\u062a\u062e\u0627\u0628 \u06a9\u0646\u06cc\u062f";
               t.classList.remove("hidden", "ok");
               t.classList.add("err");
             }
@@ -223,7 +223,7 @@
       var list = document.getElementById("pickupCarList");
       if (list) {
         list.innerHTML =
-          '<div class="car-pick-empty">خطا در آماده‌سازی لیست ماشین‌ها</div>';
+          '<div class="car-pick-empty">\u062e\u0637\u0627 \u062f\u0631 \u0622\u0645\u0627\u062f\u0647\u200c\u0633\u0627\u0632\u06cc \u0644\u06cc\u0633\u062a \u0645\u0627\u0634\u06cc\u0646\u200c\u0647\u0627</div>';
       }
     });
 })();
