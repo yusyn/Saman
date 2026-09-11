@@ -326,6 +326,31 @@
     </div>
   </div>
 
+  <div id="modalEmployee" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" data-close="modalEmployee"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>ویرایش کارمند</h3>
+        <button type="button" class="btn btn-ghost modal-close" data-close="modalEmployee" aria-label="بستن">×</button>
+      </div>
+      <form id="formEditEmployee" class="form">
+        <label>شناسه دستگاه
+          <input name="deviceUserId" id="editEmpId" dir="ltr" readonly class="readonly" />
+        </label>
+        <label>نام کامل (انگلیسی)
+          <input name="name" id="editEmpName" required dir="ltr" />
+        </label>
+        <label>تلفن
+          <input name="phone" id="editEmpPhone" dir="ltr" />
+        </label>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">ذخیره</button>
+          <button type="button" class="btn" data-close="modalEmployee">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
   <script src="/js/report-filters.js"></script>
