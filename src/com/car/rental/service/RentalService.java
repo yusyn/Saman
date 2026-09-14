@@ -1,6 +1,7 @@
 package com.car.rental.service;
 
-import com.car.rental.db.DatabaseManager;
+import com.car.rental.db.EmployeeRepository;
+import com.car.rental.db.RentalRepository;
 import com.car.rental.model.Employee;
 import com.car.rental.model.RentalRecord;
 import com.car.rental.model.RentalReportFilter;
@@ -15,10 +16,12 @@ import java.util.List;
 @Service
 public class RentalService {
 
-    private final DatabaseManager db;
+    private final RentalRepository rentals;
+    private final EmployeeRepository employees;
 
-    public RentalService(DatabaseManager db) {
-        this.db = db;
+    public RentalService(RentalRepository rentals, EmployeeRepository employees) {
+        this.rentals = rentals;
+        this.employees = employees;
     }
 
     public void pickup(String deviceUserId, String carPlate, String pickupTime, String destination)
@@ -32,29 +35,29 @@ public class RentalService {
         if (destination == null || destination.isBlank()) {
             throw new IllegalArgumentException("مقصد الزامی است");
         }
-        db.insertRental(deviceUserId, carPlate, pickupTime, destination);
+        rentals.insertRental(deviceUserId, carPlate, pickupTime, destination);
     }
 
     public boolean returnCar(String deviceUserId, String returnDate) throws SQLException {
         if (deviceUserId == null || deviceUserId.isBlank()) {
             throw new IllegalArgumentException("شناسه کاربر خالی است");
         }
-        return db.returnCarByDeviceUserId(deviceUserId, returnDate);
+        return rentals.returnCarByDeviceUserId(deviceUserId, returnDate);
     }
 
     public RentalRecord getActiveRentalByDeviceUserId(String deviceUserId) throws SQLException {
-        return db.getActiveRentalByDeviceUserId(deviceUserId);
+        return rentals.getActiveRentalByDeviceUserId(deviceUserId);
     }
 
     public List<RentalRecord> getRentalReport() throws SQLException {
-        return db.getRentalReport();
+        return rentals.getRentalReport();
     }
 
     public List<RentalRecord> getRentalReport(RentalReportFilter filter) throws SQLException {
-        return db.getRentalReport(filter);
+        return rentals.getRentalReport(filter);
     }
 
     public Employee findEmployeeByDeviceUserId(String deviceUserId) throws SQLException {
-        return db.findByDeviceUserId(deviceUserId);
+        return employees.findByDeviceUserId(deviceUserId);
     }
 }

@@ -1,6 +1,6 @@
 package com.car.rental.service;
 
-import com.car.rental.db.DatabaseManager;
+import com.car.rental.db.CarRepository;
 import com.car.rental.model.Car;
 import org.springframework.stereotype.Service;
 
@@ -13,10 +13,10 @@ import java.util.List;
 @Service
 public class CarService {
 
-    private final DatabaseManager db;
+    private final CarRepository cars;
 
-    public CarService(DatabaseManager db) {
-        this.db = db;
+    public CarService(CarRepository cars) {
+        this.cars = cars;
     }
 
     public void addCar(String name, String plate, String color) throws SQLException {
@@ -29,10 +29,10 @@ public class CarService {
         if (color == null || color.isBlank()) {
             throw new IllegalArgumentException("رنگ الزامی است");
         }
-        if (db.isPlateTaken(plate, null)) {
+        if (cars.isPlateTaken(plate, null)) {
             throw new SQLException("این پلاک قبلاً ثبت شده است");
         }
-        db.addCar(name, plate, color);
+        cars.addCar(name, plate, color);
     }
 
     public void updateCar(Car car, String oldPlate) throws SQLException {
@@ -47,21 +47,21 @@ public class CarService {
                 || color == null || color.isBlank()) {
             throw new IllegalArgumentException("تمام فیلدهای ماشین باید پر شوند");
         }
-        if (db.isPlateTaken(plate, oldPlate)) {
+        if (cars.isPlateTaken(plate, oldPlate)) {
             throw new SQLException("این پلاک قبلاً برای ماشین دیگری ثبت شده است");
         }
-        db.updateCar(car, oldPlate);
+        cars.updateCar(car, oldPlate);
     }
 
     public void deleteCar(String plate) throws SQLException {
-        db.deleteCar(plate);
+        cars.deleteCar(plate);
     }
 
     public List<Car> getAvailableCars() throws SQLException {
-        return db.listAvailableCars();
+        return cars.listAvailableCars();
     }
 
     public List<Car> getAllCars() throws SQLException {
-        return db.listAllCars();
+        return cars.listAllCars();
     }
 }

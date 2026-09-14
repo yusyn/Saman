@@ -1,6 +1,6 @@
 package com.car.rental.service;
 
-import com.car.rental.db.DatabaseManager;
+import com.car.rental.db.EmployeeRepository;
 import com.car.rental.model.Employee;
 import com.car.rental.util.InputValidators;
 import org.springframework.stereotype.Service;
@@ -19,32 +19,32 @@ public class EmployeeService {
 
     private static final Logger logger = Logger.getLogger(EmployeeService.class.getName());
 
-    private final DatabaseManager db;
+    private final EmployeeRepository employees;
     private final FingerprintService fingerprintService;
     private final FingerprintDeviceGate deviceGate;
 
-    public EmployeeService(DatabaseManager db,
+    public EmployeeService(EmployeeRepository employees,
                            FingerprintService fingerprintService,
                            FingerprintDeviceGate deviceGate) {
-        this.db = db;
+        this.employees = employees;
         this.fingerprintService = fingerprintService;
         this.deviceGate = deviceGate;
     }
 
     public String getNextDeviceUserId() throws SQLException {
-        return db.getNextDeviceUserId();
+        return employees.getNextDeviceUserId();
     }
 
     public boolean isDeviceUserIdExists(String deviceUserId) throws SQLException {
-        return db.isDeviceUserIdExists(deviceUserId);
+        return employees.isDeviceUserIdExists(deviceUserId);
     }
 
     public Employee findByDeviceUserId(String deviceUserId) throws SQLException {
-        return db.findByDeviceUserId(deviceUserId);
+        return employees.findByDeviceUserId(deviceUserId);
     }
 
     public List<Employee> getAllEmployees() throws SQLException {
-        return db.getAllEmployees();
+        return employees.getAllEmployees();
     }
 
     public Employee registerWithFingerprint(String requestedDeviceUserId,
@@ -63,10 +63,10 @@ public class EmployeeService {
 
         final String deviceUserId;
         if (requestedDeviceUserId == null || requestedDeviceUserId.isBlank()) {
-            deviceUserId = db.getNextDeviceUserId();
+            deviceUserId = employees.getNextDeviceUserId();
         } else {
             deviceUserId = requestedDeviceUserId.strip();
-            if (db.isDeviceUserIdExists(deviceUserId)) {
+            if (employees.isDeviceUserIdExists(deviceUserId)) {
                 throw new SQLException("شناسه کارمند قبلاً ثبت شده است: " + deviceUserId);
             }
         }
@@ -77,7 +77,7 @@ public class EmployeeService {
                 try {
                     fingerprintService.registerUserWithFingerprint(deviceUserId, finalName, fingerIndex);
                     try {
-                        db.addEmployee(deviceUserId, finalName, finalPhone);
+                        employees.addEmployee(deviceUserId, finalName, finalPhone);
                     } catch (SQLException dbEx) {
                         logger.log(Level.SEVERE,
                                 "DB insert failed after ZK enroll; rolling back device user " + deviceUserId,
@@ -101,7 +101,7 @@ public class EmployeeService {
             throw new FingerprintException("ثبت کارمند ناموفق بود", e);
         }
 
-        Employee saved = db.findByDeviceUserId(deviceUserId);
+        Employee saved = employees.findByDeviceUserId(deviceUserId);
         if (saved == null) {
             throw new SQLException("کارمند بعد از ثبت یافت نشد: " + deviceUserId);
         }
@@ -123,7 +123,7 @@ public class EmployeeService {
                 ensureConnected();
                 try {
                     fingerprintService.updateUserName(emp.getDeviceUserId(), name);
-                    db.updateEmployee(emp);
+                    employees.updateEmployee(emp);
                 } finally {
                     disconnectQuietly();
                 }
@@ -143,7 +143,7 @@ public class EmployeeService {
             throw new IllegalArgumentException("شناسه کارمند خالی است");
         }
         validateFingerIndex(fingerIndex);
-        if (!db.isDeviceUserIdExists(deviceUserId)) {
+        if (!employees.isDeviceUserIdExists(deviceUserId)) {
             throw new IllegalArgumentException("کارمند در دیتابیس نیست: " + deviceUserId);
         }
 
@@ -183,7 +183,7 @@ public class EmployeeService {
         } catch (Exception e) {
             logger.log(Level.WARNING, "Device gate during delete", e);
         }
-        db.deleteEmployeeByDeviceUserId(deviceUserId);
+        employees.deleteEmployeeByDeviceUserId(deviceUserId);
     }
 
     private void ensureConnected() throws FingerprintException {
