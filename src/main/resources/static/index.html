@@ -47,7 +47,7 @@
             <h3>راهنمای سریع</h3>
             <ul class="tips">
               <li>این صفحه از خود Spring روی پورت ۸۰۸۰ سرو می‌شود.</li>
-              <li>ثبت کارمند با اثر انگشت ممکن است ۳۰ تا ۶۰ ثانیه طول بکشد.</li>
+              <li>ثبت کارمند با اثر انگشت ممکن است تا ۳ دقیقه طول بکشد؛ صفحه را نبندید.</li>
               <li>دستگاه ZK باید از سرور روی پورت ۴۳۷۰ در دسترس باشد.</li>
               <li>ماشین یا کارمند در مأموریت قابل ویرایش/حذف نیست.</li>
               <li>تحویل و برگشت هر کدام احراز اثرانگشت جدا دارند؛ شناسه دستی نیست.</li>
@@ -126,7 +126,7 @@
           </div>
           <div class="card">
             <h3>ثبت کارمند + اثر انگشت</h3>
-            <p class="muted small">نام انگلیسی؛ بعد از ارسال انگشت را روی دستگاه بگذارید.</p>
+            <p class="muted small">نام انگلیسی؛ بعد از ارسال انگشت را روی دستگاه بگذارید. تا ۳ دقیقه صبر کنید.</p>
             <form id="formEmployee" class="form">
               <label>نام کامل (انگلیسی)<input name="name" required placeholder="Ali Rezaei" dir="ltr" /></label>
               <label>تلفن<input name="phone" placeholder="0912…" dir="ltr" /></label>
@@ -257,20 +257,17 @@
               </div>
               <input type="hidden" id="filterDateTo" name="dateTo" />
             </div>
-            <div class="filter-actions">
+            <div class="report-filter-actions">
               <button type="button" class="btn btn-primary" id="btnApplyReportFilter">اعمال فیلتر</button>
-              <button type="button" class="btn btn-ghost" id="btnResetReportFilter">پاک‌کردن فیلتر</button>
-              <button type="button" class="btn btn-ghost" id="btnExportCsv">خروجی CSV</button>
-              <button type="button" class="btn btn-ghost" id="btnExportExcel">خروجی Excel</button>
+              <button type="button" class="btn btn-ghost" id="btnClearReportFilter">پاک کردن</button>
             </div>
           </form>
-          <p class="muted small" id="reportFilterSummary">بدون فیلتر — همهٔ سفرها</p>
           <div class="table-wrap">
-            <table class="table-report">
+            <table>
               <thead>
                 <tr>
-                  <th>شناسه</th><th>کارمند</th><th>ماشین</th><th>پلاک</th>
-                  <th>مقصد</th><th>تحویل</th><th>برگشت</th>
+                  <th>کارمند</th><th>ماشین</th><th>پلاک</th><th>مقصد</th>
+                  <th>تحویل</th><th>برگشت</th><th>وضعیت</th>
                 </tr>
               </thead>
               <tbody id="reportTable"></tbody>
@@ -281,8 +278,7 @@
     </main>
   </div>
 
-  <div id="modalCar" class="modal hidden" role="dialog" aria-modal="true">
-    <div class="modal-backdrop" data-close="modalCar"></div>
+  <div id="modalCar" class="modal hidden">
     <div class="modal-panel">
       <div class="modal-head">
         <h3>ویرایش ماشین</h3>
@@ -290,26 +286,16 @@
       </div>
       <form id="formEditCar" class="form">
         <input type="hidden" id="editCarOldPlate" />
-        <label>نام / مدل<input id="editCarName" required /></label>
+        <label>نام<input id="editCarName" required /></label>
         <label>پلاک
           <div class="plate-input" dir="ltr">
             <input type="text" id="editPlateFirst" maxlength="2" inputmode="numeric" pattern="[0-9]*" />
             <select id="editPlateLetter">
-              <option value="الف">الف</option>
-              <option value="ب">ب</option>
-              <option value="ج">ج</option>
-              <option value="د">د</option>
-              <option value="س">س</option>
-              <option value="ص">ص</option>
-              <option value="ط">ط</option>
-              <option value="ق">ق</option>
-              <option value="گ">گ</option>
-              <option value="ل">ل</option>
-              <option value="م">م</option>
-              <option value="ن">ن</option>
-              <option value="و">و</option>
-              <option value="هـ">هـ</option>
-              <option value="ی">ی</option>
+              <option value="الف">الف</option><option value="ب">ب</option><option value="ج">ج</option>
+              <option value="د">د</option><option value="س">س</option><option value="ص">ص</option>
+              <option value="ط">ط</option><option value="ق">ق</option><option value="گ">گ</option>
+              <option value="ل">ل</option><option value="م">م</option><option value="ن">ن</option>
+              <option value="و">و</option><option value="هـ">هـ</option><option value="ی">ی</option>
             </select>
             <input type="text" id="editPlateMid" maxlength="3" inputmode="numeric" pattern="[0-9]*" />
             <span class="plate-iran">ایران</span>
@@ -325,8 +311,7 @@
     </div>
   </div>
 
-  <div id="modalEmployee" class="modal hidden" role="dialog" aria-modal="true">
-    <div class="modal-backdrop" data-close="modalEmployee"></div>
+  <div id="modalEmployee" class="modal hidden">
     <div class="modal-panel">
       <div class="modal-head">
         <h3>ویرایش کارمند</h3>
@@ -344,8 +329,8 @@
     </div>
   </div>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/app.js"></script>
-  <script src="/js/report-filters.js"></script>
+  <script src="/js/api.js?v=20260914-3"></script>
+  <script src="/js/app.js?v=20260914-3"></script>
+  <script src="/js/report-filters.js?v=20260914-3"></script>
 </body>
 </html>
