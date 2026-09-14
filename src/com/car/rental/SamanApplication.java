@@ -1,6 +1,6 @@
 package com.car.rental;
 
-import com.car.rental.db.DatabaseManager;
+import com.car.rental.db.SchemaInitializer;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -27,8 +27,8 @@ public class SamanApplication {
                 .headless(true)
                 .run(args);
 
-        DatabaseManager db = context.getBean(DatabaseManager.class);
-        db.initDatabase();
+        SchemaInitializer schema = context.getBean(SchemaInitializer.class);
+        schema.initDatabase();
 
         Environment env = context.getEnvironment();
         String port = env.getProperty("server.port", "8080");

@@ -1,10 +1,7 @@
 package com.car.rental.db;
 
-import com.car.rental.model.Car;
-import com.car.rental.model.Employee;
 import com.car.rental.model.RentalRecord;
 import com.car.rental.model.RentalReportFilter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
@@ -12,304 +9,26 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Persistence for rentals (RentalTable) including multi-table pickup/return transactions.
+ */
 @Repository
-public class DatabaseManager {
-    private static final Logger logger = Logger.getLogger(DatabaseManager.class.getName());
-    private static final int DEVICE_USER_ID_START = 1001;
+public class RentalRepository {
+
+    private static final Logger logger = Logger.getLogger(RentalRepository.class.getName());
 
     private final DataSource dataSource;
 
-    @Autowired
-    public DatabaseManager(DataSource dataSource) {
+    public RentalRepository(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
     private Connection getConnection() throws SQLException {
         return dataSource.getConnection();
-    }
-
-    public void initDatabase() {
-        String employeeTable =
-                "CREATE TABLE IF NOT EXISTS EmployeeTable (" +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "device_user_id TEXT NOT NULL UNIQUE, " +
-                "name TEXT NOT NULL, " +
-                "phone TEXT, " +
-                "is_active INTEGER DEFAULT 1, " +
-                "is_renting INTEGER DEFAULT 0, " +
-                "created_at TEXT DEFAULT (datetime('now','localtime')), " +
-                "updated_at TEXT DEFAULT (datetime('now','localtime'))" +
-                ")";
-
-        String carTable =
-                "CREATE TABLE IF NOT EXISTS CarTable (" +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "name TEXT NOT NULL, " +
-                "plate TEXT NOT NULL, " +
-                "color TEXT NOT NULL, " +
-                "is_deleted INTEGER DEFAULT 0, " +
-                "is_rented INTEGER DEFAULT 0" +
-                ")";
-
-        String rentalTable =
-                "CREATE TABLE IF NOT EXISTS RentalTable (" +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "employee_id INTEGER NOT NULL, " +
-                "car_id INTEGER NOT NULL, " +
-                "pickup_date TEXT, " +
-                "return_date TEXT, " +
-                "destination TEXT NOT NULL, " +
-                "is_active INTEGER DEFAULT 1, " +
-                "FOREIGN KEY(employee_id) REFERENCES EmployeeTable(id) ON UPDATE CASCADE, " +
-                "FOREIGN KEY(car_id) REFERENCES CarTable(id) ON UPDATE CASCADE" +
-                ")";
-
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.execute(employeeTable);
-            stmt.execute(carTable);
-            stmt.execute(rentalTable);
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Database init failed!", e);
-        }
-    }
-
-    public String getNextDeviceUserId() throws SQLException {
-        String sql = "SELECT device_user_id FROM EmployeeTable";
-        int max = DEVICE_USER_ID_START - 1;
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                String raw = rs.getString("device_user_id");
-                if (raw == null) continue;
-                try {
-                    int v = Integer.parseInt(raw.trim());
-                    if (v > max) {
-                        max = v;
-                    }
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-        int next = Math.max(max + 1, DEVICE_USER_ID_START);
-        if (next > 65535) {
-            throw new SQLException("Device user id range exhausted (max 65535)");
-        }
-        return String.valueOf(next);
-    }
-
-    public void addEmployee(String deviceUserId, String name, String phone) throws SQLException {
-        String sql = "INSERT INTO EmployeeTable(device_user_id, name, phone) VALUES(?,?,?)";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, deviceUserId);
-            stmt.setString(2, name);
-            stmt.setString(3, phone);
-            stmt.executeUpdate();
-        }
-    }
-
-    public Employee findByDeviceUserId(String deviceUserId) throws SQLException {
-        String sql = "SELECT id, device_user_id, name, phone, is_active, is_renting " +
-                "FROM EmployeeTable WHERE device_user_id = ? AND is_active = 1";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, deviceUserId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapEmployee(rs);
-                }
-                return null;
-            }
-        }
-    }
-
-    public List<Employee> getAllEmployees() throws SQLException {
-        List<Employee> list = new ArrayList<>();
-        String sql = "SELECT id, device_user_id, name, phone, is_active, is_renting " +
-                "FROM EmployeeTable WHERE is_active = 1 ORDER BY name";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                list.add(mapEmployee(rs));
-            }
-        }
-        return list;
-    }
-
-    public void updateEmployee(Employee emp) throws SQLException {
-        String sql = "UPDATE EmployeeTable SET name = ?, phone = ?, " +
-                "updated_at = datetime('now','localtime') WHERE id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, emp.getName());
-            stmt.setString(2, emp.getPhone());
-            stmt.setInt(3, emp.getId());
-            stmt.executeUpdate();
-        }
-    }
-
-    public void deleteEmployeeByDeviceUserId(String deviceUserId) throws SQLException {
-        String sql = "UPDATE EmployeeTable SET is_active = 0, " +
-                "updated_at = datetime('now','localtime') WHERE device_user_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, deviceUserId);
-            stmt.executeUpdate();
-        }
-    }
-
-    public boolean isDeviceUserIdExists(String deviceUserId) throws SQLException {
-        String sql = "SELECT 1 FROM EmployeeTable WHERE device_user_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, deviceUserId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next();
-            }
-        }
-    }
-
-    private Employee mapEmployee(ResultSet rs) throws SQLException {
-        return new Employee(
-                rs.getInt("id"),
-                rs.getString("device_user_id"),
-                rs.getString("name"),
-                rs.getString("phone"),
-                rs.getInt("is_active") == 1,
-                rs.getInt("is_renting") == 1
-        );
-    }
-
-    public int getCarIdByPlate(String plate) throws SQLException {
-        String sql = "SELECT id FROM CarTable WHERE plate = ? AND is_deleted = 0";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, plate);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("id");
-                } else {
-                    throw new SQLException("ماشین فعالی با این پلاک یافت نشد: " + plate);
-                }
-            }
-        }
-    }
-
-    public boolean isPlateTaken(String plate, String excludePlate) throws SQLException {
-        if (plate == null || plate.isBlank()) {
-            return false;
-        }
-        if (excludePlate != null && !excludePlate.isBlank() && excludePlate.equals(plate)) {
-            return false;
-        }
-        String sql = "SELECT 1 FROM CarTable WHERE plate = ? AND is_deleted = 0";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, plate);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (!rs.next()) {
-                    return false;
-                }
-                return excludePlate == null || !excludePlate.equals(plate);
-            }
-        }
-    }
-
-    public List<Car> listAvailableCars() throws SQLException {
-        List<Car> cars = new ArrayList<>();
-        String sql = "SELECT name, color, plate FROM CarTable WHERE is_deleted = 0 AND is_rented = 0 ORDER BY name";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                cars.add(new Car(
-                        rs.getString("name"),
-                        rs.getString("plate"),
-                        rs.getString("color"),
-                        "آزاد"
-                ));
-            }
-        }
-        return cars;
-    }
-
-    public List<Car> listAllCars() throws SQLException {
-        List<Car> cars = new ArrayList<>();
-        String sql = "SELECT name, color, plate, is_rented FROM CarTable WHERE is_deleted = 0 ORDER BY name";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                boolean rented = rs.getInt("is_rented") == 1;
-                cars.add(new Car(
-                        rs.getString("name"),
-                        rs.getString("plate"),
-                        rs.getString("color"),
-                        rented ? "در مأموریت" : "آزاد"
-                ));
-            }
-        }
-        return cars;
-    }
-
-    public void addCar(String name, String plate, String color) throws SQLException {
-        String sql = "INSERT INTO CarTable(name, plate, color) VALUES(?,?,?)";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, name);
-            stmt.setString(2, plate);
-            stmt.setString(3, color);
-            stmt.executeUpdate();
-        }
-    }
-
-    public void updateCar(Car car, String oldPlate) throws SQLException {
-        String sql = "UPDATE CarTable SET name = ?, color = ?, plate = ? " +
-                "WHERE plate = ? AND is_deleted = 0";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, car.getModel());
-            stmt.setString(2, car.getColor());
-            stmt.setString(3, car.getPlate());
-            stmt.setString(4, oldPlate);
-            int n = stmt.executeUpdate();
-            if (n == 0) {
-                throw new SQLException("ماشین فعالی برای به‌روزرسانی یافت نشد");
-            }
-        }
-    }
-
-    public void deleteCar(String plate) throws SQLException {
-        String checkSql = "SELECT is_rented FROM CarTable WHERE plate = ? AND is_deleted = 0";
-        String sql = "UPDATE CarTable SET is_deleted = 1 WHERE plate = ? AND is_deleted = 0 AND is_rented = 0";
-        try (Connection conn = getConnection()) {
-            try (PreparedStatement check = conn.prepareStatement(checkSql)) {
-                check.setString(1, plate);
-                try (ResultSet rs = check.executeQuery()) {
-                    if (!rs.next()) {
-                        throw new SQLException("ماشین فعالی یافت نشد");
-                    }
-                    if (rs.getInt("is_rented") == 1) {
-                        throw new SQLException("ماشین در مأموریت است و قابل حذف نیست");
-                    }
-                }
-            }
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, plate);
-                int n = stmt.executeUpdate();
-                if (n == 0) {
-                    throw new SQLException("حذف ماشین انجام نشد");
-                }
-            }
-        }
     }
 
     public void insertRental(String deviceUserId,
