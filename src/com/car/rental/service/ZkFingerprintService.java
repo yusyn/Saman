@@ -6,7 +6,6 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,13 +14,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * ZKTeco TCP client (port 4370).
- * Full implementation restored from working history (2026-08-16) +
- * host 192.168.20.200 and cancelEnroll support.
+ * Full create/update/delete/enroll restored (no stub exceptions).
  */
 public class ZkFingerprintService implements FingerprintService {
 
@@ -32,27 +29,16 @@ public class ZkFingerprintService implements FingerprintService {
     private static final int CMD_ENABLEDEVICE = 1002;
     private static final int CMD_DISABLEDEVICE = 1003;
     private static final int CMD_ACK_OK = 2000;
-    private static final int CMD_ACK_ERROR = 2001;
-    private static final int CMD_PREPARE_DATA = 1500;
-    private static final int CMD_DATA = 1501;
     private static final int CMD_REG_EVENT = 500;
     private static final int CMD_USER_WRQ = 8;
-    private static final int CMD_USERTEMP_RRQ = 9;
     private static final int CMD_DELETE_USER = 18;
     private static final int CMD_STARTVERIFY = 60;
     private static final int CMD_STARTENROLL = 61;
-    private static final int CMD_WRITE_LCD = 66;
-    private static final int CMD_CLEAR_LCD = 67;
-    private static final int CMD_TESTVOICE = 1017;
 
     private static final int EF_ATTLOG = 1;
-    private static final int EF_FINGER = 2;
-    private static final int EF_ENROLLUSER = 4;
     private static final int EF_ENROLLFINGER = 8;
-    private static final int EF_FPFTR = 256;
 
     private static final int ENROLL_TIMEOUT_SECONDS = 60;
-    private static final long MAX_TIME_DRIFT_HOURS = 48;
     private static final byte[] PACKET_START = new byte[]{0x50, 0x50, (byte) 0x82, 0x7D};
 
     private final String host;
@@ -307,20 +293,26 @@ public class ZkFingerprintService implements FingerprintService {
         return out;
     }
 
-    private void writeUser(int uid, String name, String deviceUserId) throws IOException, FingerprintException {
-        // ZK user record: uid(2) + role(1) + password(8) + name(24) + card(4) + grp(1) + tz(4) + userid(9) approx
+    /** 72-byte USER_WRQ layout matching working device firmware (pyzk-compatible). */
+    private void writeUser(int uid, String name, String userId) throws IOException, FingerprintException {
+        byte[] password = padFixed("", 8);
         byte[] nameBytes = padFixed(name, 24);
-        byte[] userIdBytes = padFixed(deviceUserId, 9);
-        byte[] data = new byte[2 + 1 + 8 + 24 + 4 + 1 + 4 + 9];
-        data[0] = (byte) (uid & 0xFF);
-        data[1] = (byte) ((uid >> 8) & 0xFF);
-        data[2] = 0; // privilege
-        // password 8 zeros
-        System.arraycopy(nameBytes, 0, data, 11, 24);
-        // card 4 zeros at 35
-        data[39] = 1; // group
-        // tz 4 zeros
-        System.arraycopy(userIdBytes, 0, data, 44, 9);
+        byte[] card = new byte[4];
+        byte[] groupId = padFixed("", 7);
+        byte[] userIdBytes = padFixed(userId, 24);
+
+        byte[] data = new byte[72];
+        int o = 0;
+        data[o++] = (byte) (uid & 0xFF);
+        data[o++] = (byte) ((uid >> 8) & 0xFF);
+        data[o++] = 0; // privilege
+        System.arraycopy(password, 0, data, o, 8); o += 8;
+        System.arraycopy(nameBytes, 0, data, o, 24); o += 24;
+        System.arraycopy(card, 0, data, o, 4); o += 4;
+        data[o++] = 0;
+        System.arraycopy(groupId, 0, data, o, 7); o += 7;
+        data[o++] = 0;
+        System.arraycopy(userIdBytes, 0, data, o, 24);
 
         byte[] reply = sendCommand(CMD_USER_WRQ, data);
         if (reply == null || getCommand(reply) != CMD_ACK_OK) {
@@ -339,13 +331,10 @@ public class ZkFingerprintService implements FingerprintService {
     }
 
     private void sendStartEnroll(String deviceUserId, int fingerIndex) throws IOException, FingerprintException {
-        int uid = toInternalUid(deviceUserId);
-        // pyzk-style STARTENROLL payload
         byte[] data = new byte[26];
-        byte[] uidStr = padFixed(String.valueOf(uid), 9);
-        System.arraycopy(uidStr, 0, data, 0, 9);
-        data[24] = (byte) fingerIndex;
-        data[25] = 1; // flag
+        System.arraycopy(padFixed(deviceUserId, 24), 0, data, 0, 24);
+        data[24] = (byte) (fingerIndex & 0xFF);
+        data[25] = 1;
         byte[] reply = sendCommand(CMD_STARTENROLL, data);
         if (reply == null || getCommand(reply) != CMD_ACK_OK) {
             throw new FingerprintException("STARTENROLL rejected for user " + deviceUserId);
@@ -368,15 +357,10 @@ public class ZkFingerprintService implements FingerprintService {
                 try {
                     byte[] packet = readPacket();
                     if (packet == null) continue;
-                    int cmd = getCommand(packet);
-                    if (cmd != CMD_REG_EVENT) continue;
+                    if (getCommand(packet) != CMD_REG_EVENT) continue;
                     int eventCode = getSessionId(packet);
                     if (eventCode == EF_ENROLLFINGER || (eventCode & EF_ENROLLFINGER) != 0) {
-                        // data after header may contain result byte
-                        int result = 0;
-                        if (packet.length > 16) {
-                            result = packet[16] & 0xFF;
-                        }
+                        int result = packet.length > 16 ? (packet[16] & 0xFF) : 0;
                         if (result == 0) {
                             logger.info("Enroll success event");
                             enrolling.set(false);
@@ -425,8 +409,7 @@ public class ZkFingerprintService implements FingerprintService {
                         try {
                             byte[] packet = readPacket();
                             if (packet == null) continue;
-                            int cmd = getCommand(packet);
-                            if (cmd != CMD_REG_EVENT) continue;
+                            if (getCommand(packet) != CMD_REG_EVENT) continue;
                             int eventCode = getSessionId(packet);
                             if (eventCode == EF_ATTLOG || (eventCode & EF_ATTLOG) != 0) {
                                 VerificationResult result = parseSimpleAttLog(packet);
