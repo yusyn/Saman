@@ -3,11 +3,11 @@
  * Works for local laptop and production server without code changes.
  */
 const Api = (() => {
-  const DEFAULT_TIMEOUT_MS = 12000;
-  /** Enroll on device can take 30–90s (finger retries + ZK wait). */
-  const ENROLL_TIMEOUT_MS = 120000;
+  const DEFAULT_TIMEOUT_MS = 15000;
+  /** Register/enroll: device + finger can exceed 2 minutes (gate wait + enroll). */
+  const ENROLL_TIMEOUT_MS = 180000;
   /** Device name update may hit soft-disable / one retry. */
-  const DEVICE_WRITE_TIMEOUT_MS = 45000;
+  const DEVICE_WRITE_TIMEOUT_MS = 60000;
 
   async function request(path, options = {}) {
     const timeoutMs = options.timeoutMs != null ? options.timeoutMs : DEFAULT_TIMEOUT_MS;
@@ -50,7 +50,11 @@ const Api = (() => {
       return data;
     } catch (e) {
       if (e && e.name === "AbortError") {
-        throw new Error("پاسخی از سرور نیامد (timeout)");
+        throw new Error(
+          "پاسخی از سرور نیامد (timeout پس از " +
+            Math.round(timeoutMs / 1000) +
+            " ثانیه). اگر در حال ثبت اثر انگشت هستید، کمی صبر کنید و لیست را بروزرسانی کنید."
+        );
       }
       throw e;
     } finally {
@@ -98,7 +102,7 @@ const Api = (() => {
       request("/api/fingerprint/verify", {
         method: "POST",
         body: JSON.stringify({ timeoutSeconds }),
-        timeoutMs: (timeoutSeconds + 10) * 1000,
+        timeoutMs: (timeoutSeconds + 15) * 1000,
       }),
     cancelListen: () =>
       request("/api/fingerprint/cancel-listen", { method: "POST", timeoutMs: 5000 }),

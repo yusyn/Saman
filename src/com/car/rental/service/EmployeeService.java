@@ -71,6 +71,12 @@ public class EmployeeService {
             }
         }
 
+        // Drop a stale verify listen so we do not wait forever on the shared device gate.
+        try {
+            fingerprintService.cancelListen();
+        } catch (Exception ignored) {
+        }
+
         try {
             deviceGate.call(() -> {
                 ensureConnected();
@@ -119,6 +125,11 @@ public class EmployeeService {
         final String name = emp.getName().strip();
 
         try {
+            fingerprintService.cancelListen();
+        } catch (Exception ignored) {
+        }
+
+        try {
             deviceGate.call(() -> {
                 ensureConnected();
                 try {
@@ -148,6 +159,11 @@ public class EmployeeService {
         }
 
         try {
+            fingerprintService.cancelListen();
+        } catch (Exception ignored) {
+        }
+
+        try {
             deviceGate.call(() -> {
                 ensureConnected();
                 try {
@@ -168,6 +184,11 @@ public class EmployeeService {
     }
 
     public void deleteEmployee(String deviceUserId) throws SQLException {
+        try {
+            fingerprintService.cancelListen();
+        } catch (Exception ignored) {
+        }
+
         try {
             deviceGate.call(() -> {
                 try {

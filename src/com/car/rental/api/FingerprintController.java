@@ -19,6 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,6 +33,10 @@ public class FingerprintController {
     private final FingerprintProperties props;
     private final FingerprintDeviceGate deviceGate;
     private final EmployeeService employeeService;
+
+    /** Active verify future — cancel-listen completes it so the device gate is released promptly. */
+    private final AtomicReference<CompletableFuture<VerificationResult>> activeVerify =
+            new AtomicReference<>();
 
     public FingerprintController(FingerprintService fingerprintService,
                                  FingerprintProperties props,
@@ -56,44 +61,55 @@ public class FingerprintController {
 
         return deviceGate.call(() -> {
             CompletableFuture<VerificationResult> future = new CompletableFuture<>();
-
-            fingerprintService.listenForVerification(
-                    timeoutSeconds,
-                    future::complete,
-                    () -> future.completeExceptionally(
-                            new FingerprintException("زمان انتظار اثر انگشت به پایان رسید")),
-                    future::completeExceptionally
-            );
-
+            activeVerify.set(future);
             try {
-                VerificationResult result = future.get(timeoutSeconds + 10L, TimeUnit.SECONDS);
-                VerificationResponse response = VerificationResponse.from(result);
-                enrichWithEmployee(response);
-                return response;
-            } catch (TimeoutException e) {
-                fingerprintService.cancelListen();
-                throw new FingerprintException("زمان انتظار اثر انگشت به پایان رسید");
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                fingerprintService.cancelListen();
-                throw new FingerprintException("عملیات verify قطع شد");
-            } catch (ExecutionException e) {
-                fingerprintService.cancelListen();
-                Throwable c = e.getCause() != null ? e.getCause() : e;
-                if (c instanceof FingerprintException) {
-                    throw (FingerprintException) c;
+                fingerprintService.listenForVerification(
+                        timeoutSeconds,
+                        future::complete,
+                        () -> future.completeExceptionally(
+                                new FingerprintException("زمان انتظار اثر انگشت به پایان رسید")),
+                        future::completeExceptionally
+                );
+
+                try {
+                    VerificationResult result = future.get(timeoutSeconds + 10L, TimeUnit.SECONDS);
+                    VerificationResponse response = VerificationResponse.from(result);
+                    enrichWithEmployee(response);
+                    return response;
+                } catch (TimeoutException e) {
+                    fingerprintService.cancelListen();
+                    throw new FingerprintException("زمان انتظار اثر انگشت به پایان رسید");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    fingerprintService.cancelListen();
+                    throw new FingerprintException("عملیات verify قطع شد");
+                } catch (ExecutionException e) {
+                    fingerprintService.cancelListen();
+                    Throwable c = e.getCause() != null ? e.getCause() : e;
+                    if (c instanceof FingerprintException) {
+                        throw (FingerprintException) c;
+                    }
+                    log.log(Level.WARNING, "verify failed", c);
+                    throw new FingerprintException(
+                            c.getMessage() != null ? c.getMessage() : "verify failed");
                 }
-                log.log(Level.WARNING, "verify failed", c);
-                throw new FingerprintException(
-                        c.getMessage() != null ? c.getMessage() : "verify failed");
+            } finally {
+                activeVerify.compareAndSet(future, null);
+                fingerprintService.cancelListen();
             }
         });
     }
 
-    /** Cancel an in-progress verify (listenForVerification). */
+    /**
+     * Cancel in-progress verify and unblock the thread holding {@link FingerprintDeviceGate}.
+     */
     @PostMapping("/cancel-listen")
     public OkResponse cancelListen() {
         fingerprintService.cancelListen();
+        CompletableFuture<VerificationResult> f = activeVerify.get();
+        if (f != null) {
+            f.completeExceptionally(new FingerprintException("احراز هویت لغو شد"));
+        }
         return OkResponse.ok("احراز هویت لغو شد");
     }
 
