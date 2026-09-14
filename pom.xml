@@ -15,7 +15,7 @@
     <artifactId>saman</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>Saman</name>
-    <description>Car rental — desktop UI and/or HTTP API server (ZK fingerprint)</description>
+    <description>Car rental management — HTTP API and Web UI (ZK fingerprint)</description>
 
     <properties>
         <java.version>17</java.version>
