@@ -6,7 +6,6 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,16 +14,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * ZKTeco TCP client (port 4370).
- * Verification: ENABLE + STARTVERIFY + REG_EVENT, wait for ATTLOG.
- * Enroll: STARTENROLL + EF_ENROLLFINGER realtime events.
- *
- * NOTE: Full enroll implementation should be restored from commit 31788419 if device enroll is needed.
- * Verify path is functional. With FINGERPRINT_MOCK=true this class is not used.
+ * Full create/update/delete/enroll restored (no stub exceptions).
  */
 public class ZkFingerprintService implements FingerprintService {
 
@@ -35,29 +29,16 @@ public class ZkFingerprintService implements FingerprintService {
     private static final int CMD_ENABLEDEVICE = 1002;
     private static final int CMD_DISABLEDEVICE = 1003;
     private static final int CMD_ACK_OK = 2000;
-    private static final int CMD_ACK_ERROR = 2001;
-    private static final int CMD_PREPARE_DATA = 1500;
-    private static final int CMD_DATA = 1501;
     private static final int CMD_REG_EVENT = 500;
     private static final int CMD_USER_WRQ = 8;
-    private static final int CMD_USERTEMP_RRQ = 9;
     private static final int CMD_DELETE_USER = 18;
     private static final int CMD_STARTVERIFY = 60;
     private static final int CMD_STARTENROLL = 61;
-    private static final int CMD_WRITE_LCD = 66;
-    private static final int CMD_CLEAR_LCD = 67;
-    private static final int CMD_TESTVOICE = 1017;
 
     private static final int EF_ATTLOG = 1;
-    private static final int EF_FINGER = 2;
-    private static final int EF_ENROLLUSER = 4;
     private static final int EF_ENROLLFINGER = 8;
-    private static final int EF_FPFTR = 256;
 
     private static final int ENROLL_TIMEOUT_SECONDS = 60;
-
-    private static final long MAX_TIME_DRIFT_HOURS = 48;
-
     private static final byte[] PACKET_START = new byte[]{0x50, 0x50, (byte) 0x82, 0x7D};
 
     private final String host;
@@ -72,6 +53,7 @@ public class ZkFingerprintService implements FingerprintService {
 
     private final AtomicBoolean connected = new AtomicBoolean(false);
     private final AtomicBoolean listening = new AtomicBoolean(false);
+    private final AtomicBoolean enrolling = new AtomicBoolean(false);
 
     private final ExecutorService executor = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r, "zk-fingerprint-worker");
@@ -121,9 +103,7 @@ public class ZkFingerprintService implements FingerprintService {
             }
             sessionId = getSessionId(reply);
             connected.set(true);
-
             enableDeviceBestEffort("after connect");
-
             logger.info("Connected to ZK " + host + ":" + port + " session=" + sessionId);
         } catch (IOException e) {
             closeQuietly();
@@ -134,6 +114,7 @@ public class ZkFingerprintService implements FingerprintService {
     @Override
     public synchronized void disconnect() {
         cancelListen();
+        cancelEnroll();
         if (!connected.get()) {
             return;
         }
@@ -161,6 +142,11 @@ public class ZkFingerprintService implements FingerprintService {
         }
     }
 
+    @Override
+    public void cancelEnroll() {
+        enrolling.set(false);
+    }
+
     private void ensureConnected() throws FingerprintException {
         if (!isConnected()) {
             connect();
@@ -173,6 +159,13 @@ public class ZkFingerprintService implements FingerprintService {
             sendCommand(CMD_ENABLEDEVICE, new byte[0]);
         } catch (Exception e) {
             logger.info("ENABLEDEVICE skipped/ignored after " + context);
+        }
+    }
+
+    private void disableDevice() throws IOException, FingerprintException {
+        byte[] reply = sendCommand(CMD_DISABLEDEVICE, new byte[0]);
+        if (reply == null || getCommand(reply) != CMD_ACK_OK) {
+            throw new FingerprintException("DISABLEDEVICE failed");
         }
     }
 
@@ -281,6 +274,114 @@ public class ZkFingerprintService implements FingerprintService {
         socket = null;
     }
 
+    private static int toInternalUid(String deviceUserId) throws FingerprintException {
+        try {
+            int uid = Integer.parseInt(deviceUserId.trim());
+            if (uid < 1 || uid > 65535) {
+                throw new FingerprintException("deviceUserId out of range: " + deviceUserId);
+            }
+            return uid;
+        } catch (NumberFormatException e) {
+            throw new FingerprintException("deviceUserId must be numeric: " + deviceUserId, e);
+        }
+    }
+
+    private static byte[] padFixed(String s, int len) {
+        byte[] src = (s == null ? "" : s).getBytes(StandardCharsets.UTF_8);
+        byte[] out = new byte[len];
+        System.arraycopy(src, 0, out, 0, Math.min(src.length, len));
+        return out;
+    }
+
+    /** 72-byte USER_WRQ layout matching working device firmware (pyzk-compatible). */
+    private void writeUser(int uid, String name, String userId) throws IOException, FingerprintException {
+        byte[] password = padFixed("", 8);
+        byte[] nameBytes = padFixed(name, 24);
+        byte[] card = new byte[4];
+        byte[] groupId = padFixed("", 7);
+        byte[] userIdBytes = padFixed(userId, 24);
+
+        byte[] data = new byte[72];
+        int o = 0;
+        data[o++] = (byte) (uid & 0xFF);
+        data[o++] = (byte) ((uid >> 8) & 0xFF);
+        data[o++] = 0; // privilege
+        System.arraycopy(password, 0, data, o, 8); o += 8;
+        System.arraycopy(nameBytes, 0, data, o, 24); o += 24;
+        System.arraycopy(card, 0, data, o, 4); o += 4;
+        data[o++] = 0;
+        System.arraycopy(groupId, 0, data, o, 7); o += 7;
+        data[o++] = 0;
+        System.arraycopy(userIdBytes, 0, data, o, 24);
+
+        byte[] reply = sendCommand(CMD_USER_WRQ, data);
+        if (reply == null || getCommand(reply) != CMD_ACK_OK) {
+            throw new FingerprintException("USER_WRQ failed for uid=" + uid);
+        }
+        logger.info("USER_WRQ OK uid=" + uid + " name=" + name);
+    }
+
+    private void deleteUserByUid(int uid) throws IOException, FingerprintException {
+        byte[] data = new byte[]{(byte) (uid & 0xFF), (byte) ((uid >> 8) & 0xFF)};
+        byte[] reply = sendCommand(CMD_DELETE_USER, data);
+        if (reply == null || getCommand(reply) != CMD_ACK_OK) {
+            throw new FingerprintException("DELETE_USER failed for uid=" + uid);
+        }
+        logger.info("DELETE_USER OK uid=" + uid);
+    }
+
+    private void sendStartEnroll(String deviceUserId, int fingerIndex) throws IOException, FingerprintException {
+        byte[] data = new byte[26];
+        System.arraycopy(padFixed(deviceUserId, 24), 0, data, 0, 24);
+        data[24] = (byte) (fingerIndex & 0xFF);
+        data[25] = 1;
+        byte[] reply = sendCommand(CMD_STARTENROLL, data);
+        if (reply == null || getCommand(reply) != CMD_ACK_OK) {
+            throw new FingerprintException("STARTENROLL rejected for user " + deviceUserId);
+        }
+        logger.info("STARTENROLL OK user=" + deviceUserId + " finger=" + fingerIndex);
+    }
+
+    private void waitForEnrollDeviceEvent(int timeoutSeconds) throws FingerprintException, IOException {
+        enrolling.set(true);
+        byte[] regData = new byte[]{(byte) 0xFF, (byte) 0xFF, 0x00, 0x00};
+        byte[] regReply = sendCommand(CMD_REG_EVENT, regData);
+        if (regReply == null || getCommand(regReply) != CMD_ACK_OK) {
+            throw new FingerprintException("Failed to register enroll events");
+        }
+        long deadline = System.currentTimeMillis() + timeoutSeconds * 1000L;
+        int previousTimeout = socket.getSoTimeout();
+        socket.setSoTimeout(1000);
+        try {
+            while (enrolling.get() && System.currentTimeMillis() < deadline) {
+                try {
+                    byte[] packet = readPacket();
+                    if (packet == null) continue;
+                    if (getCommand(packet) != CMD_REG_EVENT) continue;
+                    int eventCode = getSessionId(packet);
+                    if (eventCode == EF_ENROLLFINGER || (eventCode & EF_ENROLLFINGER) != 0) {
+                        int result = packet.length > 16 ? (packet[16] & 0xFF) : 0;
+                        if (result == 0) {
+                            logger.info("Enroll success event");
+                            enrolling.set(false);
+                            return;
+                        }
+                        throw new FingerprintException("Enroll failed on device (result=" + result + ")");
+                    }
+                } catch (java.net.SocketTimeoutException ste) {
+                    // poll
+                }
+            }
+            if (!enrolling.get()) {
+                throw new FingerprintException("ثبت اثر انگشت توسط کاربر لغو شد");
+            }
+            throw new FingerprintException("Enroll timed out after " + timeoutSeconds + "s");
+        } finally {
+            try { socket.setSoTimeout(previousTimeout); } catch (Exception ignored) {}
+            enrolling.set(false);
+        }
+    }
+
     @Override
     public void listenForVerification(int timeoutSeconds,
                                       Consumer<VerificationResult> onVerified,
@@ -308,8 +409,7 @@ public class ZkFingerprintService implements FingerprintService {
                         try {
                             byte[] packet = readPacket();
                             if (packet == null) continue;
-                            int cmd = getCommand(packet);
-                            if (cmd != CMD_REG_EVENT) continue;
+                            if (getCommand(packet) != CMD_REG_EVENT) continue;
                             int eventCode = getSessionId(packet);
                             if (eventCode == EF_ATTLOG || (eventCode & EF_ATTLOG) != 0) {
                                 VerificationResult result = parseSimpleAttLog(packet);
@@ -370,40 +470,113 @@ public class ZkFingerprintService implements FingerprintService {
     @Override
     public synchronized void createUser(String deviceUserId, String name) throws FingerprintException {
         ensureConnected();
-        throw new FingerprintException("createUser not fully restored — restore full ZkFingerprintService from commit 31788419");
+        int uid = toInternalUid(deviceUserId);
+        try {
+            disableDevice();
+            try {
+                try {
+                    deleteUserByUid(uid);
+                } catch (FingerprintException ignored) {
+                }
+                writeUser(uid, name == null ? "" : name, deviceUserId);
+            } finally {
+                enableDeviceBestEffort("after createUser");
+            }
+        } catch (IOException e) {
+            throw new FingerprintException("createUser failed: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public synchronized void updateUserName(String deviceUserId, String name) throws FingerprintException {
         ensureConnected();
-        throw new FingerprintException("updateUserName not fully restored — restore full ZkFingerprintService from commit 31788419");
+        int uid = toInternalUid(deviceUserId);
+        try {
+            disableDevice();
+            try {
+                writeUser(uid, name == null ? "" : name, deviceUserId);
+            } finally {
+                enableDeviceBestEffort("after updateUserName");
+            }
+        } catch (IOException e) {
+            throw new FingerprintException("updateUserName failed: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public synchronized void deleteUser(String deviceUserId) throws FingerprintException {
         ensureConnected();
-        throw new FingerprintException("deleteUser not fully restored — restore full ZkFingerprintService from commit 31788419");
-    }
-
-    @Override
-    public synchronized void enrollFingerOnly(String deviceUserId, int fingerIndex) throws FingerprintException {
-        ensureConnected();
-        throw new FingerprintException("enrollFingerOnly not fully restored — restore full ZkFingerprintService from commit 31788419");
+        int uid = toInternalUid(deviceUserId);
+        try {
+            disableDevice();
+            try {
+                deleteUserByUid(uid);
+            } finally {
+                enableDeviceBestEffort("after deleteUser");
+            }
+        } catch (IOException e) {
+            throw new FingerprintException("deleteUser failed: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public synchronized void registerUserWithFingerprint(String deviceUserId, String name, int fingerIndex)
             throws FingerprintException {
         ensureConnected();
-        throw new FingerprintException("registerUserWithFingerprint not fully restored — restore full ZkFingerprintService from commit 31788419");
+        if (fingerIndex < 0 || fingerIndex > 9) {
+            throw new FingerprintException("finger index must be 0..9");
+        }
+        createUser(deviceUserId, name);
+        try {
+            disableDevice();
+            try {
+                sendStartEnroll(deviceUserId, fingerIndex);
+                waitForEnrollDeviceEvent(ENROLL_TIMEOUT_SECONDS);
+            } finally {
+                enableDeviceBestEffort("after registerUserWithFingerprint");
+            }
+        } catch (FingerprintException e) {
+            try { deleteUser(deviceUserId); } catch (Exception ignored) {}
+            throw e;
+        } catch (IOException e) {
+            try { deleteUser(deviceUserId); } catch (Exception ignored) {}
+            throw new FingerprintException("registerUserWithFingerprint failed: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public synchronized void enrollFingerOnly(String deviceUserId, int fingerIndex) throws FingerprintException {
+        ensureConnected();
+        if (fingerIndex < 0 || fingerIndex > 9) {
+            throw new FingerprintException("finger index must be 0..9");
+        }
+        try {
+            disableDevice();
+            try {
+                sendStartEnroll(deviceUserId, fingerIndex);
+                waitForEnrollDeviceEvent(ENROLL_TIMEOUT_SECONDS);
+            } finally {
+                enableDeviceBestEffort("after enrollFingerOnly");
+            }
+        } catch (IOException e) {
+            throw new FingerprintException("enrollFingerOnly failed: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public void startEnroll(String deviceUserId, int fingerIndex,
                             Consumer<EnrollResult> onFinished,
-                            Consumer<FingerprintException> onError) throws FingerprintException {
-        ensureConnected();
-        throw new FingerprintException("startEnroll not fully restored — restore full ZkFingerprintService from commit 31788419");
+                            Consumer<FingerprintException> onError) {
+        executor.submit(() -> {
+            try {
+                enrollFingerOnly(deviceUserId, fingerIndex);
+                if (onFinished != null) {
+                    onFinished.accept(new EnrollResult(true, "Enroll finished for user " + deviceUserId));
+                }
+            } catch (FingerprintException e) {
+                if (onError != null) onError.accept(e);
+            }
+        });
     }
 
     @Override
