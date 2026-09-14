@@ -19,6 +19,7 @@ import java.util.logging.Logger;
 /**
  * ZKTeco TCP client (port 4370).
  * Full create/update/delete/enroll restored (no stub exceptions).
+ * DISABLEDEVICE is best-effort; user write ops retry once on transient timeout.
  */
 public class ZkFingerprintService implements FingerprintService {
 
@@ -162,11 +163,73 @@ public class ZkFingerprintService implements FingerprintService {
         }
     }
 
-    private void disableDevice() throws IOException, FingerprintException {
-        byte[] reply = sendCommand(CMD_DISABLEDEVICE, new byte[0]);
-        if (reply == null || getCommand(reply) != CMD_ACK_OK) {
-            throw new FingerprintException("DISABLEDEVICE failed");
+    /** Best-effort DISABLEDEVICE — many firmwares are slow/silent; do not fail the whole op. */
+    private void disableDeviceBestEffort(String context) {
+        try {
+            if (!isConnected()) return;
+            sendCommand(CMD_DISABLEDEVICE, new byte[0]);
+        } catch (Exception e) {
+            logger.info("DISABLEDEVICE skipped/ignored after " + context + ": " + e.getMessage());
         }
+    }
+
+    private static boolean isTransientIo(Throwable e) {
+        while (e != null) {
+            if (e instanceof java.net.SocketTimeoutException) {
+                return true;
+            }
+            String msg = e.getMessage();
+            if (msg != null) {
+                String m = msg.toLowerCase();
+                if (m.contains("timed out") || m.contains("read timed out") || m.contains("connection reset")) {
+                    return true;
+                }
+            }
+            e = e.getCause();
+        }
+        return false;
+    }
+
+    /** Run a device write once; on transient timeout/reset, reconnect and retry once. */
+    private void withWriteRetry(String opName, WriteAction action) throws FingerprintException {
+        FingerprintException last = null;
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                ensureConnected();
+                action.run();
+                return;
+            } catch (FingerprintException e) {
+                last = e;
+                if (attempt == 1 && isTransientIo(e)) {
+                    logger.info(opName + " transient failure, reconnecting for retry: " + e.getMessage());
+                    try {
+                        disconnect();
+                    } catch (Exception ignored) {
+                    }
+                    continue;
+                }
+                throw e;
+            } catch (IOException e) {
+                last = new FingerprintException(opName + " failed: " + e.getMessage(), e);
+                if (attempt == 1 && isTransientIo(e)) {
+                    logger.info(opName + " transient IO, reconnecting for retry: " + e.getMessage());
+                    try {
+                        disconnect();
+                    } catch (Exception ignored) {
+                    }
+                    continue;
+                }
+                throw last;
+            }
+        }
+        if (last != null) {
+            throw last;
+        }
+    }
+
+    @FunctionalInterface
+    private interface WriteAction {
+        void run() throws IOException, FingerprintException;
     }
 
     private synchronized byte[] sendCommand(int command, byte[] data) throws IOException {
@@ -305,7 +368,7 @@ public class ZkFingerprintService implements FingerprintService {
         int o = 0;
         data[o++] = (byte) (uid & 0xFF);
         data[o++] = (byte) ((uid >> 8) & 0xFF);
-        data[o++] = 0; // privilege
+        data[o++] = 0;
         System.arraycopy(password, 0, data, o, 8); o += 8;
         System.arraycopy(nameBytes, 0, data, o, 24); o += 24;
         System.arraycopy(card, 0, data, o, 4); o += 4;
@@ -469,98 +532,86 @@ public class ZkFingerprintService implements FingerprintService {
 
     @Override
     public synchronized void createUser(String deviceUserId, String name) throws FingerprintException {
-        ensureConnected();
         int uid = toInternalUid(deviceUserId);
-        try {
-            disableDevice();
+        final String n = name == null ? "" : name;
+        withWriteRetry("createUser", () -> {
+            disableDeviceBestEffort("before createUser");
             try {
                 try {
                     deleteUserByUid(uid);
                 } catch (FingerprintException ignored) {
                 }
-                writeUser(uid, name == null ? "" : name, deviceUserId);
+                writeUser(uid, n, deviceUserId);
             } finally {
                 enableDeviceBestEffort("after createUser");
             }
-        } catch (IOException e) {
-            throw new FingerprintException("createUser failed: " + e.getMessage(), e);
-        }
+        });
     }
 
     @Override
     public synchronized void updateUserName(String deviceUserId, String name) throws FingerprintException {
-        ensureConnected();
         int uid = toInternalUid(deviceUserId);
-        try {
-            disableDevice();
+        final String n = name == null ? "" : name;
+        withWriteRetry("updateUserName", () -> {
+            disableDeviceBestEffort("before updateUserName");
             try {
-                writeUser(uid, name == null ? "" : name, deviceUserId);
+                writeUser(uid, n, deviceUserId);
             } finally {
                 enableDeviceBestEffort("after updateUserName");
             }
-        } catch (IOException e) {
-            throw new FingerprintException("updateUserName failed: " + e.getMessage(), e);
-        }
+        });
     }
 
     @Override
     public synchronized void deleteUser(String deviceUserId) throws FingerprintException {
-        ensureConnected();
         int uid = toInternalUid(deviceUserId);
-        try {
-            disableDevice();
+        withWriteRetry("deleteUser", () -> {
+            disableDeviceBestEffort("before deleteUser");
             try {
                 deleteUserByUid(uid);
             } finally {
                 enableDeviceBestEffort("after deleteUser");
             }
-        } catch (IOException e) {
-            throw new FingerprintException("deleteUser failed: " + e.getMessage(), e);
-        }
+        });
     }
 
     @Override
     public synchronized void registerUserWithFingerprint(String deviceUserId, String name, int fingerIndex)
             throws FingerprintException {
-        ensureConnected();
         if (fingerIndex < 0 || fingerIndex > 9) {
             throw new FingerprintException("finger index must be 0..9");
         }
         createUser(deviceUserId, name);
         try {
-            disableDevice();
-            try {
-                sendStartEnroll(deviceUserId, fingerIndex);
-                waitForEnrollDeviceEvent(ENROLL_TIMEOUT_SECONDS);
-            } finally {
-                enableDeviceBestEffort("after registerUserWithFingerprint");
-            }
+            withWriteRetry("registerUserWithFingerprint", () -> {
+                disableDeviceBestEffort("before register enroll");
+                try {
+                    sendStartEnroll(deviceUserId, fingerIndex);
+                    waitForEnrollDeviceEvent(ENROLL_TIMEOUT_SECONDS);
+                } finally {
+                    enableDeviceBestEffort("after registerUserWithFingerprint");
+                }
+            });
         } catch (FingerprintException e) {
             try { deleteUser(deviceUserId); } catch (Exception ignored) {}
             throw e;
-        } catch (IOException e) {
-            try { deleteUser(deviceUserId); } catch (Exception ignored) {}
-            throw new FingerprintException("registerUserWithFingerprint failed: " + e.getMessage(), e);
         }
     }
 
     @Override
     public synchronized void enrollFingerOnly(String deviceUserId, int fingerIndex) throws FingerprintException {
-        ensureConnected();
         if (fingerIndex < 0 || fingerIndex > 9) {
             throw new FingerprintException("finger index must be 0..9");
         }
-        try {
-            disableDevice();
+        withWriteRetry("enrollFingerOnly", () -> {
+            disableDeviceBestEffort("before enrollFingerOnly");
             try {
                 sendStartEnroll(deviceUserId, fingerIndex);
                 waitForEnrollDeviceEvent(ENROLL_TIMEOUT_SECONDS);
             } finally {
                 enableDeviceBestEffort("after enrollFingerOnly");
             }
-        } catch (IOException e) {
-            throw new FingerprintException("enrollFingerOnly failed: " + e.getMessage(), e);
-        }
+        });
     }
 
     @Override
