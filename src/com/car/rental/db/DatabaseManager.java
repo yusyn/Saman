@@ -1,6 +1,5 @@
 package com.car.rental.db;
 
-import com.car.rental.config.SpringContext;
 import com.car.rental.model.Car;
 import com.car.rental.model.Employee;
 import com.car.rental.model.RentalRecord;
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,28 +22,12 @@ import java.util.logging.Logger;
 public class DatabaseManager {
     private static final Logger logger = Logger.getLogger(DatabaseManager.class.getName());
     private static final int DEVICE_USER_ID_START = 1001;
-    private static final String FALLBACK_URL = "jdbc:sqlite:CarRental.db";
 
     private final DataSource dataSource;
 
     @Autowired
     public DatabaseManager(DataSource dataSource) {
         this.dataSource = dataSource;
-    }
-
-    public DatabaseManager() {
-        DataSource ds = null;
-        if (SpringContext.isActive()) {
-            try {
-                ds = SpringContext.getBean(DataSource.class);
-            } catch (Exception ignored) {
-            }
-        }
-        if (ds != null) {
-            this.dataSource = ds;
-        } else {
-            this.dataSource = new SimpleDataSource(FALLBACK_URL);
-        }
     }
 
     private Connection getConnection() throws SQLException {
@@ -445,7 +427,6 @@ public class DatabaseManager {
                     selectStmt.setInt(1, empId);
                     try (ResultSet rs = selectStmt.executeQuery()) {
                         if (!rs.next()) {
-                            conn.rollback();
                             return false;
                         }
                         rentalId = rs.getInt("id");
@@ -453,23 +434,23 @@ public class DatabaseManager {
                     }
                 }
 
-                try (PreparedStatement updateRentalStmt = conn.prepareStatement(updateRentalSql);
-                     PreparedStatement updateCarStmt = conn.prepareStatement(updateCarSql);
-                     PreparedStatement updateEmpStmt = conn.prepareStatement(updateEmpSql)) {
+                try (PreparedStatement updateRental = conn.prepareStatement(updateRentalSql);
+                     PreparedStatement updateCar = conn.prepareStatement(updateCarSql);
+                     PreparedStatement updateEmp = conn.prepareStatement(updateEmpSql)) {
 
-                    updateRentalStmt.setString(1, returnDate);
-                    updateRentalStmt.setInt(2, rentalId);
-                    updateRentalStmt.executeUpdate();
+                    updateRental.setString(1, returnDate);
+                    updateRental.setInt(2, rentalId);
+                    updateRental.executeUpdate();
 
-                    updateCarStmt.setInt(1, carId);
-                    updateCarStmt.executeUpdate();
+                    updateCar.setInt(1, carId);
+                    updateCar.executeUpdate();
 
-                    updateEmpStmt.setInt(1, empId);
-                    updateEmpStmt.executeUpdate();
-
-                    conn.commit();
-                    return true;
+                    updateEmp.setInt(1, empId);
+                    updateEmp.executeUpdate();
                 }
+
+                conn.commit();
+                return true;
             } catch (SQLException e) {
                 try {
                     conn.rollback();
@@ -496,13 +477,12 @@ public class DatabaseManager {
 
         StringBuilder sql = new StringBuilder(
                 "SELECT e.device_user_id, e.name AS employee_name, " +
-                        "c.name AS car_name, c.color AS car_color, c.plate, " +
-                        "r.pickup_date, r.return_date, r.destination " +
-                        "FROM RentalTable r " +
-                        "JOIN EmployeeTable e ON r.employee_id = e.id " +
-                        "LEFT JOIN CarTable c ON r.car_id = c.id " +
-                        "WHERE 1=1"
-        );
+                "c.name AS car_name, c.color AS car_color, c.plate, " +
+                "r.pickup_date, r.return_date, r.destination " +
+                "FROM RentalTable r " +
+                "JOIN EmployeeTable e ON r.employee_id = e.id " +
+                "JOIN CarTable c ON r.car_id = c.id WHERE 1=1");
+
         List<Object> params = new ArrayList<>();
 
         if (filter.getEmployeeName() != null) {
@@ -523,9 +503,14 @@ public class DatabaseManager {
         }
 
         switch (filter.getStatus()) {
-            case OPEN -> sql.append(" AND r.return_date IS NULL");
-            case CLOSED -> sql.append(" AND r.return_date IS NOT NULL");
-            case ALL -> { /* no-op */ }
+            case OPEN:
+                sql.append(" AND r.return_date IS NULL AND r.is_active = 1");
+                break;
+            case CLOSED:
+                sql.append(" AND r.return_date IS NOT NULL");
+                break;
+            default:
+                break;
         }
 
         String from = filter.getDateFrom();
@@ -593,34 +578,6 @@ public class DatabaseManager {
                 }
                 return null;
             }
-        }
-    }
-
-    private static final class SimpleDataSource implements DataSource {
-        private final String url;
-
-        SimpleDataSource(String url) {
-            this.url = url;
-        }
-
-        @Override
-        public Connection getConnection() throws SQLException {
-            return DriverManager.getConnection(url);
-        }
-
-        @Override
-        public Connection getConnection(String username, String password) throws SQLException {
-            return getConnection();
-        }
-
-        @Override public <T> T unwrap(Class<T> iface) { throw new UnsupportedOperationException(); }
-        @Override public boolean isWrapperFor(Class<?> iface) { return false; }
-        @Override public java.io.PrintWriter getLogWriter() { return null; }
-        @Override public void setLogWriter(java.io.PrintWriter out) { }
-        @Override public void setLoginTimeout(int seconds) { }
-        @Override public int getLoginTimeout() { return 0; }
-        @Override public java.util.logging.Logger getParentLogger() {
-            return java.util.logging.Logger.getGlobal();
         }
     }
 }

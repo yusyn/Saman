@@ -1,37 +1,40 @@
 package com.car.rental;
 
 import com.car.rental.db.DatabaseManager;
-import com.car.rental.ui.frames.MainFrame;
-import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
-
-import javax.swing.SwingUtilities;
+import org.springframework.core.env.Environment;
 
 /**
- * Spring Boot entry point. Starts the application context, initializes the DB,
- * then opens the existing Swing MainFrame on the EDT.
+ * HTTP API + static Web UI entry point (no desktop Swing).
  *
- * Run: mvn spring-boot:run
- * Or run this class from IntelliJ (classpath = Maven).
+ * <pre>
+ *   mvn spring-boot:run
+ *   java -jar target/saman-1.0.0-SNAPSHOT.jar
+ * </pre>
+ *
+ * Browser: {@code http://127.0.0.1:8080/}
+ * API:     {@code http://127.0.0.1:8080/api/}
  */
 @SpringBootApplication
 public class SamanApplication {
 
     public static void main(String[] args) {
-        // Ensure AWT/Swing is allowed
-        System.setProperty("java.awt.headless", "false");
+        System.setProperty("java.awt.headless", "true");
 
         ConfigurableApplicationContext context = new SpringApplicationBuilder(SamanApplication.class)
-                .headless(false)
+                .headless(true)
                 .run(args);
 
         DatabaseManager db = context.getBean(DatabaseManager.class);
         db.initDatabase();
 
-        SwingUtilities.invokeLater(() -> {
-            // MainFrame resolves beans via SpringContext / constructors
-            new MainFrame();
-        });
+        Environment env = context.getEnvironment();
+        String port = env.getProperty("server.port", "8080");
+        System.out.println("Saman SERVER mode");
+        System.out.println("  Web UI: http://0.0.0.0:" + port + "/");
+        System.out.println("  API:    http://0.0.0.0:" + port + "/api/");
+        System.out.println("  Health: curl http://127.0.0.1:" + port + "/api/health");
     }
 }
