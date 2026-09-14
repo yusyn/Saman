@@ -4,6 +4,10 @@
  */
 const Api = (() => {
   const DEFAULT_TIMEOUT_MS = 12000;
+  /** Enroll on device can take 30–90s (finger retries + ZK wait). */
+  const ENROLL_TIMEOUT_MS = 120000;
+  /** Device name update may hit soft-disable / one retry. */
+  const DEVICE_WRITE_TIMEOUT_MS = 45000;
 
   async function request(path, options = {}) {
     const timeoutMs = options.timeoutMs != null ? options.timeoutMs : DEFAULT_TIMEOUT_MS;
@@ -71,15 +75,24 @@ const Api = (() => {
       request("/api/employees/register", {
         method: "POST",
         body: JSON.stringify(body),
+        timeoutMs: ENROLL_TIMEOUT_MS,
       }),
     updateEmployee: (deviceUserId, body) =>
       request("/api/employees/" + encodeURIComponent(deviceUserId), {
         method: "PUT",
         body: JSON.stringify(body),
+        timeoutMs: DEVICE_WRITE_TIMEOUT_MS,
       }),
     deleteEmployee: (deviceUserId) =>
       request("/api/employees/" + encodeURIComponent(deviceUserId), {
         method: "DELETE",
+        timeoutMs: DEVICE_WRITE_TIMEOUT_MS,
+      }),
+    addFinger: (deviceUserId, body) =>
+      request("/api/employees/" + encodeURIComponent(deviceUserId) + "/fingers", {
+        method: "POST",
+        body: JSON.stringify(body),
+        timeoutMs: ENROLL_TIMEOUT_MS,
       }),
     verify: (timeoutSeconds = 40) =>
       request("/api/fingerprint/verify", {
