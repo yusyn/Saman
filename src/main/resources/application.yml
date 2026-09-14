@@ -17,10 +17,6 @@ server:
   port: ${SERVER_PORT:8080}
   address: ${SERVER_ADDRESS:0.0.0.0}
 
-saman:
-  ui:
-    enabled: ${SAMAN_UI_ENABLED:true}
-
 fingerprint:
   host: ${FINGERPRINT_HOST:192.168.20.200}
   port: ${FINGERPRINT_PORT:4370}
