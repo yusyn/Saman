@@ -81,7 +81,7 @@
                 <label class="radio-inline"><input type="radio" name="vehicleType" value="CAR" checked /> 🚗 ماشین</label>
                 <label class="radio-inline"><input type="radio" name="vehicleType" value="MOTORCYCLE" /> 🏍 موتور</label>
               </fieldset>
-              <label>نام / مدل<input name="name" required placeholder="Pride یا Honda 125" /></label>
+              <label>نام / مدل<input name="name"/></label>
               <label>پلاک
                 <div id="vehicleCarPlate" class="plate-input" dir="ltr">
                   <input type="text" id="plateFirst" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="32" aria-label="دو رقم اول" />
@@ -139,8 +139,8 @@
             <h3>ثبت کارمند + اثر انگشت</h3>
             <p class="muted small">نام انگلیسی؛ بعد از ارسال انگشت را روی دستگاه بگذارید. تا ۳ دقیقه صبر کنید.</p>
             <form id="formEmployee" class="form">
-              <label>نام کامل (انگلیسی)<input name="name" required placeholder="Ali Rezaei" dir="ltr" /></label>
-              <label>تلفن<input name="phone" placeholder="0912…" dir="ltr" /></label>
+              <label>نام کامل (انگلیسی)<input name="name" dir="ltr" /></label>
+              <label>تلفن<input name="phone" dir="ltr" /></label>
               <label>انگشت
                 <select name="fingerIndex">
                   <option value="0">0 — کوچک چپ</option>
@@ -148,8 +148,8 @@
                   <option value="2">2 — میانی چپ</option>
                   <option value="3">3 — اشاره چپ</option>
                   <option value="4">4 — شست چپ</option>
-                  <option value="5" selected>5 — شست راست</option>
-                  <option value="6">6 — اشاره راست</option>
+                  <option value="5">5 — شست راست</option>
+                  <option value="6" selected>6 — اشاره راست</option>
                   <option value="7">7 — میانی راست</option>
                   <option value="8">8 — انگشتری راست</option>
                   <option value="9">9 — کوچک راست</option>
