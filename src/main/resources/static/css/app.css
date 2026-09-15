@@ -245,6 +245,7 @@ th { color: var(--muted); font-weight: 600; }
   box-sizing: border-box;
   overflow: hidden;
 }
+.plate-input.hidden { display: none; }
 .plate-input input {
   background: transparent;
   border: 1px solid var(--border);
@@ -259,6 +260,7 @@ th { color: var(--muted); font-weight: 600; }
 }
 .plate-input input[maxlength="2"] { width: 2.4rem; max-width: 2.4rem; }
 .plate-input input[maxlength="3"] { width: 2.9rem; max-width: 2.9rem; }
+.plate-input input[maxlength="5"] { width: 4.2rem; max-width: 4.2rem; }
 .plate-input select {
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -275,6 +277,42 @@ th { color: var(--muted); font-weight: 600; }
   white-space: nowrap;
   padding: 0 0.1rem;
 }
+
+.type-select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+}
+.type-select legend {
+  padding: 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.radio-inline {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.35rem !important;
+  cursor: pointer;
+  color: var(--text) !important;
+  font-size: 0.92rem !important;
+}
+.radio-inline input { width: auto; margin: 0; }
+
+.vtype-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+.col-type { text-align: center !important; width: 3rem; }
 
 td.actions {
   white-space: nowrap;
@@ -379,24 +417,26 @@ input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2);
 .badge-busy { background: rgba(239, 68, 68, 0.18); color: #fecaca; border-color: rgba(239, 68, 68, 0.45); }
 .badge-muted { background: rgba(154, 168, 188, 0.15); color: var(--muted); border-color: var(--border); }
 
-/* Cars table: name | plate | color | status | actions */
+/* Fleet table: type | name | plate | color | status | actions */
 .table-cars { table-layout: fixed; width: 100%; }
 .table-cars th:nth-child(1),
-.table-cars td:nth-child(1) { width: 22%; }
+.table-cars td:nth-child(1) { width: 3.2rem; text-align: center; }
 .table-cars th:nth-child(2),
-.table-cars td:nth-child(2) {
+.table-cars td:nth-child(2) { width: 18%; }
+.table-cars th:nth-child(3),
+.table-cars td:nth-child(3) {
   width: 9rem;
   min-width: 9rem;
   overflow: visible;
   text-overflow: clip;
   white-space: nowrap;
 }
-.table-cars th:nth-child(3),
-.table-cars td:nth-child(3) { width: 14%; }
 .table-cars th:nth-child(4),
-.table-cars td:nth-child(4) { width: 16%; }
+.table-cars td:nth-child(4) { width: 12%; }
 .table-cars th:nth-child(5),
-.table-cars td:nth-child(5),
+.table-cars td:nth-child(5) { width: 14%; }
+.table-cars th:nth-child(6),
+.table-cars td:nth-child(6),
 .table-cars td.actions {
   width: 22%;
   overflow: visible;
@@ -405,7 +445,6 @@ input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2);
   text-overflow: clip;
 }
 
-/* Employees table (also plain table under view-employees) */
 .table-employees,
 #view-employees table {
   table-layout: fixed;
@@ -519,7 +558,67 @@ td.actions .btn {
 .iran-plate-fallback { font-family: ui-monospace, monospace; font-size: 0.8rem; color: var(--text); }
 td .iran-plate { margin: 0; vertical-align: middle; }
 
-/* selectable available cars on pickup form */
+/* Motorcycle plate (3 top + 5 bottom) */
+.moto-plate {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: 1.85rem;
+  width: 5.8rem;
+  max-width: 5.8rem;
+  min-width: 5.8rem;
+  flex: 0 0 5.8rem;
+  border: 1.5px solid #1a1a1a;
+  border-radius: 3px;
+  background: #fff;
+  color: #111;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  vertical-align: middle;
+  font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
+  line-height: 1;
+  user-select: none;
+  box-sizing: border-box;
+}
+.moto-plate-blue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.02rem;
+  width: 0.95rem;
+  flex: 0 0 0.95rem;
+  background: #0047a0;
+  color: #fff;
+  padding: 0.06rem 0.03rem;
+}
+.moto-plate-nums {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  padding: 0.08rem 0.2rem;
+  gap: 0.05rem;
+  background: #fff;
+}
+.moto-plate-top {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111;
+  letter-spacing: 0.04em;
+}
+.moto-plate-bottom {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111;
+  letter-spacing: 0.02em;
+}
+td .moto-plate { margin: 0; vertical-align: middle; }
+.car-pick-item .moto-plate { flex: 0 0 auto; margin: 0; }
+
 .field { display: flex; flex-direction: column; gap: 0.4rem; }
 .field-label { font-size: 0.9rem; color: var(--muted); }
 .car-pick-list {
@@ -538,7 +637,7 @@ td .iran-plate { margin: 0; vertical-align: middle; }
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--border);
