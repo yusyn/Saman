@@ -64,14 +64,23 @@ const Api = (() => {
 
   return {
     health: () => request("/api/health", { timeoutMs: 8000 }),
-    cars: () => request("/api/cars"),
-    carsAvailable: () => request("/api/cars/available"),
+    vehicles: () => request("/api/vehicles"),
+    vehiclesAvailable: () => request("/api/vehicles/available"),
+    createVehicle: (body) =>
+      request("/api/vehicles", { method: "POST", body: JSON.stringify(body) }),
+    updateVehicle: (body) =>
+      request("/api/vehicles", { method: "PUT", body: JSON.stringify(body) }),
+    deleteVehicle: (plate) =>
+      request("/api/vehicles?plate=" + encodeURIComponent(plate), { method: "DELETE" }),
+    /** @deprecated alias */
+    cars: () => request("/api/vehicles"),
+    carsAvailable: () => request("/api/vehicles/available"),
     createCar: (body) =>
-      request("/api/cars", { method: "POST", body: JSON.stringify(body) }),
+      request("/api/vehicles", { method: "POST", body: JSON.stringify(body) }),
     updateCar: (body) =>
-      request("/api/cars", { method: "PUT", body: JSON.stringify(body) }),
+      request("/api/vehicles", { method: "PUT", body: JSON.stringify(body) }),
     deleteCar: (plate) =>
-      request("/api/cars?plate=" + encodeURIComponent(plate), { method: "DELETE" }),
+      request("/api/vehicles?plate=" + encodeURIComponent(plate), { method: "DELETE" }),
     employees: () => request("/api/employees"),
     employee: (deviceUserId) =>
       request("/api/employees/" + encodeURIComponent(deviceUserId)),
