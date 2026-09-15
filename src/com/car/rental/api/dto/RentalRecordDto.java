@@ -12,6 +12,7 @@ public class RentalRecordDto {
     private String pickupDate;
     private String returnDate;
     private String destination;
+    private String vehicleType;
 
     public RentalRecordDto() {
     }
@@ -29,6 +30,7 @@ public class RentalRecordDto {
         d.pickupDate = r.pickupDate;
         d.returnDate = r.returnDate;
         d.destination = r.destination;
+        d.vehicleType = r.vehicleType != null ? r.vehicleType : "CAR";
         return d;
     }
 
@@ -94,5 +96,13 @@ public class RentalRecordDto {
 
     public void setDestination(String destination) {
         this.destination = destination;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
     }
 }

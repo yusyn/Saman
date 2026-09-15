@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 
 /**
  * Persistence for rentals (RentalTable) including multi-table pickup/return transactions.
+ * car_id column still points to VehicleTable.id (historical column name).
  */
 @Repository
 public class RentalRepository {
@@ -32,17 +33,17 @@ public class RentalRepository {
     }
 
     public void insertRental(String deviceUserId,
-                             String carPlate,
+                             String vehiclePlate,
                              String pickupTime,
                              String destination) throws SQLException {
 
         String empSql = "SELECT id, is_renting FROM EmployeeTable " +
                 "WHERE device_user_id = ? AND is_active = 1";
-        String carSql = "SELECT id, is_rented FROM CarTable " +
+        String vehicleSql = "SELECT id, is_rented FROM VehicleTable " +
                 "WHERE plate = ? AND is_deleted = 0";
         String insertSql = "INSERT INTO RentalTable(employee_id, car_id, pickup_date, destination) " +
                 "VALUES (?, ?, ?, ?)";
-        String updateCarSql = "UPDATE CarTable SET is_rented = 1 WHERE id = ? AND is_rented = 0 AND is_deleted = 0";
+        String updateVehicleSql = "UPDATE VehicleTable SET is_rented = 1 WHERE id = ? AND is_rented = 0 AND is_deleted = 0";
         String updateEmpSql = "UPDATE EmployeeTable SET is_renting = 1, " +
                 "updated_at = datetime('now','localtime') WHERE id = ? AND is_renting = 0";
 
@@ -63,34 +64,34 @@ public class RentalRepository {
                     }
                 }
 
-                int carId;
-                try (PreparedStatement carStmt = conn.prepareStatement(carSql)) {
-                    carStmt.setString(1, carPlate);
-                    try (ResultSet rs = carStmt.executeQuery()) {
+                int vehicleId;
+                try (PreparedStatement vStmt = conn.prepareStatement(vehicleSql)) {
+                    vStmt.setString(1, vehiclePlate);
+                    try (ResultSet rs = vStmt.executeQuery()) {
                         if (!rs.next()) {
-                            throw new SQLException("ماشین فعالی با این پلاک یافت نشد: " + carPlate);
+                            throw new SQLException("وسیله فعالی با این پلاک یافت نشد: " + vehiclePlate);
                         }
                         if (rs.getInt("is_rented") == 1) {
-                            throw new SQLException("این ماشین هم‌اکنون در مأموریت است");
+                            throw new SQLException("این وسیله هم‌اکنون در مأموریت است");
                         }
-                        carId = rs.getInt("id");
+                        vehicleId = rs.getInt("id");
                     }
                 }
 
                 try (PreparedStatement insertStmt = conn.prepareStatement(insertSql);
-                     PreparedStatement updateCarStmt = conn.prepareStatement(updateCarSql);
+                     PreparedStatement updateVehicleStmt = conn.prepareStatement(updateVehicleSql);
                      PreparedStatement updateEmpStmt = conn.prepareStatement(updateEmpSql)) {
 
                     insertStmt.setInt(1, empId);
-                    insertStmt.setInt(2, carId);
+                    insertStmt.setInt(2, vehicleId);
                     insertStmt.setString(3, pickupTime);
                     insertStmt.setString(4, destination);
                     insertStmt.executeUpdate();
 
-                    updateCarStmt.setInt(1, carId);
-                    int carUpdated = updateCarStmt.executeUpdate();
-                    if (carUpdated != 1) {
-                        throw new SQLException("به‌روزرسانی وضعیت ماشین انجام نشد");
+                    updateVehicleStmt.setInt(1, vehicleId);
+                    int vehicleUpdated = updateVehicleStmt.executeUpdate();
+                    if (vehicleUpdated != 1) {
+                        throw new SQLException("به‌روزرسانی وضعیت وسیله انجام نشد");
                     }
 
                     updateEmpStmt.setInt(1, empId);
@@ -101,7 +102,7 @@ public class RentalRepository {
                 }
 
                 conn.commit();
-                logger.info("Rental inserted: empId=" + empId + " carId=" + carId + " plate=" + carPlate);
+                logger.info("Rental inserted: empId=" + empId + " vehicleId=" + vehicleId + " plate=" + vehiclePlate);
             } catch (SQLException e) {
                 try {
                     conn.rollback();
@@ -122,7 +123,7 @@ public class RentalRepository {
         String selectSql = "SELECT id, car_id FROM RentalTable " +
                 "WHERE employee_id = ? AND return_date IS NULL AND is_active = 1";
         String updateRentalSql = "UPDATE RentalTable SET return_date = ?, is_active = 0 WHERE id = ?";
-        String updateCarSql = "UPDATE CarTable SET is_rented = 0 WHERE id = ?";
+        String updateVehicleSql = "UPDATE VehicleTable SET is_rented = 0 WHERE id = ?";
         String updateEmpSql = "UPDATE EmployeeTable SET is_renting = 0, " +
                 "updated_at = datetime('now','localtime') WHERE id = ?";
 
@@ -141,7 +142,7 @@ public class RentalRepository {
                 }
 
                 int rentalId;
-                int carId;
+                int vehicleId;
                 try (PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
                     selectStmt.setInt(1, empId);
                     try (ResultSet rs = selectStmt.executeQuery()) {
@@ -149,20 +150,20 @@ public class RentalRepository {
                             return false;
                         }
                         rentalId = rs.getInt("id");
-                        carId = rs.getInt("car_id");
+                        vehicleId = rs.getInt("car_id");
                     }
                 }
 
                 try (PreparedStatement updateRental = conn.prepareStatement(updateRentalSql);
-                     PreparedStatement updateCar = conn.prepareStatement(updateCarSql);
+                     PreparedStatement updateVehicle = conn.prepareStatement(updateVehicleSql);
                      PreparedStatement updateEmp = conn.prepareStatement(updateEmpSql)) {
 
                     updateRental.setString(1, returnDate);
                     updateRental.setInt(2, rentalId);
                     updateRental.executeUpdate();
 
-                    updateCar.setInt(1, carId);
-                    updateCar.executeUpdate();
+                    updateVehicle.setInt(1, vehicleId);
+                    updateVehicle.executeUpdate();
 
                     updateEmp.setInt(1, empId);
                     updateEmp.executeUpdate();
@@ -196,11 +197,11 @@ public class RentalRepository {
 
         StringBuilder sql = new StringBuilder(
                 "SELECT e.device_user_id, e.name AS employee_name, " +
-                "c.name AS car_name, c.color AS car_color, c.plate, " +
+                "v.name AS car_name, v.color AS car_color, v.plate, v.vehicle_type, " +
                 "r.pickup_date, r.return_date, r.destination " +
                 "FROM RentalTable r " +
                 "JOIN EmployeeTable e ON r.employee_id = e.id " +
-                "JOIN CarTable c ON r.car_id = c.id WHERE 1=1");
+                "JOIN VehicleTable v ON r.car_id = v.id WHERE 1=1");
 
         List<Object> params = new ArrayList<>();
 
@@ -209,11 +210,11 @@ public class RentalRepository {
             params.add("%" + filter.getEmployeeName() + "%");
         }
         if (filter.getPlate() != null) {
-            sql.append(" AND c.plate LIKE ?");
+            sql.append(" AND v.plate LIKE ?");
             params.add("%" + filter.getPlate() + "%");
         }
         if (filter.getCarName() != null) {
-            sql.append(" AND c.name LIKE ?");
+            sql.append(" AND v.name LIKE ?");
             params.add("%" + filter.getCarName() + "%");
         }
         if (filter.getDestination() != null) {
@@ -268,7 +269,7 @@ public class RentalRepository {
     }
 
     private static RentalRecord mapRentalRecord(ResultSet rs) throws SQLException {
-        return new RentalRecord(
+        RentalRecord r = new RentalRecord(
                 rs.getString("device_user_id"),
                 rs.getString("employee_name"),
                 rs.getString("car_name"),
@@ -278,15 +279,21 @@ public class RentalRepository {
                 rs.getString("return_date"),
                 rs.getString("destination")
         );
+        try {
+            r.vehicleType = rs.getString("vehicle_type");
+        } catch (SQLException ignored) {
+            r.vehicleType = "CAR";
+        }
+        return r;
     }
 
     public RentalRecord getActiveRentalByDeviceUserId(String deviceUserId) throws SQLException {
         String query = "SELECT e.device_user_id, e.name AS employee_name, " +
-                "c.name AS car_name, c.color AS car_color, c.plate, " +
+                "v.name AS car_name, v.color AS car_color, v.plate, v.vehicle_type, " +
                 "r.pickup_date, r.return_date, r.destination " +
                 "FROM RentalTable r " +
                 "JOIN EmployeeTable e ON r.employee_id = e.id " +
-                "JOIN CarTable c ON r.car_id = c.id " +
+                "JOIN VehicleTable v ON r.car_id = v.id " +
                 "WHERE e.device_user_id = ? AND r.return_date IS NULL AND r.is_active = 1";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(query)) {

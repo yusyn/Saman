@@ -11,7 +11,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Business logic for car pickup / return and rental reports.
+ * Business logic for vehicle pickup / return and rental reports.
  */
 @Service
 public class RentalService {
@@ -24,18 +24,18 @@ public class RentalService {
         this.employees = employees;
     }
 
-    public void pickup(String deviceUserId, String carPlate, String pickupTime, String destination)
+    public void pickup(String deviceUserId, String vehiclePlate, String pickupTime, String destination)
             throws SQLException {
         if (deviceUserId == null || deviceUserId.isBlank()) {
             throw new IllegalArgumentException("شناسه کاربر خالی است");
         }
-        if (carPlate == null || carPlate.isBlank()) {
-            throw new IllegalArgumentException("پلاک ماشین خالی است");
+        if (vehiclePlate == null || vehiclePlate.isBlank()) {
+            throw new IllegalArgumentException("پلاک وسیله خالی است");
         }
         if (destination == null || destination.isBlank()) {
             throw new IllegalArgumentException("مقصد الزامی است");
         }
-        rentals.insertRental(deviceUserId, carPlate, pickupTime, destination);
+        rentals.insertRental(deviceUserId, vehiclePlate, pickupTime, destination);
     }
 
     public boolean returnCar(String deviceUserId, String returnDate) throws SQLException {

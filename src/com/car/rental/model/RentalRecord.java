@@ -10,6 +10,8 @@ public class RentalRecord {
     public String pickupDate;
     public String returnDate;
     public String destination;
+    /** CAR or MOTORCYCLE */
+    public String vehicleType;
 
     public RentalRecord(String deviceUserId, String employeeName, String carName, String carColor,
                         String plate, String pickupDate, String returnDate, String destination) {
@@ -21,5 +23,6 @@ public class RentalRecord {
         this.pickupDate = pickupDate;
         this.returnDate = returnDate == null ? "منتظر برگشت" : returnDate;
         this.destination = destination;
+        this.vehicleType = Vehicle.TYPE_CAR;
     }
 }
