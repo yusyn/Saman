@@ -168,6 +168,22 @@
     return renderIranPlate(plate);
   }
 
+  function formatNowFa() {
+    try {
+      return new Date().toLocaleString("fa-IR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      });
+    } catch (e) {
+      return new Date().toISOString();
+    }
+  }
+
   function isOnMissionStatus(status) {
     if (!status) return false;
     return String(status).includes("مأموریت") || String(status).includes("ماموریت");
@@ -523,6 +539,52 @@
     }
   });
 
+  function ensureReturnMissionBox() {
+    let box = document.getElementById("returnMissionBox");
+    if (box) return box;
+    const profile = document.getElementById("returnAuthProfile");
+    if (!profile) return null;
+    box = document.createElement("div");
+    box.id = "returnMissionBox";
+    box.className = "return-mission hidden";
+    profile.appendChild(box);
+    return box;
+  }
+
+  function renderReturnMission(auth) {
+    const box = ensureReturnMissionBox();
+    if (!box) return;
+    const m = auth && auth.activeRental;
+    if (!m) {
+      box.innerHTML = "";
+      box.classList.add("hidden");
+      return;
+    }
+    box.classList.remove("hidden");
+    const vehicleLabel =
+      (m.carName || "—") +
+      (m.carColor ? " · " + m.carColor : "");
+    const returnNow = auth.returnPreviewTime || formatNowFa();
+    box.innerHTML =
+      '<div class="auth-row mission-head"><span>مأموریت فعال</span><strong>' +
+      vehicleTypeIcon(m.vehicleType) +
+      " " +
+      escapeHtml(vehicleLabel) +
+      "</strong></div>" +
+      '<div class="auth-row"><span>پلاک</span><strong>' +
+      renderPlate(m.plate, m.vehicleType) +
+      "</strong></div>" +
+      '<div class="auth-row"><span>مقصد</span><strong>' +
+      escapeHtml(m.destination || "—") +
+      "</strong></div>" +
+      '<div class="auth-row"><span>زمان تحویل</span><strong dir="ltr">' +
+      escapeHtml(m.pickupDate || "—") +
+      "</strong></div>" +
+      '<div class="auth-row"><span>زمان برگشت (الان)</span><strong dir="ltr">' +
+      escapeHtml(returnNow) +
+      "</strong></div>";
+  }
+
   function renderAuth(kind) {
     const auth = kind === "pickup" ? pickupAuth : returnAuth;
     const ph = $("#" + kind + "AuthPlaceholder");
@@ -534,6 +596,7 @@
       if (profile) profile.classList.add("hidden");
       if (clearBtn) clearBtn.classList.add("hidden");
       if (submitBtn) submitBtn.disabled = true;
+      if (kind === "return") renderReturnMission(null);
       return;
     }
     if (ph) ph.classList.add("hidden");
@@ -545,7 +608,12 @@
     if (nameEl) nameEl.textContent = auth.name || "—";
     if (idEl) idEl.textContent = auth.deviceUserId || "—";
     if (phoneEl) phoneEl.textContent = auth.phone || "—";
-    if (submitBtn) submitBtn.disabled = false;
+    if (kind === "return") {
+      renderReturnMission(auth);
+      if (submitBtn) submitBtn.disabled = !(auth.renting && auth.activeRental);
+    } else if (submitBtn) {
+      submitBtn.disabled = false;
+    }
   }
 
   function clearAuth(kind) {
@@ -577,11 +645,30 @@
           console.warn("employee lookup after verify", lookupErr);
         }
       }
+      if (kind === "return" && r && r.deviceUserId) {
+        r.returnPreviewTime = formatNowFa();
+        try {
+          r.activeRental = await Api.activeRental(r.deviceUserId);
+          r.renting = true;
+        } catch (activeErr) {
+          r.activeRental = null;
+          if (activeErr && activeErr.status === 404) {
+            r.renting = false;
+            status.textContent = "مأموریت فعالی برای این کارمند نیست";
+            toast("مأموریت فعالی یافت نشد", "err");
+          } else {
+            console.warn("active rental lookup", activeErr);
+            toast(activeErr.message || "خطا در دریافت مأموریت", "err");
+          }
+        }
+      }
       if (kind === "pickup") pickupAuth = r;
       else returnAuth = r;
       renderAuth(kind);
-      status.textContent = "احراز موفق";
-      toast("احراز موفق");
+      if (!(kind === "return" && !r.activeRental)) {
+        status.textContent = "احراز موفق";
+        toast("احراز موفق");
+      }
     } catch (err) {
       status.textContent = err.message || "ناموفق";
       toast(err.message || "ناموفق", "err");
@@ -596,7 +683,9 @@
     $("#" + kind + "VerifyWait").classList.add("hidden");
     $("#btnCancel" + (kind === "pickup" ? "Pickup" : "Return") + "Verify").classList.add("hidden");
     $("#btnVerify" + (kind === "pickup" ? "Pickup" : "Return")).disabled = false;
-    try { Api.cancelListen && Api.cancelListen(); } catch (e) {}
+    try {
+      Api.cancelListen && Api.cancelListen();
+    } catch (e) {}
   }
 
   $("#btnVerifyPickup").addEventListener("click", () => runVerify("pickup"));
@@ -725,7 +814,7 @@
       toast("ابتدا برای برگشت احراز هویت کنید", "err");
       return;
     }
-    if (!returnAuth.renting) {
+    if (!returnAuth.renting || !returnAuth.activeRental) {
       toast("کارمند مأموریت فعالی ندارد", "err");
       return;
     }
@@ -777,21 +866,12 @@
         })
         .join("");
     } catch (err) {
-      tbody.innerHTML = '<tr><td colspan="7">' + escapeHtml(err.message) + "</td></tr>";
-      toast(err.message, "err");
+      tbody.innerHTML =
+        '<tr><td colspan="7">' + escapeHtml(err.message || "خطا") + "</td></tr>";
     }
   }
-
   $("#btnRefreshReport").addEventListener("click", loadReport);
 
-  renderAuth("pickup");
-  renderAuth("return");
-  setSelectedType("vehicle", "CAR");
-  showView("dashboard");
   loadHealth();
-  setTimeout(function () {
-    loadAvailablePlates().catch(function (e) {
-      console.warn("loadAvailablePlates", e);
-    });
-  }, 300);
+  showView("dashboard");
 })();
