@@ -34,6 +34,10 @@
       .join("");
   }
 
+  function isMotorcycleType(t) {
+    return String(t || "").toUpperCase() === "MOTORCYCLE";
+  }
+
   function parsePlate(plate) {
     if (plate == null) return null;
     let s = toLatinDigits(String(plate)).trim();
@@ -47,6 +51,13 @@
     m = s.match(/^(\d{2})\s+(\S+)\s+(\d{3})\s+ایران\s+(\d{2})$/);
     if (m) return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
     return null;
+  }
+
+  function parseMotorcyclePlate(plate) {
+    if (plate == null) return null;
+    const digits = toLatinDigits(String(plate)).replace(/\D/g, "");
+    if (digits.length !== 8) return null;
+    return { top: digits.slice(0, 3), bottom: digits.slice(3) };
   }
 
   function renderIranPlate(plate) {
@@ -82,6 +93,42 @@
       "</span>" +
       "</span>"
     );
+  }
+
+  function renderMotorcyclePlate(plate) {
+    const p = parseMotorcyclePlate(plate);
+    if (!p) {
+      return '<span class="iran-plate-fallback" dir="ltr">' + escapeHtml(plate || "—") + "</span>";
+    }
+    return (
+      '<span class="moto-plate" dir="ltr" title="' +
+      escapeHtml(plate) +
+      '">' +
+      '<span class="moto-plate-blue">' +
+      '<span class="iran-plate-flag" aria-hidden="true"></span>' +
+      '<span class="iran-plate-ir">I.R.</span>' +
+      '<span class="iran-plate-ir">IRAN</span>' +
+      "</span>" +
+      '<span class="moto-plate-nums">' +
+      '<span class="moto-plate-top">' +
+      escapeHtml(toPersianDigits(p.top)) +
+      "</span>" +
+      '<span class="moto-plate-bottom">' +
+      escapeHtml(toPersianDigits(p.bottom)) +
+      "</span>" +
+      "</span>" +
+      "</span>"
+    );
+  }
+
+  function renderPlate(plate, vehicleType) {
+    if (isMotorcycleType(vehicleType)) {
+      return renderMotorcyclePlate(plate);
+    }
+    const car = parsePlate(plate);
+    if (car) return renderIranPlate(plate);
+    if (parseMotorcyclePlate(plate)) return renderMotorcyclePlate(plate);
+    return renderIranPlate(plate);
   }
 
   function jalaliDaysInMonth(jy, jm) {
@@ -221,7 +268,7 @@
             escapeHtml(r.carName || "—") +
             "</td>" +
             "<td>" +
-            renderIranPlate(r.plate) +
+            renderPlate(r.plate, r.vehicleType) +
             "</td>" +
             "<td>" +
             escapeHtml(r.destination || "—") +
