@@ -1,30 +1,38 @@
 package com.car.rental.api.dto;
 
-import com.car.rental.model.Car;
+import com.car.rental.model.Vehicle;
 
-/** JSON contract for cars over HTTP (stable for remote clients). */
-public class CarDto {
+/** JSON contract for vehicles over HTTP. */
+public class VehicleDto {
 
     private String name;
     private String plate;
     private String color;
     private String status;
+    private String vehicleType;
 
-    public CarDto() {
+    public VehicleDto() {
     }
 
-    public CarDto(String name, String plate, String color, String status) {
+    public VehicleDto(String name, String plate, String color, String status, String vehicleType) {
         this.name = name;
         this.plate = plate;
         this.color = color;
         this.status = status;
+        this.vehicleType = vehicleType;
     }
 
-    public static CarDto from(Car car) {
-        if (car == null) {
+    public static VehicleDto from(Vehicle v) {
+        if (v == null) {
             return null;
         }
-        return new CarDto(car.getModel(), car.getPlate(), car.getColor(), car.getStatus());
+        return new VehicleDto(
+                v.getModel(),
+                v.getPlate(),
+                v.getColor(),
+                v.getStatus(),
+                v.getVehicleType()
+        );
     }
 
     public String getName() {
@@ -57,5 +65,13 @@ public class CarDto {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
     }
 }

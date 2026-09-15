@@ -245,6 +245,7 @@ th { color: var(--muted); font-weight: 600; }
   box-sizing: border-box;
   overflow: hidden;
 }
+.plate-input.hidden { display: none; }
 .plate-input input {
   background: transparent;
   border: 1px solid var(--border);
@@ -259,6 +260,7 @@ th { color: var(--muted); font-weight: 600; }
 }
 .plate-input input[maxlength="2"] { width: 2.4rem; max-width: 2.4rem; }
 .plate-input input[maxlength="3"] { width: 2.9rem; max-width: 2.9rem; }
+.plate-input input[maxlength="5"] { width: 4.2rem; max-width: 4.2rem; }
 .plate-input select {
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -275,6 +277,58 @@ th { color: var(--muted); font-weight: 600; }
   white-space: nowrap;
   padding: 0 0.1rem;
 }
+
+.type-select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+}
+.type-select legend {
+  padding: 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.radio-inline {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.35rem !important;
+  cursor: pointer;
+  color: var(--text) !important;
+  font-size: 0.92rem !important;
+}
+.radio-inline input { width: auto; margin: 0; }
+.radio-inline .vtype-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.vtype-icon {
+  display: inline-block;
+  width: 1.4rem;
+  height: 1.4rem;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: middle;
+  font-size: 0 !important;
+  color: transparent !important;
+  line-height: 0;
+  overflow: hidden;
+  filter: invert(1) brightness(1.05);
+}
+.vtype-car {
+  background-image: url("/icons/car.svg");
+}
+.vtype-moto {
+  background-image: url("/icons/motorcycle.svg");
+}
+.col-type { text-align: center !important; width: 3rem; }
 
 td.actions {
   white-space: nowrap;
@@ -336,12 +390,55 @@ input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2);
 .auth-placeholder { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.9rem; }
 .auth-profile { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
 .auth-profile.hidden, .auth-placeholder.hidden { display: none; }
-.auth-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.9rem; }
-.auth-row span { color: var(--muted); }
+.auth-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.9rem; align-items: center; }
+.auth-row span { color: var(--muted); flex-shrink: 0; }
+.auth-row strong { text-align: left; min-width: 0; color: var(--text); }
 .auth-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; }
 .auth-box.ok { border-color: rgba(34, 197, 94, 0.55); }
 .auth-box.warn { border-color: rgba(245, 158, 11, 0.55); }
 .auth-box.listening { border-color: rgba(59, 130, 246, 0.65); }
+
+.return-mission {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.return-mission.hidden { display: none; }
+.return-mission .mission-head strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+/* Isolate plate colors from auth-row / theme text color */
+.return-mission .iran-plate,
+.return-mission .moto-plate {
+  filter: none;
+  color: #111;
+  isolation: isolate;
+}
+.return-mission .iran-plate-blue,
+.return-mission .moto-plate-blue {
+  color: #fff !important;
+  background: #0047a0 !important;
+}
+.return-mission .iran-plate-ir {
+  color: #fff !important;
+}
+.return-mission .iran-plate-num,
+.return-mission .iran-plate-letter,
+.return-mission .iran-plate-iran,
+.return-mission .iran-plate-city,
+.return-mission .moto-plate-top,
+.return-mission .moto-plate-bottom {
+  color: #111 !important;
+}
+.return-mission .auth-row strong .iran-plate,
+.return-mission .auth-row strong .moto-plate {
+  vertical-align: middle;
+}
 
 .verify-wait {
   display: flex;
@@ -379,24 +476,25 @@ input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2);
 .badge-busy { background: rgba(239, 68, 68, 0.18); color: #fecaca; border-color: rgba(239, 68, 68, 0.45); }
 .badge-muted { background: rgba(154, 168, 188, 0.15); color: var(--muted); border-color: var(--border); }
 
-/* Cars table: name | plate | color | status | actions */
 .table-cars { table-layout: fixed; width: 100%; }
 .table-cars th:nth-child(1),
-.table-cars td:nth-child(1) { width: 22%; }
+.table-cars td:nth-child(1) { width: 3.2rem; text-align: center; }
 .table-cars th:nth-child(2),
-.table-cars td:nth-child(2) {
-  width: 9rem;
-  min-width: 9rem;
+.table-cars td:nth-child(2) { width: 18%; }
+.table-cars th:nth-child(3),
+.table-cars td:nth-child(3) {
+  width: 10rem;
+  min-width: 10rem;
   overflow: visible;
   text-overflow: clip;
   white-space: nowrap;
 }
-.table-cars th:nth-child(3),
-.table-cars td:nth-child(3) { width: 14%; }
 .table-cars th:nth-child(4),
-.table-cars td:nth-child(4) { width: 16%; }
+.table-cars td:nth-child(4) { width: 12%; }
 .table-cars th:nth-child(5),
-.table-cars td:nth-child(5),
+.table-cars td:nth-child(5) { width: 14%; }
+.table-cars th:nth-child(6),
+.table-cars td:nth-child(6),
 .table-cars td.actions {
   width: 22%;
   overflow: visible;
@@ -405,7 +503,6 @@ input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2);
   text-overflow: clip;
 }
 
-/* Employees table (also plain table under view-employees) */
 .table-employees,
 #view-employees table {
   table-layout: fixed;
@@ -454,11 +551,11 @@ td.actions .btn {
   display: inline-flex;
   flex-direction: row;
   align-items: stretch;
-  height: 1.4rem;
-  width: 7.6rem;
-  max-width: 7.6rem;
-  min-width: 7.6rem;
-  flex: 0 0 7.6rem;
+  height: 1.55rem;
+  width: 8.2rem;
+  max-width: 8.2rem;
+  min-width: 8.2rem;
+  flex: 0 0 8.2rem;
   border: 1.5px solid #1a1a1a;
   border-radius: 3px;
   background: #fff;
@@ -476,50 +573,165 @@ td.actions .btn {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.02rem;
+  gap: 0.04rem;
   width: 0.95rem;
+  min-width: 0.95rem;
+  max-width: 0.95rem;
   flex: 0 0 0.95rem;
   background: #0047a0;
   color: #fff;
-  padding: 0.06rem 0.03rem;
+  padding: 0.06rem 0.04rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .iran-plate-flag {
-  width: 0.7rem;
-  height: 0.42rem;
-  border-radius: 1px;
+  width: 0.62rem;
+  height: 0.32rem;
+  flex-shrink: 0;
+  border-radius: 0.5px;
   background: linear-gradient(to bottom, #239f40 0 33%, #fff 33% 66%, #da0000 66% 100%);
 }
-.iran-plate-ir { font-size: 0.32rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1.05; text-align: center; }
+.iran-plate-ir {
+  font-size: 0.22rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  width: 100%;
+  color: #fff;
+}
 .iran-plate-main {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 0.12rem;
-  padding: 0 0.22rem;
+  padding: 0 0.2rem;
   flex: 1 1 auto;
   min-width: 0;
   background: #fff;
 }
-.iran-plate-num { font-size: 0.72rem; font-weight: 700; font-variant-numeric: tabular-nums; color: #111; }
-.iran-plate-letter { font-size: 0.72rem; font-weight: 700; color: #111; min-width: 0.55rem; text-align: center; }
+.iran-plate-num {
+  font-size: 0.74rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111;
+}
+.iran-plate-letter {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #111;
+  min-width: 0.55rem;
+  text-align: center;
+}
 .iran-plate-side {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.02rem;
+  gap: 0.03rem;
   padding: 0.06rem 0.14rem;
   border-left: 1.5px solid #1a1a1a;
   background: #fff;
-  min-width: 1.2rem;
+  min-width: 1.25rem;
 }
-.iran-plate-iran { font-size: 0.4rem; font-weight: 700; color: #111; line-height: 1; }
-.iran-plate-city { font-size: 0.62rem; font-weight: 700; font-variant-numeric: tabular-nums; color: #111; line-height: 1; }
-.iran-plate-fallback { font-family: ui-monospace, monospace; font-size: 0.8rem; color: var(--text); }
+.iran-plate-iran {
+  font-size: 0.4rem;
+  font-weight: 700;
+  color: #111;
+  line-height: 1;
+}
+.iran-plate-city {
+  font-size: 0.64rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111;
+  line-height: 1;
+}
+.iran-plate-fallback {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--text);
+}
 td .iran-plate { margin: 0; vertical-align: middle; }
 
-/* selectable available cars on pickup form */
+.moto-plate {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: 2rem;
+  width: 6.2rem;
+  max-width: 6.2rem;
+  min-width: 6.2rem;
+  flex: 0 0 6.2rem;
+  border: 1.5px solid #1a1a1a;
+  border-radius: 3px;
+  background: #fff;
+  color: #111;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  vertical-align: middle;
+  font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
+  line-height: 1;
+  user-select: none;
+  box-sizing: border-box;
+}
+.moto-plate-blue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.04rem;
+  width: 0.95rem;
+  min-width: 0.95rem;
+  max-width: 0.95rem;
+  flex: 0 0 0.95rem;
+  background: #0047a0;
+  color: #fff;
+  padding: 0.06rem 0.04rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.moto-plate-blue .iran-plate-flag {
+  width: 0.62rem;
+  height: 0.32rem;
+  flex-shrink: 0;
+}
+.moto-plate-blue .iran-plate-ir {
+  font-size: 0.22rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  color: #fff;
+}
+.moto-plate-nums {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  padding: 0.08rem 0.22rem;
+  gap: 0.06rem;
+  background: #fff;
+}
+.moto-plate-top {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111;
+  letter-spacing: 0.05em;
+}
+.moto-plate-bottom {
+  font-size: 0.74rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111;
+  letter-spacing: 0.03em;
+}
+td .moto-plate { margin: 0; vertical-align: middle; }
+.car-pick-item .moto-plate { flex: 0 0 auto; margin: 0; }
+.car-pick-item .iran-plate { flex: 0 0 auto; margin: 0; }
+
 .field { display: flex; flex-direction: column; gap: 0.4rem; }
 .field-label { font-size: 0.9rem; color: var(--muted); }
 .car-pick-list {
@@ -538,7 +750,7 @@ td .iran-plate { margin: 0; vertical-align: middle; }
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--border);
@@ -566,7 +778,6 @@ td .iran-plate { margin: 0; vertical-align: middle; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.car-pick-item .iran-plate { flex: 0 0 auto; margin: 0; }
 .car-pick-empty {
   padding: 0.75rem 0.9rem;
   color: var(--muted);

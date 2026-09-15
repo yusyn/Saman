@@ -1,11 +1,11 @@
 package com.car.rental.api;
 
-import com.car.rental.api.dto.CarDto;
-import com.car.rental.api.dto.CreateCarRequest;
+import com.car.rental.api.dto.CreateVehicleRequest;
 import com.car.rental.api.dto.OkResponse;
-import com.car.rental.api.dto.UpdateCarRequest;
-import com.car.rental.model.Car;
-import com.car.rental.service.CarService;
+import com.car.rental.api.dto.UpdateVehicleRequest;
+import com.car.rental.api.dto.VehicleDto;
+import com.car.rental.model.Vehicle;
+import com.car.rental.service.VehicleService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,42 +23,46 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/cars")
-public class CarController {
+@RequestMapping("/api/vehicles")
+public class VehicleController {
 
-    private final CarService carService;
+    private final VehicleService vehicleService;
 
-    public CarController(CarService carService) {
-        this.carService = carService;
+    public VehicleController(VehicleService vehicleService) {
+        this.vehicleService = vehicleService;
     }
 
     @GetMapping("/available")
-    public List<CarDto> available() throws SQLException {
-        List<Car> cars = carService.getAvailableCars();
-        return cars.stream().map(CarDto::from).collect(Collectors.toList());
+    public List<VehicleDto> available() throws SQLException {
+        return vehicleService.getAvailableVehicles().stream()
+                .map(VehicleDto::from)
+                .collect(Collectors.toList());
     }
 
     @GetMapping
-    public List<CarDto> all() throws SQLException {
-        return carService.getAllCars().stream().map(CarDto::from).collect(Collectors.toList());
+    public List<VehicleDto> all() throws SQLException {
+        return vehicleService.getAllVehicles().stream()
+                .map(VehicleDto::from)
+                .collect(Collectors.toList());
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CarDto create(@RequestBody CreateCarRequest body) throws SQLException {
+    public VehicleDto create(@RequestBody CreateVehicleRequest body) throws SQLException {
         if (body == null) {
             throw new IllegalArgumentException("بدنه درخواست خالی است");
         }
-        carService.addCar(body.getName(), body.getPlate(), body.getColor());
-        return new CarDto(body.getName(), body.getPlate(), body.getColor(), "آزاد");
+        String type = Vehicle.normalizeType(body.getVehicleType());
+        vehicleService.addVehicle(body.getName(), body.getPlate(), body.getColor(), type);
+        return new VehicleDto(body.getName(), body.getPlate(), body.getColor(), "آزاد", type);
     }
 
     /**
-     * Update name / plate / color. Identified by {@code oldPlate} in the body
+     * Update name / plate / color / type. Identified by {@code oldPlate} in the body
      * (plate may contain Persian letters — safer than path variable).
      */
     @PutMapping
-    public CarDto update(@RequestBody UpdateCarRequest body) throws SQLException {
+    public VehicleDto update(@RequestBody UpdateVehicleRequest body) throws SQLException {
         if (body == null) {
             throw new IllegalArgumentException("بدنه درخواست خالی است");
         }
@@ -67,23 +71,28 @@ public class CarController {
             throw new IllegalArgumentException("پلاک قبلی (oldPlate) الزامی است");
         }
 
-        Car existing = findByPlate(oldPlate);
+        Vehicle existing = findByPlate(oldPlate);
         if (existing == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ماشین یافت نشد: " + oldPlate);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "وسیله یافت نشد: " + oldPlate);
         }
         if (isOnMission(existing.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "ماشین در مأموریت است و قابل ویرایش نیست");
+                    "وسیله در مأموریت است و قابل ویرایش نیست");
         }
 
-        Car updated = new Car(
+        String type = body.getVehicleType() != null
+                ? Vehicle.normalizeType(body.getVehicleType())
+                : existing.getVehicleType();
+
+        Vehicle updated = new Vehicle(
                 body.getName(),
                 body.getPlate(),
                 body.getColor(),
+                type,
                 existing.getStatus()
         );
-        carService.updateCar(updated, oldPlate);
-        return CarDto.from(updated);
+        vehicleService.updateVehicle(updated, oldPlate);
+        return VehicleDto.from(updated);
     }
 
     /**
@@ -95,22 +104,22 @@ public class CarController {
             throw new IllegalArgumentException("پلاک الزامی است");
         }
         String p = plate.strip();
-        Car existing = findByPlate(p);
+        Vehicle existing = findByPlate(p);
         if (existing == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ماشین یافت نشد: " + p);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "وسیله یافت نشد: " + p);
         }
         if (isOnMission(existing.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "ماشین در مأموریت است و قابل حذف نیست");
+                    "وسیله در مأموریت است و قابل حذف نیست");
         }
-        carService.deleteCar(p);
-        return OkResponse.ok("ماشین حذف شد");
+        vehicleService.deleteVehicle(p);
+        return OkResponse.ok("وسیله حذف شد");
     }
 
-    private Car findByPlate(String plate) throws SQLException {
-        for (Car c : carService.getAllCars()) {
-            if (plate.equals(c.getPlate())) {
-                return c;
+    private Vehicle findByPlate(String plate) throws SQLException {
+        for (Vehicle v : vehicleService.getAllVehicles()) {
+            if (plate.equals(v.getPlate())) {
+                return v;
             }
         }
         return null;

@@ -1,22 +1,12 @@
 package com.car.rental.api.dto;
 
-/**
- * Update car fields. {@code oldPlate} identifies the row (primary key in practice is plate).
- */
-public class UpdateCarRequest {
+public class CreateVehicleRequest {
 
-    private String oldPlate;
     private String name;
     private String plate;
     private String color;
-
-    public String getOldPlate() {
-        return oldPlate;
-    }
-
-    public void setOldPlate(String oldPlate) {
-        this.oldPlate = oldPlate;
-    }
+    /** CAR or MOTORCYCLE (default CAR if omitted) */
+    private String vehicleType;
 
     public String getName() {
         return name;
@@ -40,5 +30,13 @@ public class UpdateCarRequest {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
     }
 }

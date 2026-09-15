@@ -1,10 +1,23 @@
 package com.car.rental.api.dto;
 
-public class CreateCarRequest {
+/**
+ * Update vehicle fields. {@code oldPlate} identifies the row.
+ */
+public class UpdateVehicleRequest {
 
+    private String oldPlate;
     private String name;
     private String plate;
     private String color;
+    private String vehicleType;
+
+    public String getOldPlate() {
+        return oldPlate;
+    }
+
+    public void setOldPlate(String oldPlate) {
+        this.oldPlate = oldPlate;
+    }
 
     public String getName() {
         return name;
@@ -28,5 +41,13 @@ public class CreateCarRequest {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
     }
 }

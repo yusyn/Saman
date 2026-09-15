@@ -1,7 +1,7 @@
 (() => {
   const titles = {
     dashboard: ["وضعیت", "سلامت API و راهنما"],
-    cars: ["ماشین‌ها", "لیست، ثبت، ویرایش و حذف"],
+    cars: ["ناوگان", "ماشین و موتور — لیست، ثبت، ویرایش و حذف"],
     employees: ["کارمندان", "لیست، ثبت، ویرایش و حذف"],
     rentals: ["تحویل / برگشت", "احراز جدا برای هر عملیات"],
     report: ["گزارش", "سفرهای ثبت‌شده"],
@@ -55,6 +55,17 @@
       .join("");
   }
 
+  function isMotorcycleType(t) {
+    return String(t || "").toUpperCase() === "MOTORCYCLE";
+  }
+
+  function vehicleTypeIcon(type) {
+    if (isMotorcycleType(type)) {
+      return '<span class="vtype-icon vtype-moto" title="موتور" aria-label="موتور">🏍</span>';
+    }
+    return '<span class="vtype-icon vtype-car" title="ماشین" aria-label="ماشین">🚗</span>';
+  }
+
   function parsePlate(plate) {
     if (plate == null) return null;
     let s = toLatinDigits(String(plate)).trim();
@@ -77,6 +88,13 @@
       return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
     }
     return null;
+  }
+
+  function parseMotorcyclePlate(plate) {
+    if (plate == null) return null;
+    const digits = toLatinDigits(String(plate)).replace(/\D/g, "");
+    if (digits.length !== 8) return null;
+    return { top: digits.slice(0, 3), bottom: digits.slice(3) };
   }
 
   function renderIranPlate(plate) {
@@ -112,6 +130,59 @@
       "</span>" +
       "</span>"
     );
+  }
+
+  function renderMotorcyclePlate(plate) {
+    const p = parseMotorcyclePlate(plate);
+    if (!p) {
+      return '<span class="iran-plate-fallback" dir="ltr">' + escapeHtml(plate || "—") + "</span>";
+    }
+    return (
+      '<span class="moto-plate" dir="ltr" title="' +
+      escapeHtml(plate) +
+      '">' +
+      '<span class="moto-plate-blue">' +
+      '<span class="iran-plate-flag" aria-hidden="true"></span>' +
+      '<span class="iran-plate-ir">I.R.</span>' +
+      '<span class="iran-plate-ir">IRAN</span>' +
+      "</span>" +
+      '<span class="moto-plate-nums">' +
+      '<span class="moto-plate-top">' +
+      escapeHtml(toPersianDigits(p.top)) +
+      "</span>" +
+      '<span class="moto-plate-bottom">' +
+      escapeHtml(toPersianDigits(p.bottom)) +
+      "</span>" +
+      "</span>" +
+      "</span>"
+    );
+  }
+
+  function renderPlate(plate, vehicleType) {
+    if (isMotorcycleType(vehicleType)) {
+      return renderMotorcyclePlate(plate);
+    }
+    const car = parsePlate(plate);
+    if (car) return renderIranPlate(plate);
+    if (parseMotorcyclePlate(plate)) return renderMotorcyclePlate(plate);
+    return renderIranPlate(plate);
+  }
+
+  function formatNowJalali() {
+    try {
+      const s = new Date().toLocaleString("fa-IR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      });
+      return toLatinDigits(s);
+    } catch (e) {
+      return new Date().toISOString();
+    }
   }
 
   function isOnMissionStatus(status) {
@@ -192,7 +263,34 @@
   }
   $("#btnRefreshHealth").addEventListener("click", loadHealth);
 
+  function getSelectedType(formPrefix) {
+    const el = document.querySelector('input[name="' + formPrefix + 'Type"]:checked');
+    return el ? el.value : "CAR";
+  }
+
+  function setSelectedType(formPrefix, type) {
+    const t = isMotorcycleType(type) ? "MOTORCYCLE" : "CAR";
+    document.querySelectorAll('input[name="' + formPrefix + 'Type"]').forEach(function (r) {
+      r.checked = r.value === t;
+    });
+    togglePlateWidgets(formPrefix, t);
+  }
+
+  function togglePlateWidgets(formPrefix, type) {
+    const isMoto = isMotorcycleType(type);
+    const carBox = document.getElementById(formPrefix + "CarPlate");
+    const motoBox = document.getElementById(formPrefix + "MotoPlate");
+    if (carBox) carBox.classList.toggle("hidden", isMoto);
+    if (motoBox) motoBox.classList.toggle("hidden", !isMoto);
+  }
+
   function plateFromWidgets(prefix) {
+    const type = getSelectedType(prefix === "plate" ? "vehicle" : "editVehicle");
+    if (isMotorcycleType(type)) {
+      const top = (document.getElementById(prefix + "MotoTop") || {}).value || "";
+      const bottom = (document.getElementById(prefix + "MotoBottom") || {}).value || "";
+      return toLatinDigits(top + bottom).replace(/\D/g, "");
+    }
     const first = (document.getElementById(prefix + "First") || {}).value || "";
     const letter = (document.getElementById(prefix + "Letter") || {}).value || "";
     const mid = (document.getElementById(prefix + "Mid") || {}).value || "";
@@ -200,20 +298,26 @@
     return (first + letter + mid + "ایران" + city).trim();
   }
 
-  function fillPlateWidgets(prefix, plate) {
-    const p = parsePlate(plate) || {};
+  function fillPlateWidgets(prefix, plate, vehicleType) {
     const set = (id, v) => {
       const el = document.getElementById(id);
       if (el) el.value = v || "";
     };
-    set(prefix + "First", p.first);
-    set(prefix + "Letter", p.letter);
-    set(prefix + "Mid", p.mid);
-    set(prefix + "City", p.city);
+    if (isMotorcycleType(vehicleType)) {
+      const p = parseMotorcyclePlate(plate) || {};
+      set(prefix + "MotoTop", p.top);
+      set(prefix + "MotoBottom", p.bottom);
+    } else {
+      const p = parsePlate(plate) || {};
+      set(prefix + "First", p.first);
+      set(prefix + "Letter", p.letter);
+      set(prefix + "Mid", p.mid);
+      set(prefix + "City", p.city);
+    }
   }
 
   ["plate", "editPlate"].forEach((prefix) => {
-    ["First", "Mid", "City"].forEach((part) => {
+    ["First", "Mid", "City", "MotoTop", "MotoBottom"].forEach((part) => {
       const el = document.getElementById(prefix + part);
       if (!el) return;
       el.addEventListener("input", () => {
@@ -222,23 +326,32 @@
     });
   });
 
+  document.querySelectorAll('input[name="vehicleType"]').forEach((r) => {
+    r.addEventListener("change", () => togglePlateWidgets("vehicle", r.value));
+  });
+  document.querySelectorAll('input[name="editVehicleType"]').forEach((r) => {
+    r.addEventListener("change", () => togglePlateWidgets("editVehicle", r.value));
+  });
+
   async function loadCars() {
     const tbody = $("#carsTable");
-    tbody.innerHTML = "<tr><td colspan=\"5\">در حال بارگذاری…</td></tr>";
+    tbody.innerHTML = "<tr><td colspan=\"6\">در حال بارگذاری…</td></tr>";
     try {
-      const cars = await Api.cars();
+      const cars = await Api.vehicles();
       carsCache = cars || [];
       if (!carsCache.length) {
-        tbody.innerHTML = "<tr><td colspan=\"5\">ماشینی ثبت نشده</td></tr>";
+        tbody.innerHTML = "<tr><td colspan=\"6\">وسیله‌ای ثبت نشده</td></tr>";
         return;
       }
       tbody.innerHTML = carsCache
         .map(function (c) {
           return (
-            "<tr><td>" +
+            "<tr><td class=\"col-type\">" +
+            vehicleTypeIcon(c.vehicleType) +
+            "</td><td>" +
             escapeHtml(c.name) +
             "</td><td>" +
-            renderIranPlate(c.plate) +
+            renderPlate(c.plate, c.vehicleType) +
             "</td><td>" +
             escapeHtml(c.color) +
             "</td><td>" +
@@ -254,7 +367,7 @@
         })
         .join("");
     } catch (err) {
-      tbody.innerHTML = "<tr><td colspan=\"5\">" + escapeHtml(err.message) + "</td></tr>";
+      tbody.innerHTML = "<tr><td colspan=\"6\">" + escapeHtml(err.message) + "</td></tr>";
     }
   }
   $("#btnRefreshCars").addEventListener("click", loadCars);
@@ -269,14 +382,15 @@
       $("#editCarOldPlate").value = car.plate;
       $("#editCarName").value = car.name || "";
       $("#editCarColor").value = car.color || "";
-      fillPlateWidgets("editPlate", car.plate);
+      setSelectedType("editVehicle", car.vehicleType || "CAR");
+      fillPlateWidgets("editPlate", car.plate, car.vehicleType);
       openModal("modalCar");
       return;
     }
     if (btn.dataset.act === "del") {
-      if (!confirm("حذف ماشین؟")) return;
+      if (!confirm("حذف این وسیله؟")) return;
       try {
-        await Api.deleteCar(plate);
+        await Api.deleteVehicle(plate);
         toast("حذف شد");
         loadCars();
       } catch (err) {
@@ -288,15 +402,18 @@
   $("#formCar").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+    const vehicleType = getSelectedType("vehicle");
     const body = {
       name: fd.get("name").toString().trim(),
       plate: plateFromWidgets("plate"),
       color: fd.get("color").toString().trim(),
+      vehicleType: vehicleType,
     };
     try {
-      await Api.createCar(body);
+      await Api.createVehicle(body);
       toast("ثبت شد");
       e.target.reset();
+      setSelectedType("vehicle", "CAR");
       loadCars();
     } catch (err) {
       toast(err.message || "خطا", "err");
@@ -310,9 +427,10 @@
       name: $("#editCarName").value.trim(),
       plate: plateFromWidgets("editPlate"),
       color: $("#editCarColor").value.trim(),
+      vehicleType: getSelectedType("editVehicle"),
     };
     try {
-      await Api.updateCar(body);
+      await Api.updateVehicle(body);
       toast("ذخیره شد");
       closeModal("modalCar");
       loadCars();
@@ -422,6 +540,52 @@
     }
   });
 
+  function ensureReturnMissionBox() {
+    let box = document.getElementById("returnMissionBox");
+    if (box) return box;
+    const profile = document.getElementById("returnAuthProfile");
+    if (!profile) return null;
+    box = document.createElement("div");
+    box.id = "returnMissionBox";
+    box.className = "return-mission hidden";
+    profile.appendChild(box);
+    return box;
+  }
+
+  function renderReturnMission(auth) {
+    const box = ensureReturnMissionBox();
+    if (!box) return;
+    const m = auth && auth.activeRental;
+    if (!m) {
+      box.innerHTML = "";
+      box.classList.add("hidden");
+      return;
+    }
+    box.classList.remove("hidden");
+    const vehicleLabel =
+      (m.carName || "—") +
+      (m.carColor ? " · " + m.carColor : "");
+    const returnNow = auth.returnPreviewTime || formatNowJalali();
+    box.innerHTML =
+      '<div class="auth-row mission-head"><span>مأموریت فعال</span><strong>' +
+      vehicleTypeIcon(m.vehicleType) +
+      " " +
+      escapeHtml(vehicleLabel) +
+      "</strong></div>" +
+      '<div class="auth-row"><span>پلاک</span><strong>' +
+      renderPlate(m.plate, m.vehicleType) +
+      "</strong></div>" +
+      '<div class="auth-row"><span>مقصد</span><strong>' +
+      escapeHtml(m.destination || "—") +
+      "</strong></div>" +
+      '<div class="auth-row"><span>زمان تحویل</span><strong dir="ltr">' +
+      escapeHtml(m.pickupDate || "—") +
+      "</strong></div>" +
+      '<div class="auth-row"><span>زمان برگشت (الان)</span><strong dir="ltr">' +
+      escapeHtml(returnNow) +
+      "</strong></div>";
+  }
+
   function renderAuth(kind) {
     const auth = kind === "pickup" ? pickupAuth : returnAuth;
     const ph = $("#" + kind + "AuthPlaceholder");
@@ -433,6 +597,7 @@
       if (profile) profile.classList.add("hidden");
       if (clearBtn) clearBtn.classList.add("hidden");
       if (submitBtn) submitBtn.disabled = true;
+      if (kind === "return") renderReturnMission(null);
       return;
     }
     if (ph) ph.classList.add("hidden");
@@ -444,7 +609,12 @@
     if (nameEl) nameEl.textContent = auth.name || "—";
     if (idEl) idEl.textContent = auth.deviceUserId || "—";
     if (phoneEl) phoneEl.textContent = auth.phone || "—";
-    if (submitBtn) submitBtn.disabled = false;
+    if (kind === "return") {
+      renderReturnMission(auth);
+      if (submitBtn) submitBtn.disabled = !(auth.renting && auth.activeRental);
+    } else if (submitBtn) {
+      submitBtn.disabled = false;
+    }
   }
 
   function clearAuth(kind) {
@@ -464,7 +634,6 @@
     status.textContent = "";
     try {
       const r = await Api.verify(40);
-      // Enrich with employee profile (name/phone/renting) if API only returned deviceUserId
       if (r && r.deviceUserId && (!r.name || !r.phone)) {
         try {
           const emp = await Api.employee(r.deviceUserId);
@@ -477,11 +646,30 @@
           console.warn("employee lookup after verify", lookupErr);
         }
       }
+      if (kind === "return" && r && r.deviceUserId) {
+        r.returnPreviewTime = formatNowJalali();
+        try {
+          r.activeRental = await Api.activeRental(r.deviceUserId);
+          r.renting = true;
+        } catch (activeErr) {
+          r.activeRental = null;
+          if (activeErr && activeErr.status === 404) {
+            r.renting = false;
+            status.textContent = "مأموریت فعالی برای این کارمند نیست";
+            toast("مأموریت فعالی یافت نشد", "err");
+          } else {
+            console.warn("active rental lookup", activeErr);
+            toast(activeErr.message || "خطا در دریافت مأموریت", "err");
+          }
+        }
+      }
       if (kind === "pickup") pickupAuth = r;
       else returnAuth = r;
       renderAuth(kind);
-      status.textContent = "احراز موفق";
-      toast("احراز موفق");
+      if (!(kind === "return" && !r.activeRental)) {
+        status.textContent = "احراز موفق";
+        toast("احراز موفق");
+      }
     } catch (err) {
       status.textContent = err.message || "ناموفق";
       toast(err.message || "ناموفق", "err");
@@ -496,7 +684,9 @@
     $("#" + kind + "VerifyWait").classList.add("hidden");
     $("#btnCancel" + (kind === "pickup" ? "Pickup" : "Return") + "Verify").classList.add("hidden");
     $("#btnVerify" + (kind === "pickup" ? "Pickup" : "Return")).disabled = false;
-    try { Api.cancelListen && Api.cancelListen(); } catch (e) {}
+    try {
+      Api.cancelListen && Api.cancelListen();
+    } catch (e) {}
   }
 
   $("#btnVerifyPickup").addEventListener("click", () => runVerify("pickup"));
@@ -521,9 +711,9 @@
     hidden.value = "";
     list.innerHTML = '<div class="car-pick-empty">در حال بارگذاری…</div>';
     try {
-      const cars = await Api.carsAvailable();
+      const cars = await Api.vehiclesAvailable();
       if (!cars || !cars.length) {
-        list.innerHTML = '<div class="car-pick-empty">ماشینی آزاد نیست</div>';
+        list.innerHTML = '<div class="car-pick-empty">وسیله آزادی نیست</div>';
         return;
       }
       list.innerHTML = cars
@@ -538,10 +728,11 @@
             '" aria-selected="' +
             (selected ? "true" : "false") +
             '">' +
+            vehicleTypeIcon(c.vehicleType) +
             '<span class="car-pick-name">' +
             escapeHtml(c.name || "—") +
             "</span>" +
-            renderIranPlate(plate) +
+            renderPlate(plate, c.vehicleType) +
             "</button>"
           );
         })
@@ -590,13 +781,13 @@
       return;
     }
     if (pickupAuth.renting) {
-      toast("کارمند در مأموریت است؛ نمی‌تواند ماشین دیگری بگیرد", "err");
+      toast("کارمند در مأموریت است؛ نمی‌تواند وسیله دیگری بگیرد", "err");
       return;
     }
     const fd = new FormData(e.target);
     const plateVal = (fd.get("plate") || "").toString().trim();
     if (!plateVal) {
-      toast("یک ماشین آزاد انتخاب کنید", "err");
+      toast("یک وسیله آزاد انتخاب کنید", "err");
       return;
     }
     const body = {
@@ -624,7 +815,7 @@
       toast("ابتدا برای برگشت احراز هویت کنید", "err");
       return;
     }
-    if (!returnAuth.renting) {
+    if (!returnAuth.renting || !returnAuth.activeRental) {
       toast("کارمند مأموریت فعالی ندارد", "err");
       return;
     }
@@ -660,11 +851,11 @@
             '<tr><td dir="ltr">' +
             escapeHtml(r.deviceUserId) +
             "</td><td>" +
-            escapeHtml(r.employeeName) +
-            "</td><td>" +
+            vehicleTypeIcon(r.vehicleType) +
+            " " +
             escapeHtml(r.carName) +
             "</td><td>" +
-            renderIranPlate(r.plate) +
+            renderPlate(r.plate, r.vehicleType) +
             "</td><td>" +
             escapeHtml(r.destination) +
             '</td><td dir="ltr">' +
@@ -676,20 +867,12 @@
         })
         .join("");
     } catch (err) {
-      tbody.innerHTML = '<tr><td colspan="7">' + escapeHtml(err.message) + "</td></tr>";
-      toast(err.message, "err");
+      tbody.innerHTML =
+        '<tr><td colspan="7">' + escapeHtml(err.message || "خطا") + "</td></tr>";
     }
   }
-
   $("#btnRefreshReport").addEventListener("click", loadReport);
 
-  renderAuth("pickup");
-  renderAuth("return");
-  showView("dashboard");
   loadHealth();
-  setTimeout(function () {
-    loadAvailablePlates().catch(function (e) {
-      console.warn("loadAvailablePlates", e);
-    });
-  }, 300);
+  showView("dashboard");
 })();
