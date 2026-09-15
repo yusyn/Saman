@@ -308,7 +308,6 @@ th { color: var(--muted); font-weight: 600; }
   height: 1.25rem;
 }
 
-/* SVG icons from /icons/ (silhouette style like the icon set) */
 .vtype-icon {
   display: inline-block;
   width: 1.4rem;
@@ -321,7 +320,6 @@ th { color: var(--muted); font-weight: 600; }
   color: transparent !important;
   line-height: 0;
   overflow: hidden;
-  /* SVG is black; invert for dark UI */
   filter: invert(1) brightness(1.05);
 }
 .vtype-car {
@@ -442,8 +440,8 @@ input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2);
 .table-cars td:nth-child(2) { width: 18%; }
 .table-cars th:nth-child(3),
 .table-cars td:nth-child(3) {
-  width: 9rem;
-  min-width: 9rem;
+  width: 10rem;
+  min-width: 10rem;
   overflow: visible;
   text-overflow: clip;
   white-space: nowrap;
@@ -506,15 +504,16 @@ td.actions .btn {
   margin-inline-start: 0.2rem;
 }
 
+/* ---- Car plate ---- */
 .iran-plate {
   display: inline-flex;
   flex-direction: row;
   align-items: stretch;
-  height: 1.4rem;
-  width: 7.6rem;
-  max-width: 7.6rem;
-  min-width: 7.6rem;
-  flex: 0 0 7.6rem;
+  height: 1.65rem;
+  width: 8.6rem;
+  max-width: 8.6rem;
+  min-width: 8.6rem;
+  flex: 0 0 8.6rem;
   border: 1.5px solid #1a1a1a;
   border-radius: 3px;
   background: #fff;
@@ -532,58 +531,98 @@ td.actions .btn {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.02rem;
-  width: 0.95rem;
-  flex: 0 0 0.95rem;
+  gap: 0.06rem;
+  width: 1.4rem;
+  min-width: 1.4rem;
+  flex: 0 0 1.4rem;
   background: #0047a0;
   color: #fff;
-  padding: 0.06rem 0.03rem;
+  padding: 0.1rem 0.08rem;
+  box-sizing: border-box;
+  overflow: visible;
 }
 .iran-plate-flag {
-  width: 0.7rem;
-  height: 0.42rem;
+  width: 1.05rem;
+  height: 0.55rem;
+  flex-shrink: 0;
   border-radius: 1px;
   background: linear-gradient(to bottom, #239f40 0 33%, #fff 33% 66%, #da0000 66% 100%);
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.35);
 }
-.iran-plate-ir { font-size: 0.32rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1.05; text-align: center; }
+.iran-plate-ir {
+  font-size: 0.38rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-align: center;
+  white-space: nowrap;
+  width: 100%;
+}
 .iran-plate-main {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 0.12rem;
-  padding: 0 0.22rem;
+  gap: 0.14rem;
+  padding: 0 0.2rem;
   flex: 1 1 auto;
   min-width: 0;
   background: #fff;
 }
-.iran-plate-num { font-size: 0.72rem; font-weight: 700; font-variant-numeric: tabular-nums; color: #111; }
-.iran-plate-letter { font-size: 0.72rem; font-weight: 700; color: #111; min-width: 0.55rem; text-align: center; }
+.iran-plate-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111;
+}
+.iran-plate-letter {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #111;
+  min-width: 0.55rem;
+  text-align: center;
+}
 .iran-plate-side {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.02rem;
-  padding: 0.06rem 0.14rem;
+  gap: 0.04rem;
+  padding: 0.08rem 0.16rem;
   border-left: 1.5px solid #1a1a1a;
   background: #fff;
-  min-width: 1.2rem;
+  min-width: 1.35rem;
 }
-.iran-plate-iran { font-size: 0.4rem; font-weight: 700; color: #111; line-height: 1; }
-.iran-plate-city { font-size: 0.62rem; font-weight: 700; font-variant-numeric: tabular-nums; color: #111; line-height: 1; }
-.iran-plate-fallback { font-family: ui-monospace, monospace; font-size: 0.8rem; color: var(--text); }
+.iran-plate-iran {
+  font-size: 0.42rem;
+  font-weight: 700;
+  color: #111;
+  line-height: 1;
+}
+.iran-plate-city {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111;
+  line-height: 1;
+}
+.iran-plate-fallback {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--text);
+}
 td .iran-plate { margin: 0; vertical-align: middle; }
 
+/* ---- Motorcycle plate ---- */
 .moto-plate {
   display: inline-flex;
   flex-direction: row;
   align-items: stretch;
-  height: 1.85rem;
-  width: 5.8rem;
-  max-width: 5.8rem;
-  min-width: 5.8rem;
-  flex: 0 0 5.8rem;
+  height: 2.15rem;
+  width: 6.6rem;
+  max-width: 6.6rem;
+  min-width: 6.6rem;
+  flex: 0 0 6.6rem;
   border: 1.5px solid #1a1a1a;
   border-radius: 3px;
   background: #fff;
@@ -601,12 +640,22 @@ td .iran-plate { margin: 0; vertical-align: middle; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.02rem;
-  width: 0.95rem;
-  flex: 0 0 0.95rem;
+  gap: 0.08rem;
+  width: 1.4rem;
+  min-width: 1.4rem;
+  flex: 0 0 1.4rem;
   background: #0047a0;
   color: #fff;
-  padding: 0.06rem 0.03rem;
+  padding: 0.12rem 0.08rem;
+  box-sizing: border-box;
+  overflow: visible;
+}
+.moto-plate-blue .iran-plate-flag {
+  width: 1.05rem;
+  height: 0.55rem;
+}
+.moto-plate-blue .iran-plate-ir {
+  font-size: 0.38rem;
 }
 .moto-plate-nums {
   display: flex;
@@ -614,26 +663,27 @@ td .iran-plate { margin: 0; vertical-align: middle; }
   align-items: center;
   justify-content: center;
   flex: 1 1 auto;
-  padding: 0.08rem 0.2rem;
-  gap: 0.05rem;
+  padding: 0.1rem 0.25rem;
+  gap: 0.08rem;
   background: #fff;
 }
 .moto-plate-top {
-  font-size: 0.68rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: #111;
-  letter-spacing: 0.04em;
-}
-.moto-plate-bottom {
   font-size: 0.72rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: #111;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
+}
+.moto-plate-bottom {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #111;
+  letter-spacing: 0.03em;
 }
 td .moto-plate { margin: 0; vertical-align: middle; }
 .car-pick-item .moto-plate { flex: 0 0 auto; margin: 0; }
+.car-pick-item .iran-plate { flex: 0 0 auto; margin: 0; }
 
 .field { display: flex; flex-direction: column; gap: 0.4rem; }
 .field-label { font-size: 0.9rem; color: var(--muted); }
@@ -681,7 +731,6 @@ td .moto-plate { margin: 0; vertical-align: middle; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.car-pick-item .iran-plate { flex: 0 0 auto; margin: 0; }
 .car-pick-empty {
   padding: 0.75rem 0.9rem;
   color: var(--muted);
