@@ -392,7 +392,7 @@ input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2);
 .auth-profile.hidden, .auth-placeholder.hidden { display: none; }
 .auth-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.9rem; align-items: center; }
 .auth-row span { color: var(--muted); flex-shrink: 0; }
-.auth-row strong { text-align: left; min-width: 0; }
+.auth-row strong { text-align: left; min-width: 0; color: var(--text); }
 .auth-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; }
 .auth-box.ok { border-color: rgba(34, 197, 94, 0.55); }
 .auth-box.warn { border-color: rgba(245, 158, 11, 0.55); }
@@ -411,6 +411,29 @@ input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2);
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+}
+/* Isolate plate colors from auth-row / theme text color */
+.return-mission .iran-plate,
+.return-mission .moto-plate {
+  filter: none;
+  color: #111;
+  isolation: isolate;
+}
+.return-mission .iran-plate-blue,
+.return-mission .moto-plate-blue {
+  color: #fff !important;
+  background: #0047a0 !important;
+}
+.return-mission .iran-plate-ir {
+  color: #fff !important;
+}
+.return-mission .iran-plate-num,
+.return-mission .iran-plate-letter,
+.return-mission .iran-plate-iran,
+.return-mission .iran-plate-city,
+.return-mission .moto-plate-top,
+.return-mission .moto-plate-bottom {
+  color: #111 !important;
 }
 .return-mission .auth-row strong .iran-plate,
 .return-mission .auth-row strong .moto-plate {
@@ -576,6 +599,7 @@ td.actions .btn {
   text-align: center;
   white-space: nowrap;
   width: 100%;
+  color: #fff;
 }
 .iran-plate-main {
   display: flex;
@@ -678,6 +702,7 @@ td .iran-plate { margin: 0; vertical-align: middle; }
   font-size: 0.22rem;
   line-height: 1.1;
   white-space: nowrap;
+  color: #fff;
 }
 .moto-plate-nums {
   display: flex;
