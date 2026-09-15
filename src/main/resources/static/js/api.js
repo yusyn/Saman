@@ -125,6 +125,9 @@ const Api = (() => {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    /** Active open rental for employee (used on return auth). */
+    activeRental: (deviceUserId) =>
+      request("/api/rentals/active/" + encodeURIComponent(deviceUserId)),
     report: (params = {}) => {
       const q = new URLSearchParams();
       Object.keys(params || {}).forEach((k) => {
