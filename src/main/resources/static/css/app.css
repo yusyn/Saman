@@ -390,12 +390,32 @@ input.readonly { opacity: 0.75; cursor: not-allowed; background: var(--panel-2);
 .auth-placeholder { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.9rem; }
 .auth-profile { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
 .auth-profile.hidden, .auth-placeholder.hidden { display: none; }
-.auth-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.9rem; }
-.auth-row span { color: var(--muted); }
+.auth-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.9rem; align-items: center; }
+.auth-row span { color: var(--muted); flex-shrink: 0; }
+.auth-row strong { text-align: left; min-width: 0; }
 .auth-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; }
 .auth-box.ok { border-color: rgba(34, 197, 94, 0.55); }
 .auth-box.warn { border-color: rgba(245, 158, 11, 0.55); }
 .auth-box.listening { border-color: rgba(59, 130, 246, 0.65); }
+
+.return-mission {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.return-mission.hidden { display: none; }
+.return-mission .mission-head strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.return-mission .auth-row strong .iran-plate,
+.return-mission .auth-row strong .moto-plate {
+  vertical-align: middle;
+}
 
 .verify-wait {
   display: flex;
@@ -504,7 +524,6 @@ td.actions .btn {
   margin-inline-start: 0.2rem;
 }
 
-/* ---- Car plate ---- */
 .iran-plate {
   display: inline-flex;
   flex-direction: row;
@@ -613,7 +632,6 @@ td.actions .btn {
 }
 td .iran-plate { margin: 0; vertical-align: middle; }
 
-/* ---- Motorcycle plate ---- */
 .moto-plate {
   display: inline-flex;
   flex-direction: row;
