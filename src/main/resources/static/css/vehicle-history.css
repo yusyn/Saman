@@ -1,0 +1,98 @@
+/* Vehicle history badges & modal */
+.badge-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.5); }
+.badge-warn { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border-color: rgba(245, 158, 11, 0.45); }
+.badge-service { background: rgba(59, 130, 246, 0.18); color: #93c5fd; border-color: rgba(59, 130, 246, 0.45); }
+.badge-fine { background: rgba(249, 115, 22, 0.2); color: #fdba74; border-color: rgba(249, 115, 22, 0.5); }
+
+.table-cars td.col-status {
+  white-space: normal;
+}
+.table-cars td.col-status .badge {
+  margin: 0.1rem 0.15rem 0.1rem 0;
+}
+
+.modal-panel-wide {
+  width: min(920px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.history-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.history-tab {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.history-tab.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.5);
+}
+.history-body { padding: 0.75rem 1rem 1rem; }
+.history-pane { display: none; }
+.history-pane.active { display: block; }
+
+.history-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.hist-stat {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.7rem;
+}
+.hist-stat span {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+.hist-stat strong { font-size: 1rem; }
+
+.history-badges-row { margin-bottom: 0.5rem; }
+.history-badges-row .badge { margin-left: 0.25rem; }
+
+.table-hist { width: 100%; font-size: 0.85rem; }
+.table-hist th, .table-hist td {
+  padding: 0.35rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.hist-form {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+}
+.hist-form-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+@media (max-width: 640px) {
+  .form-row { grid-template-columns: 1fr; }
+}
+.form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+.form-inline label { margin: 0; }
