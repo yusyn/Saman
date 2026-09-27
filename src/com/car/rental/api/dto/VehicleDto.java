@@ -10,16 +10,23 @@ public class VehicleDto {
     private String color;
     private String status;
     private String vehicleType;
+    /** Comma-separated history badges e.g. DAMAGED,HAS_FINE */
+    private String statusFlags;
 
     public VehicleDto() {
     }
 
     public VehicleDto(String name, String plate, String color, String status, String vehicleType) {
+        this(name, plate, color, status, vehicleType, null);
+    }
+
+    public VehicleDto(String name, String plate, String color, String status, String vehicleType, String statusFlags) {
         this.name = name;
         this.plate = plate;
         this.color = color;
         this.status = status;
         this.vehicleType = vehicleType;
+        this.statusFlags = statusFlags;
     }
 
     public static VehicleDto from(Vehicle v) {
@@ -31,7 +38,8 @@ public class VehicleDto {
                 v.getPlate(),
                 v.getColor(),
                 v.getStatus(),
-                v.getVehicleType()
+                v.getVehicleType(),
+                v.getStatusFlags()
         );
     }
 
@@ -73,5 +81,13 @@ public class VehicleDto {
 
     public void setVehicleType(String vehicleType) {
         this.vehicleType = vehicleType;
+    }
+
+    public String getStatusFlags() {
+        return statusFlags;
+    }
+
+    public void setStatusFlags(String statusFlags) {
+        this.statusFlags = statusFlags;
     }
 }

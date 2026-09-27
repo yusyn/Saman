@@ -14,6 +14,8 @@ public class Vehicle {
     private String status;
     /** CAR or MOTORCYCLE */
     private String vehicleType;
+    /** Comma-separated history badges from DB status_flags */
+    private String statusFlags;
 
     /** Standard order: model, plate, color, vehicleType */
     public Vehicle(String model, String plate, String color, String vehicleType) {
@@ -85,6 +87,14 @@ public class Vehicle {
 
     public void setVehicleType(String vehicleType) {
         this.vehicleType = normalizeType(vehicleType);
+    }
+
+    public String getStatusFlags() {
+        return statusFlags;
+    }
+
+    public void setStatusFlags(String statusFlags) {
+        this.statusFlags = statusFlags;
     }
 
     /** Display text for combo boxes and lists (not used for parsing). */
