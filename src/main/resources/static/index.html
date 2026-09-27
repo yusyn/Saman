@@ -1,1 +1,419 @@
-SEE_FILE
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>سمن — پنل مدیریت</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="stylesheet" href="/css/report-extra.css" />
+  <link rel="stylesheet" href="/css/vehicle-history.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">س</span>
+        <div>
+          <strong>سمن</strong>
+          <small>سامانه مدیریت ناوگان</small>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <button type="button" class="nav-item active" data-view="dashboard">وضعیت</button>
+        <button type="button" class="nav-item" data-view="cars">ناوگان</button>
+        <button type="button" class="nav-item" data-view="employees">کارمندان</button>
+        <button type="button" class="nav-item" data-view="rentals">تحویل / برگشت</button>
+        <button type="button" class="nav-item" data-view="report">گزارش</button>
+      </nav>
+      <div class="sidebar-foot" id="healthBadge">در حال بررسی…</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <h1 id="pageTitle">وضعیت</h1>
+        <p class="muted" id="pageHint">اتصال به API همین سرور</p>
+      </header>
+
+      <div id="toast" class="toast hidden" role="status"></div>
+
+      <section class="view active" id="view-dashboard">
+        <div class="cards">
+          <div class="card">
+            <h3>سلامت سرویس</h3>
+            <pre id="healthJson" class="code-block">—</pre>
+            <button type="button" class="btn" id="btnRefreshHealth">بروزرسانی</button>
+          </div>
+          <div class="card">
+            <h3>راهنمای سریع</h3>
+            <ul class="tips">
+              <li>این صفحه از خود Spring روی پورت ۸۰۸۰ سرو می‌شود.</li>
+              <li>ثبت کارمند با اثر انگشت ممکن است تا ۳ دقیقه طول بکشد؛ صفحه را نبندید.</li>
+              <li>دستگاه ZK باید از سرور روی پورت ۴۳۷۰ در دسترس باشد.</li>
+              <li>وسیله یا کارمند در مأموریت قابل ویرایش/حذف نیست.</li>
+              <li>تحویل و برگشت هر کدام احراز اثرانگشت جدا دارند؛ شناسه دستی نیست.</li>
+              <li>ناوگان شامل ماشین و موتور است؛ پلاک موتور ۸ رقم (۳+۵) است.</li>
+              <li>از تب ناوگان روی «سابقه» بزنید تا سرویس، خرابی و خلافی ثبت کنید.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-cars">
+        <div class="split">
+          <div class="card">
+            <div class="card-head">
+              <h3>لیست ناوگان</h3>
+              <button type="button" class="btn btn-ghost" id="btnRefreshCars">بروزرسانی</button>
+            </div>
+            <div class="table-wrap">
+              <table class="table-cars">
+                <thead>
+                  <tr><th>نوع</th><th>نام</th><th>پلاک</th><th>رنگ</th><th>وضعیت</th><th>عملیات</th></tr>
+                </thead>
+                <tbody id="carsTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <h3>ثبت وسیله جدید</h3>
+            <form id="formCar" class="form">
+              <fieldset class="type-select">
+                <legend>نوع وسیله</legend>
+                <label class="radio-inline"><input type="radio" name="vehicleType" value="CAR" checked /> 🚗 ماشین</label>
+                <label class="radio-inline"><input type="radio" name="vehicleType" value="MOTORCYCLE" /> 🏍 موتور</label>
+              </fieldset>
+              <label>نام / مدل<input name="name"/></label>
+              <label>پلاک
+                <div id="vehicleCarPlate" class="plate-input" dir="ltr">
+                  <input type="text" id="plateFirst" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="32" aria-label="دو رقم اول" />
+                  <select id="plateLetter" aria-label="حرف پلاک">
+                    <option value="الف">الف</option>
+                    <option value="ب">ب</option>
+                    <option value="ج">ج</option>
+                    <option value="د">د</option>
+                    <option value="س">س</option>
+                    <option value="ص">ص</option>
+                    <option value="ط">ط</option>
+                    <option value="ق">ق</option>
+                    <option value="گ">گ</option>
+                    <option value="ل" selected>ل</option>
+                    <option value="م">م</option>
+                    <option value="ن">ن</option>
+                    <option value="و">و</option>
+                    <option value="هـ">هـ</option>
+                    <option value="ی">ی</option>
+                  </select>
+                  <input type="text" id="plateMid" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="316" aria-label="سه رقم وسط" />
+                  <span class="plate-iran">ایران</span>
+                  <input type="text" id="plateCity" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="53" aria-label="کد شهر" />
+                </div>
+                <div id="vehicleMotoPlate" class="plate-input moto-plate-input hidden" dir="ltr">
+                  <input type="text" id="plateMotoTop" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="123" aria-label="سه رقم بالا" />
+                  <span class="plate-iran">+</span>
+                  <input type="text" id="plateMotoBottom" maxlength="5" inputmode="numeric" pattern="[0-9]*" placeholder="56789" aria-label="پنج رقم پایین" />
+                </div>
+              </label>
+              <label>رنگ<input name="color"/></label>
+              <button type="submit" class="btn btn-primary">ذخیره وسیله</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-employees">
+        <div class="split">
+          <div class="card">
+            <div class="card-head">
+              <h3>لیست کارمندان</h3>
+              <button type="button" class="btn btn-ghost" id="btnRefreshEmployees">بروزرسانی</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>شناسه</th><th>نام</th><th>تلفن</th><th>مأموریت</th><th>عملیات</th></tr>
+                </thead>
+                <tbody id="employeesTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <h3>ثبت کارمند + اثر انگشت</h3>
+            <form id="formEmployee" class="form">
+              <label>نام کامل (انگلیسی)<input name="name" dir="ltr" /></label>
+              <label>تلفن<input name="phone" dir="ltr" /></label>
+              <label>انگشت
+                <select name="fingerIndex">
+                  <option value="0">0 — کوچک چپ</option>
+                  <option value="1">1 — انگشتری چپ</option>
+                  <option value="2">2 — میانی چپ</option>
+                  <option value="3">3 — اشاره چپ</option>
+                  <option value="4">4 — شست چپ</option>
+                  <option value="5">5 — شست راست</option>
+                  <option value="6" selected>6 — اشاره راست</option>
+                  <option value="7">7 — میانی راست</option>
+                  <option value="8">8 — انگشتری راست</option>
+                  <option value="9">9 — کوچک راست</option>
+                </select>
+              </label>
+              <button type="submit" class="btn btn-primary" id="btnRegisterEmp">ثبت و دریافت اثر انگشت</button>
+            </form>
+            <p class="status-line" id="empRegisterStatus"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-rentals">
+        <div class="cards two">
+          <div class="card rental-card">
+            <h3>تحویل وسیله</h3>
+            <p class="muted small">ابتدا با اثر انگشت احراز کنید؛ شناسه به‌صورت دستی وارد نمی‌شود.</p>
+            <div class="auth-box" id="pickupAuthBox">
+              <p class="auth-placeholder" id="pickupAuthPlaceholder">کارمند احراز نشده</p>
+              <div class="auth-profile hidden" id="pickupAuthProfile">
+                <div class="auth-row"><span>نام</span><strong id="pickupAuthName">—</strong></div>
+                <div class="auth-row"><span>شناسه</span><strong dir="ltr" id="pickupAuthId">—</strong></div>
+                <div class="auth-row"><span>تلفن</span><strong dir="ltr" id="pickupAuthPhone">—</strong></div>
+              </div>
+              <div class="auth-actions">
+                <button type="button" class="btn btn-primary" id="btnVerifyPickup">احراز هویت برای تحویل</button>
+                <button type="button" class="btn btn-danger hidden" id="btnCancelPickupVerify">انصراف از احراز</button>
+                <button type="button" class="btn btn-ghost hidden" id="btnClearPickupAuth">پاک کردن احراز</button>
+              </div>
+              <div class="verify-wait hidden" id="pickupVerifyWait" role="status" aria-live="polite">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>منتظر اثر انگشت روی دستگاه…</span>
+              </div>
+              <p class="status-line" id="pickupVerifyStatus"></p>
+            </div>
+            <form id="formPickup" class="form">
+              <div class="field">
+                <span class="field-label">وسایل آزاد</span>
+                <div id="pickupCarList" class="car-pick-list" role="listbox" aria-label="وسایل آزاد"></div>
+                <input type="hidden" name="plate" id="pickupPlate" value="" required />
+              </div>
+              <label>مقصد<input name="destination" required placeholder="تهران" /></label>
+              <button type="submit" class="btn btn-primary" id="btnPickupSubmit" disabled>ثبت تحویل</button>
+            </form>
+          </div>
+
+          <div class="card rental-card">
+            <h3>برگشت وسیله</h3>
+            <p class="muted small">احراز جدا از تحویل است؛ فقط کارمند در مأموریت می‌تواند برگشت بزند.</p>
+            <div class="auth-box" id="returnAuthBox">
+              <p class="auth-placeholder" id="returnAuthPlaceholder">کارمند احراز نشده</p>
+              <div class="auth-profile hidden" id="returnAuthProfile">
+                <div class="auth-row"><span>نام</span><strong id="returnAuthName">—</strong></div>
+                <div class="auth-row"><span>شناسه</span><strong dir="ltr" id="returnAuthId">—</strong></div>
+                <div class="auth-row"><span>تلفن</span><strong dir="ltr" id="returnAuthPhone">—</strong></div>
+              </div>
+              <div class="auth-actions">
+                <button type="button" class="btn btn-primary" id="btnVerifyReturn">احراز هویت برای برگشت</button>
+                <button type="button" class="btn btn-danger hidden" id="btnCancelReturnVerify">انصراف از احراز</button>
+                <button type="button" class="btn btn-ghost hidden" id="btnClearReturnAuth">پاک کردن احراز</button>
+              </div>
+              <div class="verify-wait hidden" id="returnVerifyWait" role="status" aria-live="polite">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>منتظر اثر انگشت روی دستگاه…</span>
+              </div>
+              <p class="status-line" id="returnVerifyStatus"></p>
+            </div>
+            <form id="formReturn" class="form">
+              <button type="submit" class="btn btn-primary" id="btnReturnSubmit" disabled>ثبت برگشت</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-report">
+        <div class="card">
+          <div class="card-head">
+            <h3>گزارش سفرها</h3>
+            <button type="button" class="btn btn-ghost" id="btnRefreshReport">بروزرسانی</button>
+          </div>
+          <p class="muted small">فیلترها در فایل جدا بارگذاری می‌شوند.</p>
+          <div id="reportFiltersHost"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>شناسه</th><th>وسیله</th><th>پلاک</th><th>مقصد</th><th>تحویل</th><th>برگشت</th></tr>
+              </thead>
+              <tbody id="reportTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modalCar" class="modal hidden">
+    <div class="modal-backdrop" data-close="modalCar"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>ویرایش وسیله</h3>
+        <button type="button" class="btn btn-ghost btn-sm" data-close="modalCar">بستن</button>
+      </div>
+      <form id="formEditCar" class="form">
+        <input type="hidden" id="editCarOldPlate" />
+        <fieldset class="type-select">
+          <legend>نوع وسیله</legend>
+          <label class="radio-inline"><input type="radio" name="editVehicleType" value="CAR" checked /> 🚗 ماشین</label>
+          <label class="radio-inline"><input type="radio" name="editVehicleType" value="MOTORCYCLE" /> 🏍 موتور</label>
+        </fieldset>
+        <label>نام / مدل<input id="editCarName" required /></label>
+        <label>پلاک
+          <div id="editVehicleCarPlate" class="plate-input" dir="ltr">
+            <input type="text" id="editPlateFirst" maxlength="2" inputmode="numeric" pattern="[0-9]*" aria-label="دو رقم اول" />
+            <select id="editPlateLetter" aria-label="حرف پلاک">
+              <option value="الف">الف</option><option value="ب">ب</option><option value="ج">ج</option>
+              <option value="د">د</option><option value="س">س</option><option value="ص">ص</option>
+              <option value="ط">ط</option><option value="ق">ق</option><option value="گ">گ</option>
+              <option value="ل">ل</option><option value="م">م</option><option value="ن">ن</option>
+              <option value="و">و</option><option value="هـ">هـ</option><option value="ی">ی</option>
+            </select>
+            <input type="text" id="editPlateMid" maxlength="3" inputmode="numeric" pattern="[0-9]*" aria-label="سه رقم وسط" />
+            <span class="plate-iran">ایران</span>
+            <input type="text" id="editPlateCity" maxlength="2" inputmode="numeric" pattern="[0-9]*" aria-label="کد شهر" />
+          </div>
+          <div id="editVehicleMotoPlate" class="plate-input moto-plate-input hidden" dir="ltr">
+            <input type="text" id="editPlateMotoTop" maxlength="3" inputmode="numeric" pattern="[0-9]*" aria-label="سه رقم بالا" />
+            <span class="plate-iran">+</span>
+            <input type="text" id="editPlateMotoBottom" maxlength="5" inputmode="numeric" pattern="[0-9]*" aria-label="پنج رقم پایین" />
+          </div>
+        </label>
+        <label>رنگ<input id="editCarColor" required /></label>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">ذخیره</button>
+          <button type="button" class="btn btn-ghost" data-close="modalCar">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalEmployee" class="modal hidden">
+    <div class="modal-backdrop" data-close="modalEmployee"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3>ویرایش کارمند</h3>
+        <button type="button" class="btn btn-ghost btn-sm" data-close="modalEmployee">بستن</button>
+      </div>
+      <form id="formEditEmployee" class="form">
+        <input type="hidden" id="editEmpId" />
+        <label>نام<input id="editEmpName" required dir="ltr" /></label>
+        <label>تلفن<input id="editEmpPhone" dir="ltr" /></label>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">ذخیره</button>
+          <button type="button" class="btn btn-ghost" data-close="modalEmployee">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalHistory" class="modal hidden">
+    <div class="modal-backdrop" data-close="modalHistory"></div>
+    <div class="modal-panel modal-panel-wide">
+      <div class="modal-head">
+        <h3 id="historyTitle">سابقه وسیله</h3>
+        <button type="button" class="btn btn-ghost btn-sm" data-close="modalHistory">بستن</button>
+      </div>
+      <div class="history-tabs" role="tablist">
+        <button type="button" class="history-tab active" data-htab="summary">خلاصه</button>
+        <button type="button" class="history-tab" data-htab="rentals">سفرها</button>
+        <button type="button" class="history-tab" data-htab="services">سرویس</button>
+        <button type="button" class="history-tab" data-htab="issues">خرابی</button>
+        <button type="button" class="history-tab" data-htab="fines">خلافی</button>
+      </div>
+      <div class="history-body">
+        <div class="history-pane active" data-hpane="summary">
+          <div id="historySummary"></div>
+          <form id="formHistoryOdometer" class="form form-inline hist-form">
+            <label>کیلومتر فعلی<input id="histOdometer" type="text" inputmode="numeric" dir="ltr" placeholder="45000" /></label>
+            <button type="submit" class="btn btn-primary btn-sm">ذخیره کیلومتر</button>
+          </form>
+        </div>
+        <div class="history-pane" data-hpane="rentals" id="historyRentals"></div>
+        <div class="history-pane" data-hpane="services">
+          <div id="historyServicesList"></div>
+          <form id="formHistoryService" class="form hist-form">
+            <h4 class="hist-form-title">ثبت سرویس جدید</h4>
+            <div class="form-row">
+              <label>نوع
+                <select id="histServiceType">
+                  <option value="OIL_CHANGE">تعویض روغن</option>
+                  <option value="FILTER">فیلتر</option>
+                  <option value="TIRE">لاستیک</option>
+                  <option value="BATTERY">باتری</option>
+                  <option value="BRAKE">ترمز</option>
+                  <option value="INSPECTION">معاینه</option>
+                  <option value="OTHER">سایر</option>
+                </select>
+              </label>
+              <label>تاریخ (شمسی)<input id="histServiceDate" dir="ltr" placeholder="1404-07-05" required /></label>
+            </div>
+            <div class="form-row">
+              <label>کیلومتر<input id="histServiceOdo" dir="ltr" inputmode="numeric" /></label>
+              <label>هزینه (ریال)<input id="histServiceCost" dir="ltr" inputmode="numeric" /></label>
+            </div>
+            <div class="form-row">
+              <label>سرویس بعدی (کیلومتر)<input id="histServiceNextOdo" dir="ltr" inputmode="numeric" /></label>
+              <label>انجام‌دهنده<input id="histServiceBy" /></label>
+            </div>
+            <label>توضیحات<input id="histServiceDesc" /></label>
+            <button type="submit" class="btn btn-primary btn-sm">ثبت سرویس</button>
+          </form>
+        </div>
+        <div class="history-pane" data-hpane="issues">
+          <div id="historyIssuesList"></div>
+          <form id="formHistoryIssue" class="form hist-form">
+            <h4 class="hist-form-title">ثبت خرابی</h4>
+            <label>عنوان<input id="histIssueTitle" required /></label>
+            <div class="form-row">
+              <label>شدت
+                <select id="histIssueSeverity">
+                  <option value="LOW">کم</option>
+                  <option value="MEDIUM" selected>متوسط</option>
+                  <option value="HIGH">زیاد</option>
+                  <option value="CRITICAL">بحرانی</option>
+                </select>
+              </label>
+              <label>تاریخ گزارش<input id="histIssueDate" dir="ltr" placeholder="1404-07-05" required /></label>
+            </div>
+            <div class="form-row">
+              <label>هزینه<input id="histIssueCost" dir="ltr" inputmode="numeric" /></label>
+              <label>توضیحات<input id="histIssueDesc" /></label>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">ثبت خرابی</button>
+          </form>
+        </div>
+        <div class="history-pane" data-hpane="fines">
+          <div id="historyFinesList"></div>
+          <form id="formHistoryFine" class="form hist-form">
+            <h4 class="hist-form-title">ثبت خلافی</h4>
+            <div class="form-row">
+              <label>نوع
+                <select id="histFineType">
+                  <option value="SPEED">سرعت</option>
+                  <option value="PARKING">پارک</option>
+                  <option value="RED_LIGHT">چراغ قرمز</option>
+                  <option value="OTHER">سایر</option>
+                </select>
+              </label>
+              <label>مبلغ (ریال)<input id="histFineAmount" dir="ltr" inputmode="numeric" required /></label>
+            </div>
+            <div class="form-row">
+              <label>تاریخ<input id="histFineDate" dir="ltr" placeholder="1404-07-01" required /></label>
+              <label>توضیحات<input id="histFineDesc" /></label>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">ثبت خلافی</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/vehicle-history.js"></script>
+  <script src="/js/report-filters.js?v=20260915-1"></script>
+</body>
+</html>
