@@ -268,6 +268,42 @@ public class RentalRepository {
         return records;
     }
 
+    /** All rental records for a given vehicle (by VehicleTable.id). */
+    public List<RentalRecord> findByVehicleId(int vehicleId) throws SQLException {
+        String sql = "SELECT e.device_user_id, e.name AS employee_name, " +
+                "v.name AS car_name, v.color AS car_color, v.plate, v.vehicle_type, " +
+                "r.pickup_date, r.return_date, r.destination " +
+                "FROM RentalTable r " +
+                "JOIN EmployeeTable e ON r.employee_id = e.id " +
+                "JOIN VehicleTable v ON r.car_id = v.id " +
+                "WHERE r.car_id = ? ORDER BY r.pickup_date DESC";
+        List<RentalRecord> records = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, vehicleId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    records.add(mapRentalRecord(rs));
+                }
+            }
+        }
+        return records;
+    }
+
+    public int countByVehicleId(int vehicleId) throws SQLException {
+        String sql = "SELECT COUNT(*) AS c FROM RentalTable WHERE car_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, vehicleId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("c");
+                }
+                return 0;
+            }
+        }
+    }
+
     private static RentalRecord mapRentalRecord(ResultSet rs) throws SQLException {
         RentalRecord r = new RentalRecord(
                 rs.getString("device_user_id"),

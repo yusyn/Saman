@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +40,23 @@ public class VehicleRepository {
                 } else {
                     throw new SQLException("وسیله فعالی با این پلاک یافت نشد: " + plate);
                 }
+            }
+        }
+    }
+
+    /**
+     * Returns vehicle id or -1 if not found (does not throw).
+     */
+    public int findIdByPlate(String plate) throws SQLException {
+        String sql = "SELECT id FROM VehicleTable WHERE plate = ? AND is_deleted = 0";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, plate);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+                return -1;
             }
         }
     }
@@ -155,6 +173,121 @@ public class VehicleRepository {
                     throw new SQLException("حذف وسیله انجام نشد");
                 }
             }
+        }
+    }
+
+    /** Load basic vehicle row by id (including history fields). */
+    public VehicleRow findRowById(int id) throws SQLException {
+        String sql = "SELECT id, name, plate, color, vehicle_type, is_rented, " +
+                "current_odometer, last_service_odometer, last_service_date, status_flags " +
+                "FROM VehicleTable WHERE id = ? AND is_deleted = 0";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+                return null;
+            }
+        }
+    }
+
+    public VehicleRow findRowByPlate(String plate) throws SQLException {
+        String sql = "SELECT id, name, plate, color, vehicle_type, is_rented, " +
+                "current_odometer, last_service_odometer, last_service_date, status_flags " +
+                "FROM VehicleTable WHERE plate = ? AND is_deleted = 0";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, plate);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+                return null;
+            }
+        }
+    }
+
+    public void updateOdometer(int vehicleId, int odometer) throws SQLException {
+        String sql = "UPDATE VehicleTable SET current_odometer = ? WHERE id = ? AND is_deleted = 0";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, odometer);
+            stmt.setInt(2, vehicleId);
+            int n = stmt.executeUpdate();
+            if (n == 0) {
+                throw new SQLException("وسیله یافت نشد");
+            }
+        }
+    }
+
+    public void updateLastService(int vehicleId, Integer odometer, String serviceDate) throws SQLException {
+        String sql = "UPDATE VehicleTable SET last_service_odometer = ?, last_service_date = ? " +
+                "WHERE id = ? AND is_deleted = 0";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            if (odometer == null) {
+                stmt.setNull(1, Types.INTEGER);
+            } else {
+                stmt.setInt(1, odometer);
+            }
+            stmt.setString(2, serviceDate);
+            stmt.setInt(3, vehicleId);
+            int n = stmt.executeUpdate();
+            if (n == 0) {
+                throw new SQLException("وسیله یافت نشد");
+            }
+        }
+    }
+
+    public void updateStatusFlags(int vehicleId, String flags) throws SQLException {
+        String sql = "UPDATE VehicleTable SET status_flags = ? WHERE id = ? AND is_deleted = 0";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, flags != null ? flags : "");
+            stmt.setInt(2, vehicleId);
+            stmt.executeUpdate();
+        }
+    }
+
+    private static VehicleRow mapRow(ResultSet rs) throws SQLException {
+        VehicleRow row = new VehicleRow();
+        row.id = rs.getInt("id");
+        row.name = rs.getString("name");
+        row.plate = rs.getString("plate");
+        row.color = rs.getString("color");
+        row.vehicleType = rs.getString("vehicle_type");
+        row.rented = rs.getInt("is_rented") == 1;
+        row.currentOdometer = rs.getInt("current_odometer");
+        Object lastOdo = rs.getObject("last_service_odometer");
+        row.lastServiceOdometer = lastOdo != null ? (Integer) lastOdo : null;
+        row.lastServiceDate = rs.getString("last_service_date");
+        row.statusFlags = rs.getString("status_flags");
+        return row;
+    }
+
+    /** Lightweight row with history fields (not the domain Vehicle model). */
+    public static class VehicleRow {
+        public int id;
+        public String name;
+        public String plate;
+        public String color;
+        public String vehicleType;
+        public boolean rented;
+        public int currentOdometer;
+        public Integer lastServiceOdometer;
+        public String lastServiceDate;
+        public String statusFlags;
+
+        public Vehicle toVehicle() {
+            return new Vehicle(
+                    name,
+                    plate,
+                    color,
+                    vehicleType,
+                    rented ? "در مأموریت" : "آزاد"
+            );
         }
     }
 }
