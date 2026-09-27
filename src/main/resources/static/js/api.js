@@ -137,5 +137,42 @@ const Api = (() => {
       const qs = q.toString();
       return request("/api/rentals/report" + (qs ? "?" + qs : ""));
     },
+    // Vehicle history
+    vehicleHistory: (plate) =>
+      request("/api/vehicles/history?plate=" + encodeURIComponent(plate)),
+    addVehicleService: (plate, body) =>
+      request("/api/vehicles/history/services?plate=" + encodeURIComponent(plate), {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    addVehicleIssue: (plate, body) =>
+      request("/api/vehicles/history/issues?plate=" + encodeURIComponent(plate), {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    updateVehicleIssue: (plate, issueId, body) =>
+      request(
+        "/api/vehicles/history/issues/" + issueId + "?plate=" + encodeURIComponent(plate),
+        { method: "PATCH", body: JSON.stringify(body) }
+      ),
+    addVehicleFine: (plate, body) =>
+      request("/api/vehicles/history/fines?plate=" + encodeURIComponent(plate), {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    payVehicleFine: (plate, fineId, paymentDate) => {
+      let url =
+        "/api/vehicles/history/fines/" +
+        fineId +
+        "/pay?plate=" +
+        encodeURIComponent(plate);
+      if (paymentDate) url += "&paymentDate=" + encodeURIComponent(paymentDate);
+      return request(url, { method: "PATCH", body: "{}" });
+    },
+    updateVehicleOdometer: (plate, odometer) =>
+      request("/api/vehicles/history/odometer?plate=" + encodeURIComponent(plate), {
+        method: "PUT",
+        body: JSON.stringify({ odometer }),
+      }),
   };
 })();
