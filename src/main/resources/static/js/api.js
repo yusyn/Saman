@@ -104,6 +104,16 @@ const Api = (() => {
         const err = new Error(msg);
         err.status = res.status;
         err.data = data;
+        // انقضای session برای UI (مسیرهای /api/auth/* را رد کن)
+        if (res.status === 401 && path && path.indexOf("/api/auth/") !== 0) {
+          try {
+            window.dispatchEvent(
+              new CustomEvent("saman:unauthorized", {
+                detail: { path: path, method: method },
+              })
+            );
+          } catch (_) { /* ignore */ }
+        }
         throw err;
       }
       return data;

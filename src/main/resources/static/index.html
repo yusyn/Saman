@@ -31,8 +31,15 @@
 
     <main class="main">
       <header class="topbar">
-        <h1 id="pageTitle">وضعیت</h1>
-        <p class="muted" id="pageHint">اتصال به API همین سرور</p>
+        <div>
+          <h1 id="pageTitle">وضعیت</h1>
+          <p class="muted" id="pageHint">اتصال به API همین سرور</p>
+        </div>
+        <div class="auth-bar" id="authBar">
+          <span id="authStatus" class="muted" aria-live="polite">بررسی ورود…</span>
+          <button type="button" class="btn btn-primary" id="btnLogin" aria-haspopup="dialog">ورود</button>
+          <button type="button" class="btn btn-ghost hidden" id="btnLogout">خروج</button>
+        </div>
       </header>
 
       <div id="toast" class="toast hidden" role="status"></div>
@@ -77,7 +84,7 @@
           </div>
           <div class="card">
             <h3>ثبت وسیله جدید</h3>
-            <form id="formCar" class="form">
+            <form id="formCar" class="form" requires-auth>
               <fieldset class="type-select">
                 <legend>نوع وسیله</legend>
                 <label class="radio-inline"><input type="radio" name="vehicleType" value="CAR" checked /> 🚗 ماشین</label>
@@ -139,7 +146,7 @@
           </div>
           <div class="card">
             <h3>ثبت کارمند + اثر انگشت</h3>
-            <form id="formEmployee" class="form">
+            <form id="formEmployee" class="form" requires-auth>
               <label>نام کامل (انگلیسی)<input name="name" dir="ltr" /></label>
               <label>تلفن<input name="phone" dir="ltr" /></label>
               <label>انگشت
@@ -186,7 +193,7 @@
               </div>
               <p class="status-line" id="pickupVerifyStatus"></p>
             </div>
-            <form id="formPickup" class="form">
+            <form id="formPickup" class="form" requires-auth>
               <div class="field">
                 <span class="field-label">وسایل آزاد</span>
                 <div id="pickupCarList" class="car-pick-list" role="listbox" aria-label="وسایل آزاد"></div>
@@ -218,7 +225,7 @@
               </div>
               <p class="status-line" id="returnVerifyStatus"></p>
             </div>
-            <form id="formReturn" class="form">
+            <form id="formReturn" class="form" requires-auth>
               <button type="submit" class="btn btn-primary" id="btnReturnSubmit" disabled>ثبت برگشت</button>
             </form>
           </div>
@@ -253,7 +260,7 @@
         <h3>ویرایش وسیله</h3>
         <button type="button" class="btn btn-ghost btn-sm" data-close="modalCar">بستن</button>
       </div>
-      <form id="formEditCar" class="form">
+      <form id="formEditCar" class="form" requires-auth>
         <input type="hidden" id="editCarOldPlate" />
         <fieldset class="type-select">
           <legend>نوع وسیله</legend>
@@ -297,7 +304,7 @@
         <h3>ویرایش کارمند</h3>
         <button type="button" class="btn btn-ghost btn-sm" data-close="modalEmployee">بستن</button>
       </div>
-      <form id="formEditEmployee" class="form">
+      <form id="formEditEmployee" class="form" requires-auth>
         <input type="hidden" id="editEmpId" />
         <label>نام<input id="editEmpName" required dir="ltr" /></label>
         <label>تلفن<input id="editEmpPhone" dir="ltr" /></label>
@@ -408,6 +415,31 @@
           </form>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ورود مدیر (Session) — جدا از احراز اثرانگشت کارمند -->
+  <div id="modalLogin" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+    <div class="modal-backdrop" data-close="modalLogin"></div>
+    <div class="modal-panel modal-panel-sm">
+      <div class="modal-head">
+        <h3 id="loginModalTitle">ورود به سامانه</h3>
+        <button type="button" class="btn btn-ghost btn-sm" data-close="modalLogin" aria-label="بستن">بستن</button>
+      </div>
+      <form id="formLogin" class="form" autocomplete="username">
+        <p class="muted small" id="loginHint">برای ثبت و ویرایش داده وارد شوید. مشاهده اطلاعات عمومی بدون ورود ممکن است.</p>
+        <label for="loginUser">نام کاربری
+          <input type="text" id="loginUser" name="username" autocomplete="username" required />
+        </label>
+        <label for="loginPass">رمز عبور
+          <input type="password" id="loginPass" name="password" autocomplete="current-password" required />
+        </label>
+        <p id="loginError" class="form-error hidden" role="alert"></p>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary" id="btnLoginSubmit">ورود</button>
+          <button type="button" class="btn btn-ghost" data-close="modalLogin">انصراف</button>
+        </div>
+      </form>
     </div>
   </div>
 

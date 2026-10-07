@@ -783,3 +783,52 @@ td .moto-plate { margin: 0; vertical-align: middle; }
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+/* Auth bar (session login) */
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.auth-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+#btnLogin.hidden,
+#btnLogout.hidden {
+  display: none !important;
+}
+
+.modal-panel-sm {
+  width: min(400px, 100%);
+}
+.form-error {
+  color: var(--danger, #dc2626);
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0;
+}
+.form-error.hidden {
+  display: none !important;
+}
+
+/* قفل کنترل‌های نوشتنی وقتی وارد نشده */
+body.auth-anonymous .requires-auth,
+body.auth-anonymous button[data-act="edit"],
+body.auth-anonymous button[data-act="del"],
+body.auth-anonymous button[data-act="history"],
+body.auth-anonymous .hist-form,
+body.auth-anonymous #formHistoryOdometer,
+body.auth-anonymous #formHistoryService,
+body.auth-anonymous #formHistoryIssue,
+body.auth-anonymous #formHistoryFine {
+  opacity: 0.55;
+  pointer-events: none;
+}
+body.auth-loading #btnLoginSubmit {
+  opacity: 0.7;
+  pointer-events: none;
+}

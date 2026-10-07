@@ -875,4 +875,238 @@
 
   loadHealth();
   showView("dashboard");
+
+  /* ── Session auth (admin) — جدا از اثرانگشت کارمند ── */
+  let sessionUser = null;
+
+  function isAuthenticated() {
+    return !!(sessionUser && sessionUser.username);
+  }
+
+  function openLoginModal() {
+    const modal = $("#modalLogin");
+    if (!modal) return;
+    const err = $("#loginError");
+    if (err) {
+      err.textContent = "";
+      err.classList.add("hidden");
+    }
+    const pass = $("#loginPass");
+    if (pass) pass.value = "";
+    modal.classList.remove("hidden");
+    const user = $("#loginUser");
+    if (user) setTimeout(function () { user.focus(); }, 50);
+  }
+
+  function closeLoginModal() {
+    const modal = $("#modalLogin");
+    if (modal) modal.classList.add("hidden");
+    const pass = $("#loginPass");
+    if (pass) pass.value = "";
+    document.body.classList.remove("auth-loading");
+  }
+
+  function setLoginError(msg) {
+    const err = $("#loginError");
+    if (!err) return;
+    if (msg) {
+      err.textContent = msg;
+      err.classList.remove("hidden");
+    } else {
+      err.textContent = "";
+      err.classList.add("hidden");
+    }
+  }
+
+  function applyWriteAccess() {
+    const ok = isAuthenticated();
+    document.body.classList.toggle("auth-anonymous", !ok);
+    document.querySelectorAll(".requires-auth").forEach(function (el) {
+      el.querySelectorAll('button[type="submit"]').forEach(function (btn) {
+        if (!ok) btn.setAttribute("disabled", "disabled");
+        else btn.removeAttribute("disabled");
+      });
+    });
+    document
+      .querySelectorAll('button[data-act="edit"], button[data-act="del"], button[data-act="history"]')
+      .forEach(function (btn) {
+        if (!ok) btn.setAttribute("disabled", "disabled");
+        else btn.removeAttribute("disabled");
+      });
+    ["formHistoryOdometer", "formHistoryService", "formHistoryIssue", "formHistoryFine"].forEach(
+      function (id) {
+        const f = document.getElementById(id);
+        if (!f) return;
+        f.querySelectorAll('button[type="submit"]').forEach(function (btn) {
+          if (!ok) btn.setAttribute("disabled", "disabled");
+          else btn.removeAttribute("disabled");
+        });
+      }
+    );
+  }
+
+  function updateAuthChrome() {
+    const status = $("#authStatus");
+    const btnLogin = $("#btnLogin");
+    const btnLogout = $("#btnLogout");
+    if (isAuthenticated()) {
+      const role =
+        sessionUser.roles && sessionUser.roles.length
+          ? " (" + sessionUser.roles.join(", ") + ")"
+          : "";
+      if (status) status.textContent = "وارد شده: " + (sessionUser.username || "") + role;
+      if (btnLogin) btnLogin.classList.add("hidden");
+      if (btnLogout) btnLogout.classList.remove("hidden");
+    } else {
+      if (status) status.textContent = "وارد نشده‌اید";
+      if (btnLogin) btnLogin.classList.remove("hidden");
+      if (btnLogout) btnLogout.classList.add("hidden");
+    }
+    applyWriteAccess();
+  }
+
+  function clearSessionUi() {
+    sessionUser = null;
+    updateAuthChrome();
+  }
+
+  async function refreshAuth() {
+    try {
+      const me = await Api.me();
+      if (me && me.authenticated) {
+        sessionUser = {
+          username: me.username || "",
+          roles: me.roles || [],
+        };
+        try {
+          await Api.csrf();
+        } catch (_) { /* ignore */ }
+      } else {
+        sessionUser = null;
+      }
+    } catch (e) {
+      sessionUser = null;
+    }
+    updateAuthChrome();
+  }
+
+  function requireAuthOrPrompt() {
+    if (isAuthenticated()) return true;
+    toast("برای این عملیات ابتدا وارد شوید", "err");
+    openLoginModal();
+    return false;
+  }
+
+  document.querySelectorAll("form.requires-auth").forEach(function (form) {
+    form.addEventListener(
+      "submit",
+      function (ev) {
+        if (!isAuthenticated()) {
+          ev.preventDefault();
+          ev.stopImmediatePropagation();
+          requireAuthOrPrompt();
+        }
+      },
+      true
+    );
+  });
+
+  document.addEventListener(
+    "click",
+    function (ev) {
+      const btn =
+        ev.target.closest &&
+        ev.target.closest('button[data-act="edit"], button[data-act="del"], button[data-act="history"]');
+      if (!btn) return;
+      if (!isAuthenticated()) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        requireAuthOrPrompt();
+      }
+    },
+    true
+  );
+
+  const btnLogin = $("#btnLogin");
+  if (btnLogin) {
+    btnLogin.addEventListener("click", function () {
+      openLoginModal();
+    });
+  }
+
+  const formLogin = $("#formLogin");
+  if (formLogin) {
+    formLogin.addEventListener("submit", async function (ev) {
+      ev.preventDefault();
+      const username = ($("#loginUser") && $("#loginUser").value.trim()) || "";
+      const password = ($("#loginPass") && $("#loginPass").value) || "";
+      if (!username || !password) {
+        setLoginError("نام کاربری و رمز عبور را وارد کنید");
+        return;
+      }
+      const submitBtn = $("#btnLoginSubmit");
+      setLoginError("");
+      document.body.classList.add("auth-loading");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "در حال ورود…";
+      }
+      try {
+        await Api.login(username, password);
+        if ($("#loginPass")) $("#loginPass").value = "";
+        await refreshAuth();
+        closeLoginModal();
+        toast("ورود موفق");
+      } catch (e) {
+        const st = e && e.status;
+        let msg = "ورود ناموفق";
+        if (st === 401 || st === 403) msg = "نام کاربری یا رمز عبور نادرست است";
+        else if (e && e.message && !/SQL|Exception|at /.test(e.message)) msg = e.message;
+        else if (!st) msg = "خطا در ارتباط با سرور";
+        setLoginError(msg);
+        sessionUser = null;
+        updateAuthChrome();
+      } finally {
+        document.body.classList.remove("auth-loading");
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "ورود";
+        }
+      }
+    });
+  }
+
+  const btnLogout = $("#btnLogout");
+  if (btnLogout) {
+    btnLogout.addEventListener("click", async function () {
+      try {
+        await Api.logout();
+      } catch (_) { /* ignore */ }
+      clearSessionUi();
+      closeLoginModal();
+      toast("خارج شدید");
+    });
+  }
+
+  window.addEventListener("saman:unauthorized", function () {
+    if (!sessionUser) return;
+    clearSessionUi();
+    toast("نشست منقضی شد؛ دوباره وارد شوید", "err");
+    openLoginModal();
+  });
+
+  const carsTable = $("#carsTable");
+  if (carsTable) {
+    new MutationObserver(function () {
+      applyWriteAccess();
+    }).observe(carsTable, { childList: true, subtree: true });
+  }
+  const empTable = $("#employeesTable");
+  if (empTable) {
+    new MutationObserver(function () {
+      applyWriteAccess();
+    }).observe(empTable, { childList: true, subtree: true });
+  }
+
+  refreshAuth();
 })();
