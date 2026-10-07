@@ -9,24 +9,83 @@ const Api = (() => {
   /** Device name update may hit soft-disable / one retry. */
   const DEVICE_WRITE_TIMEOUT_MS = 60000;
 
+  /** Cached CSRF token for mutating requests (CookieCsrfTokenRepository / X-XSRF-TOKEN). */
+  let csrfToken = null;
+  let csrfHeaderName = "X-XSRF-TOKEN";
+
+  function readCookie(name) {
+    const parts = ("; " + document.cookie).split("; " + name + "=");
+    if (parts.length === 2) {
+      return decodeURIComponent(parts.pop().split(";").shift() || "");
+    }
+    return null;
+  }
+
+  async function ensureCsrf() {
+    const fromCookie = readCookie("XSRF-TOKEN");
+    if (fromCookie) {
+      csrfToken = fromCookie;
+      return csrfToken;
+    }
+    try {
+      const res = await fetch("/api/auth/csrf", {
+        method: "GET",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.token) {
+          csrfToken = data.token;
+          if (data.headerName) csrfHeaderName = data.headerName;
+        }
+      }
+    } catch (_) {
+      /* ignore; mutating call may still fail with 403 */
+    }
+    if (!csrfToken) {
+      csrfToken = readCookie("XSRF-TOKEN");
+    }
+    return csrfToken;
+  }
+
+  function isMutating(method) {
+    const m = (method || "GET").toUpperCase();
+    return m === "POST" || m === "PUT" || m === "PATCH" || m === "DELETE";
+  }
+
   async function request(path, options = {}) {
     const timeoutMs = options.timeoutMs != null ? options.timeoutMs : DEFAULT_TIMEOUT_MS;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+    const method = (options.method || "GET").toUpperCase();
+    const headers = {
+      Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...options.headers,
+    };
+
+    if (isMutating(method)) {
+      const token = await ensureCsrf();
+      if (token) {
+        headers[csrfHeaderName] = token;
+      }
+    }
+
     const opts = {
-      headers: {
-        Accept: "application/json",
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...options.headers,
-      },
       ...options,
+      method,
+      headers,
+      credentials: "same-origin",
       signal: controller.signal,
     };
     delete opts.timeoutMs;
 
     try {
       const res = await fetch(path, opts);
+      const refreshed = readCookie("XSRF-TOKEN");
+      if (refreshed) csrfToken = refreshed;
       const text = await res.text();
       let data = null;
       if (text) {
@@ -64,6 +123,14 @@ const Api = (() => {
 
   return {
     health: () => request("/api/health", { timeoutMs: 8000 }),
+    login: (username, password) =>
+      request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      }),
+    logout: () => request("/api/auth/logout", { method: "POST", body: "{}" }),
+    me: () => request("/api/auth/me"),
+    csrf: () => request("/api/auth/csrf"),
     vehicles: () => request("/api/vehicles"),
     vehiclesAvailable: () => request("/api/vehicles/available"),
     createVehicle: (body) =>
@@ -125,7 +192,6 @@ const Api = (() => {
         method: "POST",
         body: JSON.stringify(body),
       }),
-    /** Active open rental for employee (used on return auth). */
     activeRental: (deviceUserId) =>
       request("/api/rentals/active/" + encodeURIComponent(deviceUserId)),
     report: (params = {}) => {
@@ -137,7 +203,6 @@ const Api = (() => {
       const qs = q.toString();
       return request("/api/rentals/report" + (qs ? "?" + qs : ""));
     },
-    // Vehicle history
     vehicleHistory: (plate) =>
       request("/api/vehicles/history?plate=" + encodeURIComponent(plate)),
     addVehicleService: (plate, body) =>
