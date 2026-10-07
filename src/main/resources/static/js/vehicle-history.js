@@ -290,46 +290,63 @@
       : '<p class="muted">خلافیی ثبت نشده</p>';
   }
 
-  /** Inject history button + status badges into fleet table rows. */
+  let carsTableObserver = null;
+  let enhanceScheduled = false;
+
   function enhanceCarsTable() {
     const tbody = $("#carsTable");
     if (!tbody) return;
-    tbody.querySelectorAll("tr").forEach(function (tr) {
-      const actions = tr.querySelector("td.actions");
-      if (!actions) return;
-      const editBtn = actions.querySelector('button[data-act="edit"]');
-      if (!editBtn) return;
-      const plate = editBtn.getAttribute("data-plate");
-      if (!plate) return;
-
-      if (!actions.querySelector('button[data-act="history"]')) {
-        const histBtn = document.createElement("button");
-        histBtn.type = "button";
-        histBtn.className = "btn btn-ghost btn-sm";
-        histBtn.setAttribute("data-act", "history");
-        histBtn.setAttribute("data-plate", plate);
-        histBtn.textContent = "سابقه";
-        actions.insertBefore(histBtn, editBtn);
-        actions.insertBefore(document.createTextNode(" "), editBtn);
-      }
-
-      const statusTd = tr.children[4];
-      if (statusTd) {
-        let flags = vehicleFlagsCache[plate];
-        if (flags == null && window.__samanVehicleFlags) {
-          flags = window.__samanVehicleFlags[plate];
+    if (carsTableObserver) carsTableObserver.disconnect();
+    try {
+      tbody.querySelectorAll("tr").forEach(function (tr) {
+        const actions = tr.querySelector("td.actions");
+        if (!actions) return;
+        const editBtn = actions.querySelector('button[data-act="edit"]');
+        if (!editBtn) return;
+        const plate = editBtn.getAttribute("data-plate");
+        if (!plate) return;
+        if (!actions.querySelector('button[data-act="history"]')) {
+          const histBtn = document.createElement("button");
+          histBtn.type = "button";
+          histBtn.className = "btn btn-ghost btn-sm";
+          histBtn.setAttribute("data-act", "history");
+          histBtn.setAttribute("data-plate", plate);
+          histBtn.textContent = "سابقه";
+          actions.insertBefore(histBtn, editBtn);
+          actions.insertBefore(document.createTextNode(" "), editBtn);
         }
-        if (flags) {
-          let badgeHost = statusTd.querySelector(".hist-badges");
-          if (!badgeHost) {
-            badgeHost = document.createElement("span");
-            badgeHost.className = "hist-badges";
-            statusTd.appendChild(document.createTextNode(" "));
-            statusTd.appendChild(badgeHost);
+        const statusTd = tr.children[4];
+        if (statusTd) {
+          let flags = vehicleFlagsCache[plate];
+          if (flags == null && window.__samanVehicleFlags) {
+            flags = window.__samanVehicleFlags[plate];
           }
-          badgeHost.innerHTML = renderHistoryBadges(flags);
+          if (flags) {
+            let badgeHost = statusTd.querySelector(".hist-badges");
+            if (!badgeHost) {
+              badgeHost = document.createElement("span");
+              badgeHost.className = "hist-badges";
+              statusTd.appendChild(document.createTextNode(" "));
+              statusTd.appendChild(badgeHost);
+            }
+            const html = renderHistoryBadges(flags);
+            if (badgeHost.innerHTML !== html) badgeHost.innerHTML = html;
+          }
         }
+      });
+    } finally {
+      if (carsTableObserver) {
+        carsTableObserver.observe(tbody, { childList: true, subtree: true });
       }
+    }
+  }
+
+  function scheduleEnhanceCarsTable() {
+    if (enhanceScheduled) return;
+    enhanceScheduled = true;
+    requestAnimationFrame(function () {
+      enhanceScheduled = false;
+      enhanceCarsTable();
     });
   }
 
@@ -375,10 +392,10 @@
         openVehicleHistory(btn.getAttribute("data-plate"));
       });
 
-      const mo = new MutationObserver(function () {
-        enhanceCarsTable();
+      carsTableObserver = new MutationObserver(function () {
+        scheduleEnhanceCarsTable();
       });
-      mo.observe(carsTable, { childList: true, subtree: true });
+      carsTableObserver.observe(carsTable, { childList: true, subtree: true });
     }
 
     const histFinesList = $("#historyFinesList");
