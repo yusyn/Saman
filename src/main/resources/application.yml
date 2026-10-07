@@ -37,7 +37,7 @@ saman:
     enabled: true
 
 fingerprint:
-  host: ${FINGERPRINT_HOST:192.168.20.200}
+  host: ${FINGERPRINT_HOST:192.168.20.10}
   port: ${FINGERPRINT_PORT:4370}
   mock: ${FINGERPRINT_MOCK:false}
   connect-timeout-ms: ${FINGERPRINT_CONNECT_TIMEOUT_MS:8000}
