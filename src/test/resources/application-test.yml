@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:file:saman-test?mode=memory&cache=shared
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+  main:
+    headless: true
+
+saman:
+  admin:
+    username: testadmin
+    password: test-password-123
+  ui:
+    enabled: true
+
+fingerprint:
+  mock: true
+
+logging:
+  level:
+    root: WARN
+    com.car.rental: INFO

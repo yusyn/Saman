@@ -16,6 +16,25 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
   address: ${SERVER_ADDRESS:0.0.0.0}
+  servlet:
+    session:
+      timeout: ${SESSION_TIMEOUT:30m}
+      cookie:
+        name: SAMANSESSION
+        http-only: true
+        # Set SAMAN_SESSION_SECURE=true behind HTTPS terminators
+        secure: ${SAMAN_SESSION_SECURE:false}
+        same-site: lax
+
+# Initial admin bootstrap (only when AppUser table is empty). Prefer env vars:
+#   SAMAN_ADMIN_USERNAME / SAMAN_ADMIN_PASSWORD
+# Never commit real passwords. Password must be at least 8 characters.
+saman:
+  admin:
+    username: ${SAMAN_ADMIN_USERNAME:}
+    password: ${SAMAN_ADMIN_PASSWORD:}
+  ui:
+    enabled: true
 
 fingerprint:
   host: ${FINGERPRINT_HOST:192.168.20.200}
@@ -28,3 +47,4 @@ logging:
   level:
     root: INFO
     com.car.rental: INFO
+    org.springframework.security: INFO
