@@ -4,6 +4,7 @@ import com.car.rental.api.dto.OkResponse;
 import com.car.rental.db.EmployeeRepository;
 import com.car.rental.model.Vehicle;
 import com.car.rental.service.VehicleService;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +17,7 @@ import java.sql.SQLException;
  */
 @RestController
 @RequestMapping("/api/seed")
+@Profile("dev")
 public class SeedController {
 
     private final EmployeeRepository employees;
