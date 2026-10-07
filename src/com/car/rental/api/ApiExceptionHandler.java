@@ -26,9 +26,37 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(SQLException.class)
     public ResponseEntity<ApiError> sql(SQLException ex) {
+        // Log full detail server-side only; never return raw SQL / table / constraint text.
         log.log(Level.WARNING, "API SQL error", ex);
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(new ApiError(ex.getMessage(), 409));
+        String clientMessage = mapSqlClientMessage(ex);
+        HttpStatus status = clientMessage.contains("وجود دارد") || clientMessage.contains("قبلاً")
+                ? HttpStatus.CONFLICT
+                : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status)
+                .body(new ApiError(clientMessage, status.value()));
+    }
+
+    /**
+     * Prefer known Persian domain messages already set on SQLException; otherwise generic.
+     */
+    private static String mapSqlClientMessage(SQLException ex) {
+        String msg = ex.getMessage();
+        if (msg == null || msg.isBlank()) {
+            return "خطای پایگاه داده";
+        }
+        // Domain messages from repositories (Persian, no schema leakage)
+        if (msg.contains("قبلاً") || msg.contains("وجود دارد") || msg.contains("یافت نشد")
+                || msg.contains("اجاره") || msg.contains("فعال") || msg.contains("حذف")) {
+            // Still avoid dumping multi-line JDBC internals if mixed
+            String first = msg.split("[\r\n]")[0].strip();
+            if (first.length() <= 200 && !first.toLowerCase().contains("sqlite")
+                    && !first.toLowerCase().contains("table")
+                    && !first.contains("CONSTRAINT")
+                    && !first.contains("SQLException")) {
+                return first;
+            }
+        }
+        return "خطای پایگاه داده";
     }
 
     @ExceptionHandler(FingerprintException.class)
