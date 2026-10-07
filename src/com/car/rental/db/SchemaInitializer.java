@@ -1,5 +1,8 @@
 package com.car.rental.db;
 
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -14,7 +17,8 @@ import java.util.logging.Logger;
  * Creates SQLite tables if missing and migrates schema. Called once at application startup.
  */
 @Component
-public class SchemaInitializer {
+@Order(1)
+public class SchemaInitializer implements ApplicationRunner {
 
     private static final Logger logger = Logger.getLogger(SchemaInitializer.class.getName());
 
@@ -22,6 +26,11 @@ public class SchemaInitializer {
 
     public SchemaInitializer(DataSource dataSource) {
         this.dataSource = dataSource;
+    }
+
+    @Override
+    public void run(ApplicationArguments args) {
+        initDatabase();
     }
 
     public void initDatabase() {
@@ -37,7 +46,6 @@ public class SchemaInitializer {
                 "updated_at TEXT DEFAULT (datetime('now','localtime'))" +
                 ")";
 
-        // New canonical table name
         String vehicleTable =
                 "CREATE TABLE IF NOT EXISTS VehicleTable (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -53,7 +61,6 @@ public class SchemaInitializer {
                 "status_flags TEXT DEFAULT ''" +
                 ")";
 
-        // Legacy CarTable (kept for migration from older installs)
         String carTableLegacy =
                 "CREATE TABLE IF NOT EXISTS CarTable (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -76,7 +83,6 @@ public class SchemaInitializer {
                 "FOREIGN KEY(employee_id) REFERENCES EmployeeTable(id) ON UPDATE CASCADE" +
                 ")";
 
-        // Vehicle service / maintenance history
         String vehicleServiceTable =
                 "CREATE TABLE IF NOT EXISTS VehicleService (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -94,7 +100,6 @@ public class SchemaInitializer {
                 "FOREIGN KEY(vehicle_id) REFERENCES VehicleTable(id)" +
                 ")";
 
-        // Vehicle damage / issue history
         String vehicleIssueTable =
                 "CREATE TABLE IF NOT EXISTS VehicleIssue (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -113,7 +118,6 @@ public class SchemaInitializer {
                 "FOREIGN KEY(reported_by) REFERENCES EmployeeTable(id)" +
                 ")";
 
-        // Vehicle fine / violation history
         String vehicleFineTable =
                 "CREATE TABLE IF NOT EXISTS VehicleFine (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -140,6 +144,17 @@ public class SchemaInitializer {
             stmt.execute(vehicleIssueTable);
             stmt.execute(vehicleFineTable);
 
+            String appUserTable =
+                    "CREATE TABLE IF NOT EXISTS AppUser (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "username TEXT NOT NULL UNIQUE, " +
+                    "password_hash TEXT NOT NULL, " +
+                    "role TEXT NOT NULL DEFAULT 'ADMIN', " +
+                    "enabled INTEGER NOT NULL DEFAULT 1, " +
+                    "created_at TEXT DEFAULT (datetime('now','localtime'))" +
+                    ")";
+            stmt.execute(appUserTable);
+
             migrateCarTableToVehicleTable(conn);
             ensureVehicleTypeColumn(conn);
             ensureVehicleHistoryColumns(conn);
@@ -148,7 +163,6 @@ public class SchemaInitializer {
         }
     }
 
-    /** One-time copy from legacy CarTable into VehicleTable if VehicleTable is empty. */
     private void migrateCarTableToVehicleTable(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement();
              ResultSet countRs = stmt.executeQuery("SELECT COUNT(*) AS c FROM VehicleTable")) {
@@ -173,16 +187,11 @@ public class SchemaInitializer {
         }
     }
 
-    /** Add vehicle_type if an older VehicleTable was created without it. */
     private void ensureVehicleTypeColumn(Connection conn) throws SQLException {
         ensureColumn(conn, "VehicleTable", "vehicle_type",
                 "ALTER TABLE VehicleTable ADD COLUMN vehicle_type TEXT NOT NULL DEFAULT 'CAR'");
     }
 
-    /**
-     * Add history-related columns on VehicleTable for existing databases
-     * that were created before vehicle history support.
-     */
     private void ensureVehicleHistoryColumns(Connection conn) throws SQLException {
         ensureColumn(conn, "VehicleTable", "current_odometer",
                 "ALTER TABLE VehicleTable ADD COLUMN current_odometer INTEGER DEFAULT 0");
