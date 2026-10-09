@@ -20,6 +20,10 @@ public class FingerprintConfig {
         if (props.isMock()) {
             return new MockFingerprintService();
         }
-        return new ZkFingerprintService(props.getHost(), props.getPort(), props.getConnectTimeoutMs());
+        return new ZkFingerprintService(
+                props.getHost(),
+                props.getPort(),
+                props.getConnectTimeoutMs(),
+                props.getHandshakeTimeoutMs());
     }
 }

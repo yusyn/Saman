@@ -40,7 +40,9 @@ fingerprint:
   host: ${FINGERPRINT_HOST:192.168.20.10}
   port: ${FINGERPRINT_PORT:4370}
   mock: ${FINGERPRINT_MOCK:false}
-  connect-timeout-ms: ${FINGERPRINT_CONNECT_TIMEOUT_MS:8000}
+  connect-timeout-ms: ${FINGERPRINT_CONNECT_TIMEOUT_MS:2500}
+  handshake-timeout-ms: ${FINGERPRINT_HANDSHAKE_TIMEOUT_MS:2500}
+  gate-acquire-timeout-ms: ${FINGERPRINT_GATE_ACQUIRE_TIMEOUT_MS:3000}
   verify-timeout-seconds: ${FINGERPRINT_VERIFY_TIMEOUT_SECONDS:40}
 
 logging:

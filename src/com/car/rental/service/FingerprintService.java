@@ -16,6 +16,18 @@ public interface FingerprintService {
     boolean isConnected();
 
     /**
+     * Real preflight: verifies the device is reachable and responds to ZK handshake.
+     * Does not rely solely on {@link #isConnected()}.
+     * <ul>
+     *   <li>Mock: always succeeds (and marks connected).</li>
+     *   <li>ZK: TCP connect + CMD_CONNECT handshake with bounded timeouts.</li>
+     * </ul>
+     * On success the connection may be kept open for a subsequent operation under the same gate.
+     * Throws {@link FingerprintDeviceUnavailableException} if the device is down or silent.
+     */
+    void preflight() throws FingerprintException;
+
+    /**
      * Start listening for the next successful verification (one-shot).
      * Implementations should use a short-lived connection and release the device
      * when verification finishes, times out, or is cancelled.
