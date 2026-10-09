@@ -1,6 +1,8 @@
 package com.car.rental.api;
 
 import com.car.rental.api.dto.ApiError;
+import com.car.rental.service.FingerprintDeviceBusyException;
+import com.car.rental.service.FingerprintDeviceUnavailableException;
 import com.car.rental.service.FingerprintException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +28,6 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(SQLException.class)
     public ResponseEntity<ApiError> sql(SQLException ex) {
-        // Log full detail server-side only; never return raw SQL / table / constraint text.
         log.log(Level.WARNING, "API SQL error", ex);
         String clientMessage = mapSqlClientMessage(ex);
         HttpStatus status = clientMessage.contains("وجود دارد") || clientMessage.contains("قبلاً")
@@ -36,18 +37,13 @@ public class ApiExceptionHandler {
                 .body(new ApiError(clientMessage, status.value()));
     }
 
-    /**
-     * Prefer known Persian domain messages already set on SQLException; otherwise generic.
-     */
     private static String mapSqlClientMessage(SQLException ex) {
         String msg = ex.getMessage();
         if (msg == null || msg.isBlank()) {
             return "خطای پایگاه داده";
         }
-        // Domain messages from repositories (Persian, no schema leakage)
         if (msg.contains("قبلاً") || msg.contains("وجود دارد") || msg.contains("یافت نشد")
                 || msg.contains("اجاره") || msg.contains("فعال") || msg.contains("حذف")) {
-            // Still avoid dumping multi-line JDBC internals if mixed
             String first = msg.split("[\r\n]")[0].strip();
             if (first.length() <= 200 && !first.toLowerCase().contains("sqlite")
                     && !first.toLowerCase().contains("table")
@@ -59,11 +55,35 @@ public class ApiExceptionHandler {
         return "خطای پایگاه داده";
     }
 
+    @ExceptionHandler(FingerprintDeviceUnavailableException.class)
+    public ResponseEntity<ApiError> fingerprintUnavailable(FingerprintDeviceUnavailableException ex) {
+        log.log(Level.INFO, "Fingerprint device unavailable: " + ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ApiError(FingerprintDeviceUnavailableException.CLIENT_MESSAGE, 503));
+    }
+
+    @ExceptionHandler(FingerprintDeviceBusyException.class)
+    public ResponseEntity<ApiError> fingerprintBusy(FingerprintDeviceBusyException ex) {
+        log.log(Level.INFO, "Fingerprint device busy: " + ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiError(FingerprintDeviceBusyException.CLIENT_MESSAGE, 409));
+    }
+
     @ExceptionHandler(FingerprintException.class)
     public ResponseEntity<ApiError> fingerprint(FingerprintException ex) {
         log.log(Level.INFO, "Fingerprint API: " + ex.getMessage());
+        String msg = ex.getMessage();
+        if (msg == null || msg.isBlank()) {
+            msg = "خطای دستگاه اثر انگشت";
+        }
+        String lower = msg.toLowerCase();
+        if (lower.contains("192.") || lower.contains("socket") || lower.contains("timed out")
+                || lower.contains("connection refused") || lower.contains("cannot connect")
+                || (msg.contains(":") && msg.matches(".*\\d{1,5}.*"))) {
+            msg = "خطای ارتباط با دستگاه اثر انگشت";
+        }
         return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT)
-                .body(new ApiError(ex.getMessage(), 504));
+                .body(new ApiError(msg, 504));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -73,9 +93,6 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(ex.getStatusCode()).body(new ApiError(msg, code));
     }
 
-    /**
-     * Browser auto-requests like {@code /favicon.ico} must not spam ERROR logs.
-     */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Void> missingStatic(NoResourceFoundException ex) {
         log.fine("Static resource not found: " + ex.getResourcePath());
