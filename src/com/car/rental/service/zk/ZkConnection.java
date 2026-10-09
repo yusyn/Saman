@@ -20,6 +20,7 @@ public class ZkConnection {
     private final String host;
     private final int port;
     private final int connectTimeoutMs;
+    private final int handshakeTimeoutMs;
 
     private Socket socket;
     private InputStream in;
@@ -29,9 +30,14 @@ public class ZkConnection {
     private boolean connected;
 
     public ZkConnection(String host, int port, int connectTimeoutMs) {
+        this(host, port, connectTimeoutMs, connectTimeoutMs);
+    }
+
+    public ZkConnection(String host, int port, int connectTimeoutMs, int handshakeTimeoutMs) {
         this.host = host;
         this.port = port;
-        this.connectTimeoutMs = connectTimeoutMs;
+        this.connectTimeoutMs = Math.max(200, Math.min(connectTimeoutMs, 60_000));
+        this.handshakeTimeoutMs = Math.max(200, Math.min(handshakeTimeoutMs, 60_000));
     }
 
     public String getHost() {
@@ -51,7 +57,8 @@ public class ZkConnection {
             socket = new Socket();
             socket.connect(new InetSocketAddress(host, port), connectTimeoutMs);
             socket.setTcpNoDelay(true);
-            socket.setSoTimeout(ZkProtocol.DEFAULT_SO_TIMEOUT_MS);
+            // Short SO timeout only for handshake; restored to default after success.
+            socket.setSoTimeout(handshakeTimeoutMs);
             in = socket.getInputStream();
             out = socket.getOutputStream();
             sessionId = 0;
@@ -68,11 +75,17 @@ public class ZkConnection {
             }
             sessionId = ZkProtocol.getSessionId(reply);
             connected = true;
+            try {
+                socket.setSoTimeout(ZkProtocol.DEFAULT_SO_TIMEOUT_MS);
+            } catch (IOException ignored) {
+            }
             enableDeviceBestEffort("after connect");
             logger.info("Connected to ZK " + host + ":" + port + " session=" + sessionId);
         } catch (IOException e) {
             closeQuietly();
-            throw new FingerprintException("Cannot connect to device " + host + ":" + port, e);
+            // Do not put host/port into the exception message used for clients; log has details.
+            logger.info("ZK connect failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            throw new FingerprintException("Cannot connect to device", e);
         }
     }
 
