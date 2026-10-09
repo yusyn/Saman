@@ -50,6 +50,11 @@ public class MockFingerprintService implements FingerprintService {
     }
 
     @Override
+    public void preflight() {
+        connected = true;
+    }
+
+    @Override
     public void listenForVerification(int timeoutSeconds,
                                       Consumer<VerificationResult> onVerified,
                                       Runnable onTimeout,
