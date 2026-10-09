@@ -44,7 +44,6 @@ public class SecurityConfig {
         CookieCsrfTokenRepository csrfRepo = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepo.setCookiePath("/");
 
-        // SPA-friendly: accept header token without requiring the deferred plain-token pattern
         CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
         requestHandler.setCsrfRequestAttributeName(null);
 
@@ -62,7 +61,6 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // Static UI and root
                         .requestMatchers(
                                 "/",
                                 "/index.html",
@@ -72,17 +70,14 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/icons/**"
                         ).permitAll()
-                        // Auth helpers (login is public; logout requires session in practice)
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/auth/me").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
-                        // Health
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
-                        // Read-only API (business data kept public per product requirement for v1)
+                        .requestMatchers(HttpMethod.GET, "/api/fingerprint/status").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/vehicles/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/employees/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/rentals/**").permitAll()
-                        // All mutating methods require authentication
                         .requestMatchers(HttpMethod.POST, "/api/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/**").hasRole("ADMIN")
