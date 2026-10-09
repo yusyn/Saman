@@ -65,9 +65,6 @@ public class EmployeeController {
         return EmployeeDto.from(saved);
     }
 
-    /**
-     * Update name (device + DB) and phone (DB). Blocked while on active rental.
-     */
     @PutMapping("/{deviceUserId}")
     public EmployeeDto update(@PathVariable String deviceUserId,
                               @RequestBody UpdateEmployeeRequest body)
@@ -102,7 +99,7 @@ public class EmployeeController {
     }
 
     @DeleteMapping("/{deviceUserId}")
-    public OkResponse delete(@PathVariable String deviceUserId) throws SQLException {
+    public OkResponse delete(@PathVariable String deviceUserId) throws SQLException, FingerprintException {
         Employee emp = employeeService.findByDeviceUserId(deviceUserId);
         if (emp == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "کارمند یافت نشد: " + deviceUserId);
