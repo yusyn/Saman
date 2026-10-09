@@ -7,14 +7,18 @@ import com.car.rental.config.FingerprintProperties;
 import com.car.rental.model.Employee;
 import com.car.rental.service.EmployeeService;
 import com.car.rental.service.FingerprintDeviceGate;
+import com.car.rental.service.FingerprintDeviceUnavailableException;
 import com.car.rental.service.FingerprintException;
 import com.car.rental.service.FingerprintService;
 import com.car.rental.service.VerificationResult;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +38,6 @@ public class FingerprintController {
     private final FingerprintDeviceGate deviceGate;
     private final EmployeeService employeeService;
 
-    /** Active verify future — cancel-listen completes it so the device gate is released promptly. */
     private final AtomicReference<CompletableFuture<VerificationResult>> activeVerify =
             new AtomicReference<>();
 
@@ -59,7 +62,9 @@ public class FingerprintController {
 
         final int timeoutSeconds = timeout;
 
-        return deviceGate.call(() -> {
+        return deviceGate.call(props.getGateAcquireTimeoutMs(), () -> {
+            fingerprintService.preflight();
+
             CompletableFuture<VerificationResult> future = new CompletableFuture<>();
             activeVerify.set(future);
             try {
@@ -100,9 +105,6 @@ public class FingerprintController {
         });
     }
 
-    /**
-     * Cancel in-progress verify and unblock the thread holding {@link FingerprintDeviceGate}.
-     */
     @PostMapping("/cancel-listen")
     public OkResponse cancelListen() {
         fingerprintService.cancelListen();
@@ -113,11 +115,31 @@ public class FingerprintController {
         return OkResponse.ok("احراز هویت لغو شد");
     }
 
-    /** Cancel an in-progress enroll / register fingerprint. */
     @PostMapping("/cancel-enroll")
     public OkResponse cancelEnroll() {
         fingerprintService.cancelEnroll();
         return OkResponse.ok("ثبت اثر انگشت لغو شد");
+    }
+
+    @GetMapping("/status")
+    public Map<String, Object> status() throws Exception {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("busy", deviceGate.isBusy());
+        try {
+            deviceGate.call(props.getGateAcquireTimeoutMs(), () -> {
+                fingerprintService.preflight();
+                return null;
+            });
+            body.put("reachable", true);
+            body.put("message", "دستگاه در دسترس است");
+        } catch (FingerprintDeviceUnavailableException e) {
+            body.put("reachable", false);
+            body.put("message", FingerprintDeviceUnavailableException.CLIENT_MESSAGE);
+        } catch (FingerprintException e) {
+            body.put("reachable", false);
+            body.put("message", e.getMessage() != null ? e.getMessage() : "خطای دستگاه");
+        }
+        return body;
     }
 
     private void enrichWithEmployee(VerificationResponse response) {
