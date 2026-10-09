@@ -1,5 +1,6 @@
 package com.car.rental.service;
 
+import com.car.rental.config.FingerprintProperties;
 import com.car.rental.db.EmployeeRepository;
 import com.car.rental.model.Employee;
 import com.car.rental.util.InputValidators;
@@ -13,6 +14,7 @@ import java.util.logging.Logger;
 /**
  * Employees: coordinates fingerprint device and database.
  * Registration order: ZK enroll success → DB insert; on DB failure → best-effort device rollback.
+ * All device-mutating ops run a real preflight under the device gate before any write.
  */
 @Service
 public class EmployeeService {
@@ -22,13 +24,16 @@ public class EmployeeService {
     private final EmployeeRepository employees;
     private final FingerprintService fingerprintService;
     private final FingerprintDeviceGate deviceGate;
+    private final FingerprintProperties fingerprintProperties;
 
     public EmployeeService(EmployeeRepository employees,
                            FingerprintService fingerprintService,
-                           FingerprintDeviceGate deviceGate) {
+                           FingerprintDeviceGate deviceGate,
+                           FingerprintProperties fingerprintProperties) {
         this.employees = employees;
         this.fingerprintService = fingerprintService;
         this.deviceGate = deviceGate;
+        this.fingerprintProperties = fingerprintProperties;
     }
 
     public String getNextDeviceUserId() throws SQLException {
@@ -71,15 +76,14 @@ public class EmployeeService {
             }
         }
 
-        // Drop a stale verify listen so we do not wait forever on the shared device gate.
         try {
             fingerprintService.cancelListen();
         } catch (Exception ignored) {
         }
 
         try {
-            deviceGate.call(() -> {
-                ensureConnected();
+            deviceGate.call(fingerprintProperties.getGateAcquireTimeoutMs(), () -> {
+                fingerprintService.preflight();
                 try {
                     fingerprintService.registerUserWithFingerprint(deviceUserId, finalName, fingerIndex);
                     try {
@@ -130,8 +134,8 @@ public class EmployeeService {
         }
 
         try {
-            deviceGate.call(() -> {
-                ensureConnected();
+            deviceGate.call(fingerprintProperties.getGateAcquireTimeoutMs(), () -> {
+                fingerprintService.preflight();
                 try {
                     fingerprintService.updateUserName(emp.getDeviceUserId(), name);
                     employees.updateEmployee(emp);
@@ -164,8 +168,8 @@ public class EmployeeService {
         }
 
         try {
-            deviceGate.call(() -> {
-                ensureConnected();
+            deviceGate.call(fingerprintProperties.getGateAcquireTimeoutMs(), () -> {
+                fingerprintService.preflight();
                 try {
                     fingerprintService.enrollFingerOnly(deviceUserId, fingerIndex);
                 } finally {
@@ -183,34 +187,29 @@ public class EmployeeService {
         }
     }
 
-    public void deleteEmployee(String deviceUserId) throws SQLException {
+    public void deleteEmployee(String deviceUserId) throws SQLException, FingerprintException {
         try {
             fingerprintService.cancelListen();
         } catch (Exception ignored) {
         }
 
         try {
-            deviceGate.call(() -> {
+            deviceGate.call(fingerprintProperties.getGateAcquireTimeoutMs(), () -> {
+                fingerprintService.preflight();
                 try {
-                    ensureConnected();
                     fingerprintService.deleteUser(deviceUserId);
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Device deleteUser failed for " + deviceUserId, e);
                 } finally {
                     disconnectQuietly();
                 }
                 return null;
             });
+        } catch (FingerprintException | IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Device gate during delete", e);
+            rethrowDeviceOrSql(e);
+            throw new FingerprintException("حذف کارمند از دستگاه ناموفق بود", e);
         }
         employees.deleteEmployeeByDeviceUserId(deviceUserId);
-    }
-
-    private void ensureConnected() throws FingerprintException {
-        if (!fingerprintService.isConnected()) {
-            fingerprintService.connect();
-        }
     }
 
     private void disconnectQuietly() {
@@ -226,7 +225,6 @@ public class EmployeeService {
         }
     }
 
-    /** Prefer the original checked exception when the gate wraps it. */
     private static void rethrowDeviceOrSql(Exception e) throws SQLException, FingerprintException {
         Throwable c = e;
         while (c != null) {
