@@ -33,22 +33,30 @@ public class ZkFingerprintService implements FingerprintService {
     private Future<?> listenTask;
 
     public ZkFingerprintService(String host, int port) {
-        this(host, port, 8000);
+        this(host, port, 2500, 2500);
     }
 
     public ZkFingerprintService(String host, int port, int connectTimeoutMs) {
-        this.connection = new ZkConnection(host, port, connectTimeoutMs);
+        this(host, port, connectTimeoutMs, connectTimeoutMs);
+    }
+
+    public ZkFingerprintService(String host, int port, int connectTimeoutMs, int handshakeTimeoutMs) {
+        this.connection = new ZkConnection(host, port, connectTimeoutMs, handshakeTimeoutMs);
         this.users = new ZkUserCommands(connection);
         this.events = new ZkEventListener(connection, enrolling, listening);
     }
 
     public ZkFingerprintService() {
-        this("192.168.20.200", 4370, 8000);
+        this("192.168.20.200", 4370, 2500, 2500);
     }
 
     @Override
     public synchronized void connect() throws FingerprintException {
-        connection.connect();
+        try {
+            connection.connect();
+        } catch (FingerprintException e) {
+            throw mapToUnavailable(e);
+        }
     }
 
     @Override
@@ -61,6 +69,39 @@ public class ZkFingerprintService implements FingerprintService {
     @Override
     public boolean isConnected() {
         return connection.isConnected();
+    }
+
+    /**
+     * Force a real TCP + ZK handshake. If already connected, still verifies the socket is live
+     * by ensuring connection (reconnects if needed). Maps all connect failures to
+     * {@link FingerprintDeviceUnavailableException} with a safe client message.
+     */
+    @Override
+    public synchronized void preflight() throws FingerprintException {
+        try {
+            if (connection.isConnected()) {
+                try {
+                    connection.enableDeviceBestEffort("preflight");
+                    if (connection.isConnected()) {
+                        return;
+                    }
+                } catch (Exception ignored) {
+                }
+                connection.disconnect();
+            }
+            connection.connect();
+        } catch (FingerprintException e) {
+            throw mapToUnavailable(e);
+        } catch (Exception e) {
+            throw new FingerprintDeviceUnavailableException(e);
+        }
+    }
+
+    private static FingerprintDeviceUnavailableException mapToUnavailable(FingerprintException e) {
+        if (e instanceof FingerprintDeviceUnavailableException) {
+            return (FingerprintDeviceUnavailableException) e;
+        }
+        return new FingerprintDeviceUnavailableException(e);
     }
 
     @Override
