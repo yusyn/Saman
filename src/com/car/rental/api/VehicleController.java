@@ -1,6 +1,7 @@
 package com.car.rental.api;
 
 import com.car.rental.api.dto.CreateVehicleRequest;
+import com.car.rental.api.dto.FleetDashboardSummaryDto;
 import com.car.rental.api.dto.OkResponse;
 import com.car.rental.api.dto.UpdateVehicleRequest;
 import com.car.rental.api.dto.VehicleDto;
@@ -37,6 +38,11 @@ public class VehicleController {
         return vehicleService.getAvailableVehicles().stream()
                 .map(VehicleDto::from)
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping("/dashboard-summary")
+    public FleetDashboardSummaryDto dashboardSummary() throws SQLException {
+        return vehicleService.getDashboardSummary();
     }
 
     @GetMapping

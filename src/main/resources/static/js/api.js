@@ -143,6 +143,8 @@ const Api = (() => {
     csrf: () => request("/api/auth/csrf"),
     vehicles: () => request("/api/vehicles"),
     vehiclesAvailable: () => request("/api/vehicles/available"),
+    vehicleDashboardSummary: () => request("/api/vehicles/dashboard-summary"),
+    activeRentals: () => request("/api/rentals/active"),
     createVehicle: (body) =>
       request("/api/vehicles", { method: "POST", body: JSON.stringify(body) }),
     updateVehicle: (body) =>

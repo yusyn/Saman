@@ -57,6 +57,12 @@ public class RentalService {
         return rentals.getRentalReport(filter);
     }
 
+    public List<RentalRecord> getActiveRentals() throws SQLException {
+        RentalReportFilter filter = new RentalReportFilter();
+        filter.setStatus(RentalReportFilter.Status.OPEN);
+        return rentals.getRentalReport(filter);
+    }
+
     public Employee findEmployeeByDeviceUserId(String deviceUserId) throws SQLException {
         return employees.findByDeviceUserId(deviceUserId);
     }

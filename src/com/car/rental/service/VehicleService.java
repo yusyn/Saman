@@ -1,5 +1,6 @@
 package com.car.rental.service;
 
+import com.car.rental.api.dto.FleetDashboardSummaryDto;
 import com.car.rental.db.VehicleRepository;
 import com.car.rental.model.Vehicle;
 import org.springframework.stereotype.Service;
@@ -69,6 +70,10 @@ public class VehicleService {
 
     public List<Vehicle> getAllVehicles() throws SQLException {
         return vehicles.listAllVehicles();
+    }
+
+    public FleetDashboardSummaryDto getDashboardSummary() throws SQLException {
+        return vehicles.getDashboardSummary();
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.car.rental.db;
 
+import com.car.rental.api.dto.FleetDashboardSummaryDto;
 import com.car.rental.model.Vehicle;
 import org.springframework.stereotype.Repository;
 
@@ -122,6 +123,41 @@ public class VehicleRepository {
             }
         }
         return list;
+    }
+
+    /** Counts active fleet vehicles by their current operational state. */
+    public FleetDashboardSummaryDto getDashboardSummary() throws SQLException {
+        String sql = "SELECT " +
+                "SUM(CASE WHEN UPPER(COALESCE(v.vehicle_type, 'CAR')) NOT IN ('MOTORCYCLE','MOTOR','BIKE') THEN 1 ELSE 0 END) AS total_cars, " +
+                "SUM(CASE WHEN UPPER(COALESCE(v.vehicle_type, 'CAR')) IN ('MOTORCYCLE','MOTOR','BIKE') THEN 1 ELSE 0 END) AS total_motorcycles, " +
+                "SUM(CASE WHEN UPPER(COALESCE(v.vehicle_type, 'CAR')) NOT IN ('MOTORCYCLE','MOTOR','BIKE') AND v.is_rented = 0 AND NOT EXISTS (" +
+                "SELECT 1 FROM VehicleIssue i WHERE i.vehicle_id = v.id AND i.status = 'IN_PROGRESS'" +
+                ") THEN 1 ELSE 0 END) AS available_cars, " +
+                "SUM(CASE WHEN UPPER(COALESCE(v.vehicle_type, 'CAR')) IN ('MOTORCYCLE','MOTOR','BIKE') AND v.is_rented = 0 AND NOT EXISTS (" +
+                "SELECT 1 FROM VehicleIssue i WHERE i.vehicle_id = v.id AND i.status = 'IN_PROGRESS'" +
+                ") THEN 1 ELSE 0 END) AS available_motorcycles, " +
+                "SUM(CASE WHEN UPPER(COALESCE(v.vehicle_type, 'CAR')) NOT IN ('MOTORCYCLE','MOTOR','BIKE') AND v.is_rented = 1 THEN 1 ELSE 0 END) AS mission_cars, " +
+                "SUM(CASE WHEN UPPER(COALESCE(v.vehicle_type, 'CAR')) IN ('MOTORCYCLE','MOTOR','BIKE') AND v.is_rented = 1 THEN 1 ELSE 0 END) AS mission_motorcycles, " +
+                "SUM(CASE WHEN UPPER(COALESCE(v.vehicle_type, 'CAR')) NOT IN ('MOTORCYCLE','MOTOR','BIKE') AND v.is_rented = 0 AND EXISTS (" +
+                "SELECT 1 FROM VehicleIssue i WHERE i.vehicle_id = v.id AND i.status = 'IN_PROGRESS'" +
+                ") THEN 1 ELSE 0 END) AS repair_cars, " +
+                "SUM(CASE WHEN UPPER(COALESCE(v.vehicle_type, 'CAR')) IN ('MOTORCYCLE','MOTOR','BIKE') AND v.is_rented = 0 AND EXISTS (" +
+                "SELECT 1 FROM VehicleIssue i WHERE i.vehicle_id = v.id AND i.status = 'IN_PROGRESS'" +
+                ") THEN 1 ELSE 0 END) AS repair_motorcycles " +
+                "FROM VehicleTable v WHERE v.is_deleted = 0";
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return new FleetDashboardSummaryDto(
+                        rs.getInt("total_cars"), rs.getInt("total_motorcycles"),
+                        rs.getInt("available_cars"), rs.getInt("available_motorcycles"),
+                        rs.getInt("mission_cars"), rs.getInt("mission_motorcycles"),
+                        rs.getInt("repair_cars"), rs.getInt("repair_motorcycles")
+                );
+            }
+        }
+        return new FleetDashboardSummaryDto(0, 0, 0, 0, 0, 0, 0, 0);
     }
 
     public void addVehicle(String name, String plate, String color, String vehicleType) throws SQLException {

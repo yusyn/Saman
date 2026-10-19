@@ -107,6 +107,47 @@ body {
 
 .cards.two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 
+.dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.dashboard-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1rem;
+}
+
+.kpi-card {
+  min-height: 145px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  border-top: 3px solid var(--border);
+}
+
+.kpi-card h3 { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.kpi-value { font-size: 2rem; line-height: 1.2; }
+.kpi-label { color: var(--muted); font-size: 0.88rem; }
+.kpi-breakdown { display: flex; gap: 1rem; font-size: 0.9rem; }
+.kpi-breakdown span { white-space: nowrap; }
+.kpi-breakdown b { font-weight: 700; }
+.kpi-available { border-top-color: var(--ok); }
+.kpi-available .kpi-value { color: var(--ok); }
+.kpi-mission { border-top-color: var(--primary); }
+.kpi-mission .kpi-value { color: var(--primary); }
+.kpi-repair { border-top-color: var(--warn); }
+.kpi-repair .kpi-value { color: var(--warn); }
+.kpi-total .kpi-value { color: var(--text); }
+
+.dashboard-active-list { margin-top: 1rem; }
+.dashboard-active-list h2 { margin: 0 0 0.75rem; font-size: 1rem; }
+.dashboard-mission-table { min-width: 760px; }
+
 .split {
   display: grid;
   grid-template-columns: 1.4fr 1fr;

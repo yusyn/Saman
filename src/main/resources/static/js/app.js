@@ -1,6 +1,6 @@
 (() => {
   const titles = {
-    dashboard: ["وضعیت", "سلامت API و راهنما"],
+    dashboard: ["وضعیت", "نمای کلی ناوگان فعال"],
     cars: ["ناوگان", "ماشین و موتور — لیست، ثبت، ویرایش و حذف"],
     employees: ["کارمندان", "لیست، ثبت، ویرایش و حذف"],
     rentals: ["تحویل / برگشت", "احراز جدا برای هر عملیات"],
@@ -14,6 +14,7 @@
   let employeesCache = [];
   let pickupAuth = null;
   let returnAuth = null;
+  let sessionUser = null;
 
   function toast(message, type = "ok") {
     toastEl.textContent = message;
@@ -239,6 +240,7 @@
     const t = titles[name] || [name, ""];
     $("#pageTitle").textContent = t[0];
     $("#pageHint").textContent = t[1];
+    if (name === "dashboard") loadDashboardSummary();
     if (name === "cars") loadCars();
     if (name === "employees") loadEmployees();
     if (name === "rentals") loadAvailablePlates();
@@ -253,15 +255,100 @@
 
   async function loadHealth() {
     try {
-      const h = await Api.health();
-      $("#healthJson").textContent = JSON.stringify(h, null, 2);
+      await Api.health();
       $("#healthBadge").textContent = "API متصل";
     } catch (err) {
-      $("#healthJson").textContent = String(err.message || err);
       $("#healthBadge").textContent = "قطع";
     }
   }
-  $("#btnRefreshHealth").addEventListener("click", loadHealth);
+
+  function setKpiValue(valueId, labelId, value, noun) {
+    const count = Number(value) || 0;
+    $("#" + valueId).textContent = toPersianDigits(count);
+    $("#" + labelId).textContent = noun;
+  }
+
+  function setKpiBreakdown(carsId, motorcyclesId, cars, motorcycles) {
+    $("#" + carsId).textContent = toPersianDigits(Number(cars) || 0);
+    $("#" + motorcyclesId).textContent = toPersianDigits(Number(motorcycles) || 0);
+  }
+
+  function formatElapsedMinutes(value) {
+    if (value == null || !Number.isFinite(Number(value))) return "نامشخص";
+    const total = Math.max(0, Math.floor(Number(value)));
+    if (total < 1) return "کمتر از یک دقیقه";
+    const days = Math.floor(total / 1440);
+    const hours = Math.floor((total % 1440) / 60);
+    const minutes = total % 60;
+    const parts = [];
+    if (days) parts.push(toPersianDigits(days) + " روز");
+    if (hours) parts.push(toPersianDigits(hours) + " ساعت");
+    if (minutes) parts.push(toPersianDigits(minutes) + " دقیقه");
+    return parts.join(" و ");
+  }
+
+  function renderActiveRentals(rentals) {
+    const tbody = $("#activeRentalsTable");
+    const empty = $("#activeRentalsEmpty");
+    $("#activeRentalsError").textContent = "";
+    const rows = Array.isArray(rentals) ? rentals : [];
+    empty.classList.toggle("hidden", rows.length > 0);
+    tbody.innerHTML = rows.map(function (r) {
+      return "<tr>" +
+        "<td>" + escapeHtml(r.employeeName || "—") + "</td>" +
+        "<td>" + vehicleTypeIcon(r.vehicleType) + " " + escapeHtml(r.vehicleName || "—") + "</td>" +
+        "<td>" + renderPlate(r.plate, r.vehicleType) + "</td>" +
+        "<td>" + escapeHtml(r.destination || "—") + "</td>" +
+        "<td dir=\"ltr\">" + escapeHtml(toPersianDigits(r.pickupDate || "—")) + "</td>" +
+        "<td>" + escapeHtml(formatElapsedMinutes(r.elapsedMinutes)) + "</td>" +
+        "</tr>";
+    }).join("");
+  }
+
+  async function loadDashboardSummary() {
+    const button = $("#btnRefreshDashboard");
+    const updatedAt = $("#dashboardUpdatedAt");
+    const error = $("#dashboardError");
+    const rentalsError = $("#activeRentalsError");
+    if (button) button.disabled = true;
+    if (error) error.textContent = "";
+    try {
+      const results = await Promise.allSettled([
+        Api.vehicleDashboardSummary(),
+        sessionUser ? Api.activeRentals() : Promise.resolve(null),
+      ]);
+      if (results[0].status !== "fulfilled") throw results[0].reason;
+      const summary = results[0].value;
+      setKpiValue("kpiTotal", "kpiTotalLabel", summary.total, "وسیله فعال");
+      setKpiValue("kpiAvailable", "kpiAvailableLabel", summary.available, "وسیله آزاد");
+      setKpiValue("kpiOnMission", "kpiOnMissionLabel", summary.onMission, "وسیله در مأموریت");
+      setKpiValue("kpiInRepair", "kpiInRepairLabel", summary.inRepair, "وسیله در تعمیر");
+      setKpiBreakdown("kpiTotalCars", "kpiTotalMotorcycles", summary.totalCars, summary.totalMotorcycles);
+      setKpiBreakdown("kpiAvailableCars", "kpiAvailableMotorcycles", summary.availableCars, summary.availableMotorcycles);
+      setKpiBreakdown("kpiMissionCars", "kpiMissionMotorcycles", summary.onMissionCars, summary.onMissionMotorcycles);
+      setKpiBreakdown("kpiRepairCars", "kpiRepairMotorcycles", summary.inRepairCars, summary.inRepairMotorcycles);
+      if (!sessionUser) {
+        $("#activeRentalsTable").innerHTML = "";
+        $("#activeRentalsEmpty").classList.add("hidden");
+        rentalsError.textContent = "برای مشاهده مأموریت‌های فعال وارد شوید.";
+      } else if (results[1].status === "fulfilled") {
+        renderActiveRentals(results[1].value);
+      } else {
+        $("#activeRentalsTable").innerHTML = "";
+        $("#activeRentalsEmpty").classList.add("hidden");
+        rentalsError.textContent = results[1].reason && results[1].reason.status === 401
+          ? "برای مشاهده مأموریت‌های فعال وارد شوید."
+          : "دریافت مأموریت‌های فعال ناموفق بود.";
+      }
+      updatedAt.textContent = "آخرین به‌روزرسانی: " + formatNowJalali();
+    } catch (err) {
+      if (error) error.textContent = "دریافت اطلاعات داشبورد ناموفق بود. برای تلاش دوباره بروزرسانی کنید.";
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  $("#btnRefreshDashboard").addEventListener("click", loadDashboardSummary);
 
   function getSelectedType(formPrefix) {
     const el = document.querySelector('input[name="' + formPrefix + 'Type"]:checked');
@@ -877,8 +964,6 @@
   showView("dashboard");
 
   /* ── Session auth (admin) — جدا از اثرانگشت کارمند ── */
-  let sessionUser = null;
-
   function isAuthenticated() {
     return !!(sessionUser && sessionUser.username);
   }
@@ -968,6 +1053,9 @@
   function clearSessionUi() {
     sessionUser = null;
     updateAuthChrome();
+    $("#activeRentalsTable").innerHTML = "";
+    $("#activeRentalsEmpty").classList.add("hidden");
+    $("#activeRentalsError").textContent = "برای مشاهده مأموریت‌های فعال وارد شوید.";
   }
 
   async function refreshAuth() {
@@ -988,6 +1076,12 @@
       sessionUser = null;
     }
     updateAuthChrome();
+    if (sessionUser) loadDashboardSummary();
+    else {
+      $("#activeRentalsTable").innerHTML = "";
+      $("#activeRentalsEmpty").classList.add("hidden");
+      $("#activeRentalsError").textContent = "برای مشاهده مأموریت‌های فعال وارد شوید.";
+    }
   }
 
   function requireAuthOrPrompt() {

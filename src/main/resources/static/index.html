@@ -45,25 +45,50 @@
       <div id="toast" class="toast hidden" role="status"></div>
 
       <section class="view active" id="view-dashboard">
-        <div class="cards">
-          <div class="card">
-            <h3>سلامت سرویس</h3>
-            <pre id="healthJson" class="code-block">—</pre>
-            <button type="button" class="btn" id="btnRefreshHealth">بروزرسانی</button>
-          </div>
-          <div class="card">
-            <h3>راهنمای سریع</h3>
-            <ul class="tips">
-              <li>این صفحه از خود Spring روی پورت ۸۰۸۰ سرو می‌شود.</li>
-              <li>ثبت کارمند با اثر انگشت ممکن است تا ۳ دقیقه طول بکشد؛ صفحه را نبندید.</li>
-              <li>دستگاه ZK باید از سرور روی پورت ۴۳۷۰ در دسترس باشد.</li>
-              <li>وسیله یا کارمند در مأموریت قابل ویرایش/حذف نیست.</li>
-              <li>تحویل و برگشت هر کدام احراز اثرانگشت جدا دارند؛ شناسه دستی نیست.</li>
-              <li>ناوگان شامل ماشین و موتور است؛ پلاک موتور ۸ رقم (۳+۵) است.</li>
-              <li>از تب ناوگان روی «سابقه» بزنید تا سرویس، خرابی و خلافی ثبت کنید.</li>
-            </ul>
-          </div>
+        <div class="dashboard-toolbar">
+          <span id="dashboardUpdatedAt" class="muted small" aria-live="polite">در انتظار دریافت آمار…</span>
+          <button type="button" class="btn btn-ghost" id="btnRefreshDashboard">بروزرسانی</button>
         </div>
+        <p id="dashboardError" class="status-line" role="status" aria-live="polite"></p>
+        <div class="dashboard-kpis" id="dashboardKpis" aria-live="polite">
+          <article class="card kpi-card kpi-total">
+            <h3>کل وسایل فعال</h3>
+            <strong class="kpi-value" id="kpiTotal">—</strong>
+            <span class="kpi-label" id="kpiTotalLabel">وسیله فعال</span>
+            <div class="kpi-breakdown"><span>🚗 <b id="kpiTotalCars">—</b></span><span>🛵 <b id="kpiTotalMotorcycles">—</b></span></div>
+          </article>
+          <article class="card kpi-card kpi-available">
+            <h3>آزاد و آماده تحویل</h3>
+            <strong class="kpi-value" id="kpiAvailable">—</strong>
+            <span class="kpi-label" id="kpiAvailableLabel">وسیله آزاد</span>
+            <div class="kpi-breakdown"><span>🚗 <b id="kpiAvailableCars">—</b></span><span>🛵 <b id="kpiAvailableMotorcycles">—</b></span></div>
+          </article>
+          <article class="card kpi-card kpi-mission">
+            <h3>در مأموریت</h3>
+            <strong class="kpi-value" id="kpiOnMission">—</strong>
+            <span class="kpi-label" id="kpiOnMissionLabel">وسیله در مأموریت</span>
+            <div class="kpi-breakdown"><span>🚗 <b id="kpiMissionCars">—</b></span><span>🛵 <b id="kpiMissionMotorcycles">—</b></span></div>
+          </article>
+          <article class="card kpi-card kpi-repair">
+            <h3>در تعمیر</h3>
+            <strong class="kpi-value" id="kpiInRepair">—</strong>
+            <span class="kpi-label" id="kpiInRepairLabel">وسیله در تعمیر</span>
+            <div class="kpi-breakdown"><span>🚗 <b id="kpiRepairCars">—</b></span><span>🛵 <b id="kpiRepairMotorcycles">—</b></span></div>
+          </article>
+        </div>
+        <section class="card dashboard-active-list" aria-labelledby="activeRentalsTitle">
+          <h2 id="activeRentalsTitle">مأموریت‌های فعال</h2>
+          <div class="table-wrap">
+            <table class="dashboard-mission-table">
+              <thead>
+                <tr><th>کارمند</th><th>وسیله</th><th>پلاک</th><th>مقصد</th><th>زمان تحویل</th><th>مدت سپری‌شده</th></tr>
+              </thead>
+              <tbody id="activeRentalsTable"></tbody>
+            </table>
+          </div>
+          <p id="activeRentalsError" class="status-line" role="status" aria-live="polite"></p>
+          <p id="activeRentalsEmpty" class="muted small hidden">مأموریت فعالی وجود ندارد.</p>
+        </section>
       </section>
 
       <section class="view" id="view-cars">

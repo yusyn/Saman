@@ -1,5 +1,6 @@
 package com.car.rental.api;
 
+import com.car.rental.api.dto.ActiveRentalDto;
 import com.car.rental.api.dto.OkResponse;
 import com.car.rental.api.dto.PickupRequest;
 import com.car.rental.api.dto.RentalRecordDto;
@@ -25,7 +26,10 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,6 +79,56 @@ public class RentalController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "اجاره فعالی نیست");
         }
         return RentalRecordDto.from(r);
+    }
+
+    @GetMapping("/active")
+    public List<ActiveRentalDto> activeRentals() throws SQLException {
+        LocalDateTime now = LocalDateTime.now();
+        return rentalService.getActiveRentals().stream().map(r -> {
+            LocalDateTime pickup = parseJalaliDateTime(r.pickupDate);
+            Long elapsedMinutes = pickup == null ? null : Math.max(0, Duration.between(pickup, now).toMinutes());
+            String pickupDate = pickup == null ? r.pickupDate : JalaliDate.formatDateTimeMinutes(pickup);
+            return new ActiveRentalDto(r.employeeName, r.carName, r.plate, r.destination,
+                    pickupDate, r.vehicleType, elapsedMinutes);
+        }).collect(Collectors.toList());
+    }
+
+    private static LocalDateTime parseJalaliDateTime(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            String normalized = value.strip()
+                    .replace('۰', '0').replace('۱', '1').replace('۲', '2').replace('۳', '3')
+                    .replace('۴', '4').replace('۵', '5').replace('۶', '6').replace('۷', '7')
+                    .replace('۸', '8').replace('۹', '9')
+                    .replace('٠', '0').replace('١', '1').replace('٢', '2').replace('٣', '3')
+                    .replace('٤', '4').replace('٥', '5').replace('٦', '6').replace('٧', '7')
+                    .replace('٨', '8').replace('٩', '9');
+            String[] parts = normalized.split("\\s+");
+            String[] date = parts[0].split("[/.-]");
+            if (date.length != 3) {
+                return null;
+            }
+            int year = Integer.parseInt(date[0]);
+            int month = Integer.parseInt(date[1]);
+            int day = Integer.parseInt(date[2]);
+            LocalTime time = LocalTime.MIDNIGHT;
+            if (parts.length > 1) {
+                String[] clock = parts[1].split(":");
+                time = LocalTime.of(
+                        Integer.parseInt(clock[0]),
+                        clock.length > 1 ? Integer.parseInt(clock[1]) : 0,
+                        clock.length > 2 ? Integer.parseInt(clock[2]) : 0
+                );
+            }
+            LocalDate pickupDate = year >= 1700
+                    ? LocalDate.of(year, month, day)
+                    : new JalaliDate(year, month, day).toGregorian();
+            return pickupDate.atTime(time);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     @GetMapping("/report")

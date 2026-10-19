@@ -78,10 +78,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
                         // Health
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
-                        // Read-only API (business data kept public per product requirement for v1)
+                        // Sensitive read-only business data requires authentication
+                        .requestMatchers(HttpMethod.GET, "/api/vehicles/history/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/employees/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/rentals/**").authenticated()
+                        // Public vehicle catalog
                         .requestMatchers(HttpMethod.GET, "/api/vehicles/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/employees/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/rentals/**").permitAll()
                         // All mutating methods require authentication
                         .requestMatchers(HttpMethod.POST, "/api/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ADMIN")
