@@ -166,6 +166,14 @@ public class SchemaInitializer implements ApplicationRunner {
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_system_event_result ON SystemEvent(result)");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_system_event_actor ON SystemEvent(actor)");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_system_event_entity ON SystemEvent(entity_type, entity_id)");
+            stmt.execute("CREATE TABLE IF NOT EXISTS AppUserAuditContext (" +
+                    "id INTEGER PRIMARY KEY CHECK(id=1), actor TEXT)");
+            stmt.execute("INSERT OR IGNORE INTO AppUserAuditContext(id,actor) VALUES(1,NULL)");
+            stmt.execute("UPDATE AppUserAuditContext SET actor=NULL WHERE id=1");
+            initializeAppUserAuditTriggers(stmt);
+            stmt.execute("CREATE TABLE IF NOT EXISTS SystemSnapshot (" +
+                    "snapshot_key TEXT PRIMARY KEY, snapshot_value TEXT NOT NULL, " +
+                    "updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))) ");
             stmt.execute("CREATE TABLE IF NOT EXISTS DeviceOperation (" +
                     "operation_id TEXT PRIMARY KEY, operation_type TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT, " +
                     "actor TEXT, state TEXT NOT NULL CHECK(state IN ('PENDING','DEVICE_SUCCEEDED','DB_COMMITTED','COMPLETED','FAILED','RECONCILIATION_REQUIRED')), " +
@@ -185,6 +193,42 @@ public class SchemaInitializer implements ApplicationRunner {
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Database init failed!", e);
         }
+    }
+
+    /**
+     * SQLite triggers are the sole producers of AppUser audit events. Repository writes only set
+     * transaction-local attribution; direct SQL writes therefore fall back to an explicit unknown actor.
+     */
+    private void initializeAppUserAuditTriggers(Statement stmt) throws SQLException {
+        String actor = "COALESCE(NULLIF((SELECT actor FROM AppUserAuditContext WHERE id=1),''),'نامشخص/خارج از برنامه')";
+        stmt.execute("CREATE TRIGGER IF NOT EXISTS trg_app_user_audit_insert AFTER INSERT ON AppUser BEGIN " +
+                "INSERT INTO SystemEvent(category,event_type,result,description,actor,entity_type,entity_id,details_json) VALUES(" +
+                "'حساب‌های مدیر','ایجاد حساب مدیر','موفق','حساب مدیر ایجاد شد؛ زمان ثبت زمان اجرای تریگر SQLite است'," + actor + ",'حساب مدیر',CAST(NEW.id AS TEXT),'{}'); END");
+        stmt.execute("CREATE TRIGGER IF NOT EXISTS trg_app_user_audit_update AFTER UPDATE ON AppUser " +
+                "WHEN OLD.username IS NOT NEW.username OR OLD.password_hash IS NOT NEW.password_hash " +
+                "OR OLD.role IS NOT NEW.role OR OLD.enabled IS NOT NEW.enabled BEGIN " +
+                "INSERT INTO SystemEvent(category,event_type,result,description,actor,entity_type,entity_id,details_json) VALUES(" +
+                "'حساب‌های مدیر',CASE WHEN OLD.password_hash IS NOT NEW.password_hash " +
+                "AND OLD.username IS NEW.username AND OLD.role IS NEW.role AND OLD.enabled IS NEW.enabled " +
+                "THEN 'تغییر رمز عبور مدیر' ELSE 'ویرایش حساب مدیر' END,'موفق'," +
+                "CASE WHEN OLD.password_hash IS NOT NEW.password_hash AND OLD.username IS NEW.username " +
+                "AND OLD.role IS NEW.role AND OLD.enabled IS NEW.enabled " +
+                "THEN 'رمز عبور حساب مدیر تغییر کرد؛ زمان ثبت زمان اجرای تریگر SQLite است' " +
+                "ELSE 'مشخصات حساب مدیر تغییر کرد؛ زمان ثبت زمان اجرای تریگر SQLite است' END," + actor + ",'حساب مدیر',CAST(NEW.id AS TEXT)," +
+                "json_object('source','sqlite_trigger','changedFields',json('[' || rtrim(" +
+                "CASE WHEN OLD.username IS NOT NEW.username THEN '\"username\",' ELSE '' END || " +
+                "CASE WHEN OLD.role IS NOT NEW.role THEN '\"role\",' ELSE '' END || " +
+                "CASE WHEN OLD.enabled IS NOT NEW.enabled THEN '\"enabled\",' ELSE '' END || " +
+                "CASE WHEN OLD.password_hash IS NOT NEW.password_hash THEN '\"password\",' ELSE '' END, ',') || ']')," +
+                "'old',json_object('username',CASE WHEN OLD.username IS NOT NEW.username THEN OLD.username END," +
+                "'role',CASE WHEN OLD.role IS NOT NEW.role THEN OLD.role END," +
+                "'enabled',CASE WHEN OLD.enabled IS NOT NEW.enabled THEN OLD.enabled END)," +
+                "'new',json_object('username',CASE WHEN OLD.username IS NOT NEW.username THEN NEW.username END," +
+                "'role',CASE WHEN OLD.role IS NOT NEW.role THEN NEW.role END," +
+                "'enabled',CASE WHEN OLD.enabled IS NOT NEW.enabled THEN NEW.enabled END))); END");
+        stmt.execute("CREATE TRIGGER IF NOT EXISTS trg_app_user_audit_delete AFTER DELETE ON AppUser BEGIN " +
+                "INSERT INTO SystemEvent(category,event_type,result,description,actor,entity_type,entity_id,details_json) VALUES(" +
+                "'حساب‌های مدیر','حذف حساب مدیر','موفق','حساب مدیر حذف شد؛ زمان ثبت زمان اجرای تریگر SQLite است'," + actor + ",'حساب مدیر',CAST(OLD.id AS TEXT),'{}'); END");
     }
 
     private void migrateCarTableToVehicleTable(Connection conn) throws SQLException {

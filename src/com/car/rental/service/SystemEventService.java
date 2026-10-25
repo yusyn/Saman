@@ -39,9 +39,14 @@ public class SystemEventService {
     }
     public void record(Connection connection, String category, String type, String result, String description,
                        String entityType, Object entityId, Map<String, ?> details) throws SQLException {
+        recordAs(connection, actor(), category, type, result, description, entityType, entityId, details);
+    }
+
+    public void recordAs(Connection connection, String actor, String category, String type, String result,
+                         String description, String entityType, Object entityId, Map<String, ?> details) throws SQLException {
         validateResult(result);
         repository.insert(connection, clean(category,80), clean(type,100), result, clean(description,500),
-                actor(), clean(entityType,80), entityId == null ? null : clean(String.valueOf(entityId),160), safeJson(details));
+                clean(actor,120), clean(entityType,80), entityId == null ? null : clean(String.valueOf(entityId),160), safeJson(details));
     }
 
     public <T> T inTransaction(EventSpec success, EventSpec failure, SqlWork<T> work) throws SQLException {
