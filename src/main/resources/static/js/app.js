@@ -320,7 +320,13 @@
     const tbody = $("#activeRentalsTable");
     const empty = $("#activeRentalsEmpty");
     $("#activeRentalsError").textContent = "";
-    const rows = Array.isArray(rentals) ? rentals : [];
+    if (!Array.isArray(rentals)) {
+      tbody.innerHTML = "";
+      empty.classList.add("hidden");
+      $("#activeRentalsError").textContent = "دریافت مأموریت‌های فعال ناموفق بود.";
+      return;
+    }
+    const rows = rentals;
     empty.classList.toggle("hidden", rows.length > 0);
     tbody.innerHTML = rows.map(function (r) {
       return "<tr>" +
@@ -341,6 +347,7 @@
     const rentalsError = $("#activeRentalsError");
     if (button) button.disabled = true;
     if (error) error.textContent = "";
+    $("#activeRentalsEmpty").classList.add("hidden");
     try {
       const results = await Promise.allSettled([
         Api.vehicleDashboardSummary(),
@@ -371,6 +378,7 @@
       }
       updatedAt.textContent = "آخرین به‌روزرسانی: " + formatNowJalali();
     } catch (err) {
+      $("#activeRentalsEmpty").classList.add("hidden");
       if (error) error.textContent = "دریافت اطلاعات داشبورد ناموفق بود. برای تلاش دوباره بروزرسانی کنید.";
     } finally {
       if (button) button.disabled = false;
