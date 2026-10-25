@@ -228,6 +228,11 @@ const Api = (() => {
       const qs=q.toString(); return request("/api/system-events"+(qs?"?"+qs:""));
     },
     pendingDeviceOperations: () => request("/api/device-operations/pending"),
+    adminUsers: () => request("/api/admin-users"),
+    createAdminUser: (body) => request("/api/admin-users", { method: "POST", body: JSON.stringify(body) }),
+    renameAdminUser: (id, username) => request("/api/admin-users/" + id + "/username", { method: "PATCH", body: JSON.stringify({ username }) }),
+    changeAdminPassword: (id, password) => request("/api/admin-users/" + id + "/password", { method: "PATCH", body: JSON.stringify({ password }) }),
+    setAdminEnabled: (id, enabled) => request("/api/admin-users/" + id + "/enabled", { method: "PATCH", body: JSON.stringify({ enabled }) }),
     vehicleHistory: (plate) =>
       request("/api/vehicles/history?plate=" + encodeURIComponent(plate)),
     addVehicleService: (plate, body) =>

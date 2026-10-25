@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,15 +34,18 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
     private final SystemEventService systemEvents;
+    private final SessionRegistry sessionRegistry;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             SecurityContextRepository securityContextRepository,
-            SystemEventService systemEvents
+            SystemEventService systemEvents,
+            SessionRegistry sessionRegistry
     ) {
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.systemEvents = systemEvents;
+        this.sessionRegistry = sessionRegistry;
     }
 
     public record LoginRequest(String username, String password) {
@@ -69,7 +73,12 @@ public class AuthController {
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(auth);
             SecurityContextHolder.setContext(context);
+            // This endpoint authenticates manually, so apply fixation protection and register
+            // the session explicitly for later credential-change revocation.
+            if (request.getSession(false) == null) request.getSession(true);
+            request.changeSessionId();
             securityContextRepository.saveContext(context, request, response);
+            sessionRegistry.registerNewSession(request.getSession(false).getId(), auth.getPrincipal());
             systemEvents.recordAs(auth.getName(), "ورود", "ورود مدیر", "موفق", "ورود مدیر با موفقیت انجام شد", "مدیر", auth.getName());
 
             Map<String, Object> payload = new LinkedHashMap<>();

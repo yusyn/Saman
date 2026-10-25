@@ -36,6 +36,7 @@
         <button type="button" class="nav-item" data-view="rentals">تحویل / برگشت</button>
         <button type="button" class="nav-item" data-view="report">لیست مأموریت‌ها</button>
         <button type="button" class="nav-item" data-view="system-report">گزارش سیستم</button>
+        <button type="button" class="nav-item hidden" data-view="admin-users" data-admin-only>مدیریت مدیران</button>
       </nav>
       <div class="sidebar-foot" id="healthBadge">در حال بررسی…</div>
     </aside>
@@ -336,6 +337,26 @@
           <div class="card-head"><button type="button" class="btn btn-ghost" id="btnOlderSystemEvents">رویدادهای قدیمی‌تر</button><span id="systemEventPageInfo" class="muted small"></span></div>
         </div>
       </section>
+      <section class="view" id="view-admin-users">
+        <div class="cards two">
+          <div class="card">
+            <h3>افزودن مدیر</h3>
+            <p class="muted small">رمز باید دست‌کم ۸ نویسه داشته باشد و پس از ثبت نمایش داده نمی‌شود.</p>
+            <form id="formCreateAdmin" class="form">
+              <label for="newAdminUsername">نام کاربری<input id="newAdminUsername" maxlength="120" autocomplete="off" required /></label>
+              <label for="newAdminPassword">رمز عبور<input id="newAdminPassword" type="password" minlength="8" autocomplete="new-password" required /></label>
+              <label for="newAdminPasswordConfirm">تکرار رمز عبور<input id="newAdminPasswordConfirm" type="password" minlength="8" autocomplete="new-password" required /></label>
+              <p id="createAdminMessage" class="muted small" aria-live="polite"></p>
+              <button id="btnCreateAdmin" class="btn btn-primary" type="submit">ساخت حساب مدیر</button>
+            </form>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>حساب‌های مدیر</h3><button type="button" class="btn btn-ghost" id="btnRefreshAdmins">به‌روزرسانی</button></div>
+            <p id="adminListMessage" class="muted small" aria-live="polite"></p>
+            <div class="table-wrap"><table><thead><tr><th>نام کاربری</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="adminUsersTable"></tbody></table></div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -529,10 +550,24 @@
     </div>
   </div>
 
+  <div id="modalRenameAdmin" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" data-close="modalRenameAdmin"></div>
+    <div class="modal-panel modal-panel-sm"><div class="modal-head"><h3>تغییر نام کاربری مدیر</h3><button type="button" class="btn btn-ghost btn-sm" data-close="modalRenameAdmin">بستن</button></div>
+      <form id="formRenameAdmin" class="form"><input type="hidden" id="renameAdminId" /><label for="renameAdminUsername">نام کاربری جدید<input id="renameAdminUsername" maxlength="120" autocomplete="off" required /></label><p id="renameAdminMessage" class="muted small" aria-live="polite"></p><div class="modal-actions"><button type="submit" class="btn btn-primary" id="btnRenameAdmin">ذخیره</button><button type="button" class="btn btn-ghost" data-close="modalRenameAdmin">انصراف</button></div></form>
+    </div>
+  </div>
+  <div id="modalAdminPassword" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" data-close="modalAdminPassword"></div>
+    <div class="modal-panel modal-panel-sm"><div class="modal-head"><h3>تغییر رمز عبور مدیر</h3><button type="button" class="btn btn-ghost btn-sm" data-close="modalAdminPassword">بستن</button></div>
+      <form id="formAdminPassword" class="form"><input type="hidden" id="passwordAdminId" /><label for="adminNewPassword">رمز عبور جدید<input id="adminNewPassword" type="password" minlength="8" autocomplete="new-password" required /></label><label for="adminNewPasswordConfirm">تکرار رمز عبور<input id="adminNewPasswordConfirm" type="password" minlength="8" autocomplete="new-password" required /></label><p id="adminPasswordMessage" class="muted small" aria-live="polite"></p><div class="modal-actions"><button type="submit" class="btn btn-primary" id="btnSaveAdminPassword">ذخیره رمز</button><button type="button" class="btn btn-ghost" data-close="modalAdminPassword">انصراف</button></div></form>
+    </div>
+  </div>
+
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
   <script src="/js/vehicle-history.js"></script>
   <script src="/js/report-filters.js?v=20260915-1"></script>
   <script src="/js/system-report.js?v=20261025-1"></script>
+  <script src="/js/admin-users.js?v=20261025-1"></script>
 </body>
 </html>

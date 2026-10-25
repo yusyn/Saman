@@ -15,6 +15,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.core.session.SessionRegistry;
 
 /**
  * Session-based Spring Security for same-origin Web UI + REST API.
@@ -30,13 +31,16 @@ public class SecurityConfig {
 
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
+    private final SessionRegistry sessionRegistry;
 
     public SecurityConfig(
             RestAuthenticationEntryPoint authenticationEntryPoint,
-            RestAccessDeniedHandler accessDeniedHandler
+            RestAccessDeniedHandler accessDeniedHandler,
+            SessionRegistry sessionRegistry
     ) {
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.sessionRegistry = sessionRegistry;
     }
 
     @Bean
@@ -56,6 +60,14 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .sessionFixation(sf -> sf.migrateSession())
+                        .maximumSessions(-1)
+                        .sessionRegistry(sessionRegistry)
+                        .expiredSessionStrategy(event -> {
+                            event.getResponse().setStatus(401);
+                            event.getResponse().setCharacterEncoding("UTF-8");
+                            event.getResponse().setContentType("application/json;charset=UTF-8");
+                            event.getResponse().getWriter().write("{\"error\":\"نشست منقضی شده است؛ دوباره وارد شوید\"}");
+                        })
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint)
@@ -76,6 +88,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/auth/me").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
+                        // All manager-account endpoints (including reads) require an ADMIN role.
+                        .requestMatchers("/api/admin-users", "/api/admin-users/**").hasRole("ADMIN")
                         // Health
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         // Sensitive read-only business data requires authentication
@@ -115,4 +129,5 @@ public class SecurityConfig {
     public SecurityContextRepository securityContextRepository() {
         return new HttpSessionSecurityContextRepository();
     }
+
 }

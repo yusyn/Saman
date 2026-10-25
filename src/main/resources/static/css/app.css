@@ -247,6 +247,7 @@ body {
 .btn-danger { background: rgba(239, 68, 68, 0.2); border-color: var(--danger); color: #fecaca; }
 
 .table-wrap { overflow: auto; max-height: 420px; max-width: 100%; }
+.admin-account-actions { display: flex; flex-wrap: wrap; gap: .35rem; min-width: 230px; }
 table {
   width: 100%;
   max-width: 100%;

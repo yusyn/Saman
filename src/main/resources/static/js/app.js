@@ -6,6 +6,7 @@
     rentals: ["تحویل / برگشت", "احراز جدا برای هر عملیات"],
     report: ["لیست مأموریت‌ها", "فهرست مأموریت‌های ثبت‌شده"],
     "system-report": ["گزارش سیستم", "رویدادهای ثبت‌شدهٔ سامانه"],
+    "admin-users": ["مدیریت مدیران", "ساخت و مدیریت حساب‌های مدیر سامانه"],
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -254,6 +255,11 @@
   });
 
   function showView(name) {
+    if (name === "admin-users" && !isAdmin()) {
+      toast("دسترسی به مدیریت مدیران فقط برای مدیران مجاز است", "err");
+      if (!isAuthenticated()) openLoginModal();
+      name = "dashboard";
+    }
     fingerprintStatusEl.hidden = name !== "dashboard" && name !== "employees" && name !== "rentals";
     if (!fingerprintStatusEl.hidden) refreshFingerprintStatus();
     document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
@@ -271,6 +277,7 @@
     if (name === "rentals") loadAvailablePlates();
     if (name === "report") loadReport();
     if (name === "system-report" && window.loadSystemEvents) window.loadSystemEvents();
+    if (name === "admin-users" && window.loadAdminUsers) window.loadAdminUsers();
   }
 
   refreshFingerprintStatus();
@@ -1009,6 +1016,11 @@
     return !!(sessionUser && sessionUser.username);
   }
 
+  function isAdmin() {
+    return !!(sessionUser && Array.isArray(sessionUser.roles) &&
+      sessionUser.roles.some((role) => String(role).toUpperCase() === "ADMIN" || String(role).toUpperCase() === "ROLE_ADMIN"));
+  }
+
   function openLoginModal() {
     const modal = $("#modalLogin");
     if (!modal) return;
@@ -1081,12 +1093,18 @@
           ? " (" + sessionUser.roles.join(", ") + ")"
           : "";
       if (status) status.textContent = "وارد شده: " + (sessionUser.username || "") + role;
+      if (status) status.dataset.username = sessionUser.username || "";
       if (btnLogin) btnLogin.classList.add("hidden");
       if (btnLogout) btnLogout.classList.remove("hidden");
     } else {
       if (status) status.textContent = "وارد نشده‌اید";
+      if (status) delete status.dataset.username;
       if (btnLogin) btnLogin.classList.remove("hidden");
       if (btnLogout) btnLogout.classList.add("hidden");
+    }
+    document.querySelectorAll("[data-admin-only]").forEach((el) => el.classList.toggle("hidden", !isAdmin()));
+    if (!isAdmin() && $("view-admin-users") && $("view-admin-users").classList.contains("active")) {
+      showView("dashboard");
     }
     applyWriteAccess();
   }
@@ -1228,6 +1246,15 @@
     clearSessionUi();
     toast("نشست منقضی شد؛ دوباره وارد شوید", "err");
     openLoginModal();
+  });
+
+  window.addEventListener("saman:refresh-auth", async function () {
+    const wasAuthenticated = isAuthenticated();
+    await refreshAuth();
+    if (wasAuthenticated && !isAuthenticated()) {
+      toast("اطلاعات حساب تغییر کرد؛ برای ادامه دوباره وارد شوید", "err");
+      openLoginModal();
+    }
   });
 
   const carsTable = $("#carsTable");
