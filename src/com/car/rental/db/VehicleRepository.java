@@ -161,9 +161,12 @@ public class VehicleRepository {
     }
 
     public void addVehicle(String name, String plate, String color, String vehicleType) throws SQLException {
+        try (Connection conn = getConnection()) { addVehicle(conn, name, plate, color, vehicleType); }
+    }
+
+    public void addVehicle(Connection conn, String name, String plate, String color, String vehicleType) throws SQLException {
         String sql = "INSERT INTO VehicleTable(name, plate, color, vehicle_type) VALUES(?,?,?,?)";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, name);
             stmt.setString(2, plate);
             stmt.setString(3, color);
@@ -173,10 +176,13 @@ public class VehicleRepository {
     }
 
     public void updateVehicle(Vehicle vehicle, String oldPlate) throws SQLException {
+        try (Connection conn = getConnection()) { updateVehicle(conn, vehicle, oldPlate); }
+    }
+
+    public void updateVehicle(Connection conn, Vehicle vehicle, String oldPlate) throws SQLException {
         String sql = "UPDATE VehicleTable SET name = ?, color = ?, plate = ?, vehicle_type = ? " +
                 "WHERE plate = ? AND is_deleted = 0";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, vehicle.getModel());
             stmt.setString(2, vehicle.getColor());
             stmt.setString(3, vehicle.getPlate());
@@ -190,9 +196,13 @@ public class VehicleRepository {
     }
 
     public void deleteVehicle(String plate) throws SQLException {
+        try (Connection conn = getConnection()) { deleteVehicle(conn, plate); }
+    }
+
+    public void deleteVehicle(Connection conn, String plate) throws SQLException {
         String checkSql = "SELECT is_rented FROM VehicleTable WHERE plate = ? AND is_deleted = 0";
         String sql = "UPDATE VehicleTable SET is_deleted = 1 WHERE plate = ? AND is_deleted = 0 AND is_rented = 0";
-        try (Connection conn = getConnection()) {
+        {
             try (PreparedStatement check = conn.prepareStatement(checkSql)) {
                 check.setString(1, plate);
                 try (ResultSet rs = check.executeQuery()) {

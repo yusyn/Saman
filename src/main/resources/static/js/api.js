@@ -116,13 +116,19 @@ const Api = (() => {
         }
         throw err;
       }
+      if (data && data.operationState === "RECONCILIATION_REQUIRED") {
+        const err = new Error(data.message || "عملیات دستگاه نیازمند پیگیری است.");
+        err.status = res.status;
+        err.data = data;
+        throw err;
+      }
       return data;
     } catch (e) {
       if (e && e.name === "AbortError") {
         throw new Error(
           "پاسخی از سرور نیامد (timeout پس از " +
             Math.round(timeoutMs / 1000) +
-            " ثانیه). اگر در حال ثبت اثر انگشت هستید، کمی صبر کنید و لیست را بروزرسانی کنید."
+            " ثانیه). ممکن است دستگاه عملیات را انجام داده باشد؛ پیش از تکرار، گزارش سیستم و دفتر عملیات دستگاه را بررسی کنید."
         );
       }
       throw e;
@@ -216,6 +222,12 @@ const Api = (() => {
       const qs = q.toString();
       return request("/api/rentals/report" + (qs ? "?" + qs : ""));
     },
+    systemEvents: (params = {}) => {
+      const q = new URLSearchParams();
+      Object.keys(params || {}).forEach((k) => { const v=params[k]; if(v!=null&&String(v).trim()!=="")q.set(k,String(v).trim()); });
+      const qs=q.toString(); return request("/api/system-events"+(qs?"?"+qs:""));
+    },
+    pendingDeviceOperations: () => request("/api/device-operations/pending"),
     vehicleHistory: (plate) =>
       request("/api/vehicles/history?plate=" + encodeURIComponent(plate)),
     addVehicleService: (plate, body) =>

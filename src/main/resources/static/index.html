@@ -34,7 +34,8 @@
         <button type="button" class="nav-item" data-view="cars">ناوگان</button>
         <button type="button" class="nav-item" data-view="employees">کارمندان</button>
         <button type="button" class="nav-item" data-view="rentals">تحویل / برگشت</button>
-        <button type="button" class="nav-item" data-view="report">گزارش</button>
+        <button type="button" class="nav-item" data-view="report">لیست مأموریت‌ها</button>
+        <button type="button" class="nav-item" data-view="system-report">گزارش سیستم</button>
       </nav>
       <div class="sidebar-foot" id="healthBadge">در حال بررسی…</div>
     </aside>
@@ -278,19 +279,61 @@
       <section class="view" id="view-report">
         <div class="card">
           <div class="card-head">
-            <h3>گزارش سفرها</h3>
+            <h3>لیست مأموریت‌ها</h3>
             <button type="button" class="btn btn-ghost" id="btnRefreshReport">بروزرسانی</button>
           </div>
-          <p class="muted small">فیلترها در فایل جدا بارگذاری می‌شوند.</p>
-          <div id="reportFiltersHost"></div>
+          <p class="muted small">فهرست مأموریت‌های ثبت‌شده؛ می‌توانید بر اساس کارمند، وسیله، مقصد، وضعیت و تاریخ جست‌وجو کنید.</p>
+          <div id="reportFiltersHost">
+            <form id="formReportFilter" class="form mission-filters">
+              <label>نام کارمند<input id="filterEmployeeName" /></label>
+              <label>نام وسیله<input id="filterCarName" /></label>
+              <label>پلاک<input id="filterPlate" /></label>
+              <label>مقصد<input id="filterDestination" /></label>
+              <label>وضعیت مأموریت<select id="filterStatus"><option value="ALL">همه</option><option value="OPEN">در جریان</option><option value="CLOSED">برگشت‌شده</option></select></label>
+              <label>از تاریخ شمسی<input id="filterDateFrom" placeholder="۱۴۰۵/۰۱/۰۱" inputmode="numeric" /></label>
+              <label>تا تاریخ شمسی<input id="filterDateTo" placeholder="۱۴۰۵/۱۲/۲۹" inputmode="numeric" /></label>
+              <div class="mission-filter-actions">
+                <button type="submit" class="btn btn-primary" id="btnApplyReportFilter">اعمال فیلتر</button>
+                <button type="button" class="btn btn-ghost" id="btnResetReportFilter">پاک‌کردن فیلترها</button>
+                <button type="button" class="btn btn-ghost" id="btnExportCsv">دریافت CSV</button>
+                <button type="button" class="btn btn-ghost" id="btnExportExcel">دریافت Excel</button>
+              </div>
+              <p id="reportFilterSummary" class="muted small"></p>
+            </form>
+          </div>
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>شناسه</th><th>وسیله</th><th>پلاک</th><th>مقصد</th><th>تحویل</th><th>برگشت</th></tr>
+                <tr><th>شناسه کارمند</th><th>کارمند</th><th>وسیله</th><th>پلاک</th><th>مقصد</th><th>زمان تحویل</th><th>زمان برگشت</th></tr>
               </thead>
               <tbody id="reportTable"></tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-system-report">
+        <div class="card">
+          <div class="card-head"><h3>گزارش سیستم</h3><button type="button" class="btn btn-ghost" id="btnRefreshSystemEvents">به‌روزرسانی</button></div>
+          <p class="muted small">رویدادهای ثبت‌شدهٔ سامانه با جزئیات امن و دسترسی مدیر.</p>
+          <form id="systemEventFilters" class="form report-filter-grid">
+            <label>از تاریخ شمسی<input id="eventDateFrom" placeholder="۱۴۰۵/۰۱/۰۱" inputmode="numeric" /></label>
+            <label>تا تاریخ شمسی<input id="eventDateTo" placeholder="۱۴۰۵/۰۱/۳۱" inputmode="numeric" /></label>
+            <label>دسته<select id="eventCategory"><option value="">همه</option><option>کارمندان</option><option>ناوگان</option><option>مأموریت‌ها</option><option>ورود</option><option>دستگاه اثرانگشت</option><option>API</option></select></label>
+            <label>نوع رویداد<input id="eventType" /></label>
+            <label>نتیجه<select id="eventResult"><option value="">همه</option><option value="موفق">موفق</option><option value="ناموفق">ناموفق</option></select></label>
+            <label>کاربر یا عامل<input id="eventActor" /></label>
+            <label>شرح یا شناسه<input id="eventSearch" /></label>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">اعمال فیلتر</button><button class="btn btn-ghost" type="button" id="btnClearSystemEvents">پاک‌کردن فیلترها</button></div>
+          </form>
+          <p id="systemEventMessage" class="muted small" aria-live="polite"></p>
+          <section aria-labelledby="pendingDeviceOperationsTitle">
+            <h4 id="pendingDeviceOperationsTitle">عملیات دستگاه نیازمند بررسی</h4>
+            <p id="pendingDeviceOperationsMessage" class="muted small" aria-live="polite"></p>
+            <div class="table-wrap"><table><thead><tr><th>شناسهٔ پیگیری</th><th>عملیات</th><th>موجودیت</th><th>وضعیت دفتر</th><th>نتیجهٔ دستگاه</th><th>شرح</th><th>جزئیات امن</th><th>آخرین به‌روزرسانی</th></tr></thead><tbody id="pendingDeviceOperationsTable"></tbody></table></div>
+          </section>
+          <div class="table-wrap"><table><thead><tr><th>زمان</th><th>دسته / نوع</th><th>نتیجه</th><th>شرح</th><th>عامل</th><th>موجودیت</th><th>جزئیات</th></tr></thead><tbody id="systemEventTable"></tbody></table></div>
+          <div class="card-head"><button type="button" class="btn btn-ghost" id="btnOlderSystemEvents">رویدادهای قدیمی‌تر</button><span id="systemEventPageInfo" class="muted small"></span></div>
         </div>
       </section>
     </main>
@@ -490,5 +533,6 @@
   <script src="/js/app.js"></script>
   <script src="/js/vehicle-history.js"></script>
   <script src="/js/report-filters.js?v=20260915-1"></script>
+  <script src="/js/system-report.js?v=20261025-1"></script>
 </body>
 </html>

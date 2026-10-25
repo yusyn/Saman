@@ -56,9 +56,12 @@ public class EmployeeRepository {
     }
 
     public void addEmployee(String deviceUserId, String name, String phone) throws SQLException {
+        try (Connection conn = getConnection()) { addEmployee(conn, deviceUserId, name, phone); }
+    }
+
+    public void addEmployee(Connection conn, String deviceUserId, String name, String phone) throws SQLException {
         String sql = "INSERT INTO EmployeeTable(device_user_id, name, phone) VALUES(?,?,?)";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, deviceUserId);
             stmt.setString(2, name);
             stmt.setString(3, phone);
@@ -67,10 +70,13 @@ public class EmployeeRepository {
     }
 
     public Employee findByDeviceUserId(String deviceUserId) throws SQLException {
+        try (Connection conn = getConnection()) { return findByDeviceUserId(conn, deviceUserId); }
+    }
+
+    public Employee findByDeviceUserId(Connection conn, String deviceUserId) throws SQLException {
         String sql = "SELECT id, device_user_id, name, phone, is_active, is_renting " +
                 "FROM EmployeeTable WHERE device_user_id = ? AND is_active = 1";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, deviceUserId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -96,10 +102,13 @@ public class EmployeeRepository {
     }
 
     public void updateEmployee(Employee emp) throws SQLException {
+        try (Connection conn = getConnection()) { updateEmployee(conn, emp); }
+    }
+
+    public void updateEmployee(Connection conn, Employee emp) throws SQLException {
         String sql = "UPDATE EmployeeTable SET name = ?, phone = ?, " +
                 "updated_at = datetime('now','localtime') WHERE id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, emp.getName());
             stmt.setString(2, emp.getPhone());
             stmt.setInt(3, emp.getId());
@@ -108,10 +117,13 @@ public class EmployeeRepository {
     }
 
     public void deleteEmployeeByDeviceUserId(String deviceUserId) throws SQLException {
+        try (Connection conn = getConnection()) { deleteEmployeeByDeviceUserId(conn, deviceUserId); }
+    }
+
+    public void deleteEmployeeByDeviceUserId(Connection conn, String deviceUserId) throws SQLException {
         String sql = "UPDATE EmployeeTable SET is_active = 0, " +
                 "updated_at = datetime('now','localtime') WHERE device_user_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, deviceUserId);
             stmt.executeUpdate();
         }

@@ -80,6 +80,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         // Sensitive read-only business data requires authentication
                         .requestMatchers(HttpMethod.GET, "/api/vehicles/history/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/system-events/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/device-operations/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/employees/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/rentals/**").authenticated()
                         // Public vehicle catalog

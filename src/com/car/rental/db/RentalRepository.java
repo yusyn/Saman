@@ -32,6 +32,50 @@ public class RentalRepository {
         return dataSource.getConnection();
     }
 
+    /** Execute pickup work on the caller's transaction connection. */
+    public void insertRental(Connection conn, String deviceUserId, String vehiclePlate,
+                             String pickupTime, String destination) throws SQLException {
+        int empId;
+        try (PreparedStatement p=conn.prepareStatement("SELECT id,is_renting FROM EmployeeTable WHERE device_user_id=? AND is_active=1")) {
+            p.setString(1,deviceUserId);try(ResultSet r=p.executeQuery()){
+                if(!r.next())throw new SQLException("کارمند با شناسه دستگاه یافت نشد: "+deviceUserId);
+                if(r.getInt("is_renting")==1)throw new SQLException("این کارمند در حال حاضر در مأموریت است");empId=r.getInt("id");
+            }
+        }
+        int vehicleId;
+        try(PreparedStatement p=conn.prepareStatement("SELECT id,is_rented FROM VehicleTable WHERE plate=? AND is_deleted=0")){
+            p.setString(1,vehiclePlate);try(ResultSet r=p.executeQuery()){
+                if(!r.next())throw new SQLException("وسیله فعالی با این پلاک یافت نشد: "+vehiclePlate);
+                if(r.getInt("is_rented")==1)throw new SQLException("این وسیله هم‌اکنون در مأموریت است");vehicleId=r.getInt("id");
+            }
+        }
+        try(PreparedStatement p=conn.prepareStatement("INSERT INTO RentalTable(employee_id,car_id,pickup_date,destination) VALUES(?,?,?,?)")){
+            p.setInt(1,empId);p.setInt(2,vehicleId);p.setString(3,pickupTime);p.setString(4,destination);p.executeUpdate();
+        }
+        try(PreparedStatement p=conn.prepareStatement("UPDATE VehicleTable SET is_rented=1 WHERE id=? AND is_rented=0 AND is_deleted=0")){
+            p.setInt(1,vehicleId);if(p.executeUpdate()!=1)throw new SQLException("به‌روزرسانی وضعیت وسیله انجام نشد");
+        }
+        try(PreparedStatement p=conn.prepareStatement("UPDATE EmployeeTable SET is_renting=1,updated_at=datetime('now','localtime') WHERE id=? AND is_renting=0")){
+            p.setInt(1,empId);if(p.executeUpdate()!=1)throw new SQLException("به‌روزرسانی وضعیت کارمند انجام نشد");
+        }
+    }
+
+    /** Execute return work on the caller's transaction connection. */
+    public boolean returnCarByDeviceUserId(Connection conn,String deviceUserId,String returnDate) throws SQLException {
+        int empId;
+        try(PreparedStatement p=conn.prepareStatement("SELECT id FROM EmployeeTable WHERE device_user_id=? AND is_active=1")){
+            p.setString(1,deviceUserId);try(ResultSet r=p.executeQuery()){if(!r.next())throw new SQLException("کارمند با شناسه دستگاه یافت نشد: "+deviceUserId);empId=r.getInt("id");}
+        }
+        int rentalId,vehicleId;
+        try(PreparedStatement p=conn.prepareStatement("SELECT id,car_id FROM RentalTable WHERE employee_id=? AND return_date IS NULL AND is_active=1")){
+            p.setInt(1,empId);try(ResultSet r=p.executeQuery()){if(!r.next())return false;rentalId=r.getInt("id");vehicleId=r.getInt("car_id");}
+        }
+        try(PreparedStatement p=conn.prepareStatement("UPDATE RentalTable SET return_date=?,is_active=0 WHERE id=?")){p.setString(1,returnDate);p.setInt(2,rentalId);if(p.executeUpdate()!=1)throw new SQLException("ثبت برگشت مأموریت انجام نشد");}
+        try(PreparedStatement p=conn.prepareStatement("UPDATE VehicleTable SET is_rented=0 WHERE id=?")){p.setInt(1,vehicleId);if(p.executeUpdate()!=1)throw new SQLException("آزادسازی وسیله انجام نشد");}
+        try(PreparedStatement p=conn.prepareStatement("UPDATE EmployeeTable SET is_renting=0,updated_at=datetime('now','localtime') WHERE id=?")){p.setInt(1,empId);if(p.executeUpdate()!=1)throw new SQLException("به‌روزرسانی وضعیت کارمند انجام نشد");}
+        return true;
+    }
+
     public void insertRental(String deviceUserId,
                              String vehiclePlate,
                              String pickupTime,

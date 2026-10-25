@@ -4,7 +4,8 @@
     cars: ["ناوگان", "ماشین و موتور — لیست، ثبت، ویرایش و حذف"],
     employees: ["کارمندان", "لیست، ثبت، ویرایش و حذف"],
     rentals: ["تحویل / برگشت", "احراز جدا برای هر عملیات"],
-    report: ["گزارش", "سفرهای ثبت‌شده"],
+    report: ["لیست مأموریت‌ها", "فهرست مأموریت‌های ثبت‌شده"],
+    "system-report": ["گزارش سیستم", "رویدادهای ثبت‌شدهٔ سامانه"],
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -269,6 +270,7 @@
     if (name === "employees") loadEmployees();
     if (name === "rentals") loadAvailablePlates();
     if (name === "report") loadReport();
+    if (name === "system-report" && window.loadSystemEvents) window.loadSystemEvents();
   }
 
   refreshFingerprintStatus();
@@ -962,11 +964,11 @@
 
   async function loadReport() {
     const tbody = $("#reportTable");
-    tbody.innerHTML = '<tr><td colspan="7">در حال بارگذاری…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7">در حال بارگذاری فهرست مأموریت‌ها…</td></tr>';
     try {
       const rows = await Api.report();
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="7">گزارشی نیست</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">مأموریتی ثبت نشده است.</td></tr>';
         return;
       }
       tbody.innerHTML = rows
@@ -974,6 +976,8 @@
           return (
             '<tr><td dir="ltr">' +
             escapeHtml(r.deviceUserId) +
+            "</td><td>" +
+            escapeHtml(r.employeeName || "—") +
             "</td><td>" +
             vehicleTypeIcon(r.vehicleType) +
             " " +
@@ -992,7 +996,7 @@
         .join("");
     } catch (err) {
       tbody.innerHTML =
-        '<tr><td colspan="7">' + escapeHtml(err.message || "خطا") + "</td></tr>";
+        '<tr><td colspan="7">دریافت فهرست مأموریت‌ها ناموفق بود: ' + escapeHtml(err.message || "خطا") + "</td></tr>";
     }
   }
   $("#btnRefreshReport").addEventListener("click", loadReport);

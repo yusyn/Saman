@@ -98,3 +98,22 @@
 #reportFilterSummary {
   margin: 0 0 0.6rem;
 }
+#reportFiltersHost .mission-filters,
+#systemEventFilters.report-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-items: end;
+  margin: 1rem 0;
+}
+
+.mission-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+#reportFilterSummary {
+  margin: 0;
+  align-self: center;
+}

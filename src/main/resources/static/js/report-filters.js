@@ -183,14 +183,15 @@
   }
 
   function getFilters() {
+    const dateValue = (selector) => toLatinDigits(($(selector) && $(selector).value) || "").replace(/-/g, "/").trim();
     return {
       employeeName: ($("#filterEmployeeName") && $("#filterEmployeeName").value.trim()) || "",
       carName: ($("#filterCarName") && $("#filterCarName").value.trim()) || "",
       plate: ($("#filterPlate") && $("#filterPlate").value.trim()) || "",
       destination: ($("#filterDestination") && $("#filterDestination").value.trim()) || "",
       status: ($("#filterStatus") && $("#filterStatus").value) || "ALL",
-      dateFrom: ($("#filterDateFrom") && $("#filterDateFrom").value) || "",
-      dateTo: ($("#filterDateTo") && $("#filterDateTo").value) || "",
+      dateFrom: dateValue("#filterDateFrom"),
+      dateTo: dateValue("#filterDateTo"),
     };
   }
 
@@ -205,7 +206,7 @@
     }
     if (f.dateFrom) parts.push("از: " + f.dateFrom);
     if (f.dateTo) parts.push("تا: " + f.dateTo);
-    return parts.length ? "فیلتر فعال: " + parts.join(" · ") : "بدون فیلتر — همهٔ سفرها";
+    return parts.length ? "فیلتر فعال: " + parts.join(" · ") : "بدون فیلتر — همهٔ مأموریت‌ها";
   }
 
   function buildExportQuery() {
@@ -237,14 +238,14 @@
     document.querySelectorAll(".jalali-date-parts").forEach(syncJalaliHidden);
     const filters = getFilters();
     if (summary) summary.textContent = describeFilters(filters);
-    tbody.innerHTML = '<tr><td colspan="7">در حال بارگذاری…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7">در حال بارگذاری فهرست مأموریت‌ها…</td></tr>';
     try {
       if (typeof Api === "undefined" || !Api.report) {
         throw new Error("API در دسترس نیست");
       }
       const rows = await Api.report(filters);
       if (!rows || !rows.length) {
-        tbody.innerHTML = '<tr><td colspan="7">موردی با این فیلتر یافت نشد</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">مأموریتی با این فیلتر یافت نشد.</td></tr>';
         return;
       }
       tbody.innerHTML = rows
@@ -285,7 +286,7 @@
         .join("");
     } catch (e) {
       tbody.innerHTML =
-        '<tr><td colspan="7">خطا: ' + escapeHtml(e.message || String(e)) + "</td></tr>";
+        '<tr><td colspan="7">دریافت فهرست مأموریت‌ها ناموفق بود: ' + escapeHtml(e.message || String(e)) + "</td></tr>";
     }
   }
 

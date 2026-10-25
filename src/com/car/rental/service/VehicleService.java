@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Business logic for fleet / vehicles (cars and motorcycles).
@@ -15,9 +16,11 @@ import java.util.List;
 public class VehicleService {
 
     private final VehicleRepository vehicles;
+    private final SystemEventService systemEvents;
 
-    public VehicleService(VehicleRepository vehicles) {
+    public VehicleService(VehicleRepository vehicles, SystemEventService systemEvents) {
         this.vehicles = vehicles;
+        this.systemEvents = systemEvents;
     }
 
     public void addVehicle(String name, String plate, String color, String vehicleType) throws SQLException {
@@ -35,13 +38,19 @@ public class VehicleService {
         if (vehicles.isPlateTaken(normalizedPlate, null)) {
             throw new SQLException("این پلاک قبلاً ثبت شده است");
         }
-        vehicles.addVehicle(name.strip(), normalizedPlate, color.strip(), type);
+        Map<String, ?> details = Map.of("new", Map.of("name",name.strip(),"plate",normalizedPlate,"color",color.strip(),"type",type));
+        systemEvents.inTransaction(
+                new SystemEventService.EventSpec("ناوگان", "ثبت وسیله", "وسیله جدید ثبت شد", "وسیله", normalizedPlate, details),
+                new SystemEventService.EventSpec("ناوگان", "ثبت وسیله", "ثبت وسیله انجام نشد", "وسیله", normalizedPlate),
+                conn -> { vehicles.addVehicle(conn, name.strip(), normalizedPlate, color.strip(), type); return null; });
     }
 
     public void updateVehicle(Vehicle vehicle, String oldPlate) throws SQLException {
         if (vehicle == null) {
             throw new IllegalArgumentException("vehicle is null");
         }
+        Vehicle before = null;
+        for (Vehicle existing : vehicles.listAllVehicles()) if (oldPlate.equals(existing.getPlate())) { before = existing; break; }
         String model = vehicle.getModel();
         String plate = vehicle.getPlate();
         String color = vehicle.getColor();
@@ -57,11 +66,22 @@ public class VehicleService {
         if (vehicles.isPlateTaken(normalizedPlate, oldPlate)) {
             throw new SQLException("این پلاک قبلاً برای وسیله دیگری ثبت شده است");
         }
-        vehicles.updateVehicle(vehicle, oldPlate);
+        Map<String, ?> details = Map.of("old", Map.of("name",before==null?"":before.getModel(),"plate",oldPlate,"color",before==null?"":before.getColor(),"type",before==null?"":before.getVehicleType()),
+                "new", Map.of("name",vehicle.getModel(),"plate",vehicle.getPlate(),"color",vehicle.getColor(),"type",vehicle.getVehicleType()));
+        systemEvents.inTransaction(
+                new SystemEventService.EventSpec("ناوگان", "ویرایش وسیله", "مشخصات وسیله ویرایش شد", "وسیله", vehicle.getPlate(), details),
+                new SystemEventService.EventSpec("ناوگان", "ویرایش وسیله", "ویرایش وسیله انجام نشد", "وسیله", vehicle.getPlate()),
+                conn -> { vehicles.updateVehicle(conn, vehicle, oldPlate); return null; });
     }
 
     public void deleteVehicle(String plate) throws SQLException {
-        vehicles.deleteVehicle(plate);
+        Vehicle before = null;
+        for (Vehicle existing : vehicles.listAllVehicles()) if (plate.equals(existing.getPlate())) { before = existing; break; }
+        Map<String, ?> details = Map.of("old", Map.of("name",before==null?"":before.getModel(),"plate",plate,"color",before==null?"":before.getColor(),"type",before==null?"":before.getVehicleType()));
+        systemEvents.inTransaction(
+                new SystemEventService.EventSpec("ناوگان", "حذف وسیله", "وسیله حذف شد", "وسیله", plate, details),
+                new SystemEventService.EventSpec("ناوگان", "حذف وسیله", "حذف وسیله انجام نشد", "وسیله", plate),
+                conn -> { vehicles.deleteVehicle(conn, plate); return null; });
     }
 
     public List<Vehicle> getAvailableVehicles() throws SQLException {

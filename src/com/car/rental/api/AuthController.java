@@ -8,7 +8,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.car.rental.service.SystemEventService;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -31,13 +32,16 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
+    private final SystemEventService systemEvents;
 
     public AuthController(
             AuthenticationManager authenticationManager,
-            SecurityContextRepository securityContextRepository
+            SecurityContextRepository securityContextRepository,
+            SystemEventService systemEvents
     ) {
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
+        this.systemEvents = systemEvents;
     }
 
     public record LoginRequest(String username, String password) {
@@ -66,6 +70,7 @@ public class AuthController {
             context.setAuthentication(auth);
             SecurityContextHolder.setContext(context);
             securityContextRepository.saveContext(context, request, response);
+            systemEvents.recordAs(auth.getName(), "ورود", "ورود مدیر", "موفق", "ورود مدیر با موفقیت انجام شد", "مدیر", auth.getName());
 
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("ok", true);
@@ -74,7 +79,8 @@ public class AuthController {
                     .map(a -> a.getAuthority())
                     .collect(Collectors.toList()));
             return ResponseEntity.ok(payload);
-        } catch (BadCredentialsException ex) {
+        } catch (AuthenticationException ex) {
+            systemEvents.recordAs(body.username().strip(), "ورود", "ورود مدیر", "ناموفق", "ورود مدیر ناموفق بود", "مدیر", body.username().strip());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ApiError("نام کاربری یا رمز عبور نادرست است", 401));
         }

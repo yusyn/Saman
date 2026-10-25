@@ -155,6 +155,30 @@ public class SchemaInitializer implements ApplicationRunner {
                     ")";
             stmt.execute(appUserTable);
 
+            stmt.execute("CREATE TABLE IF NOT EXISTS SystemEvent (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "occurred_at TEXT NOT NULL DEFAULT (datetime('now','localtime')), " +
+                    "category TEXT NOT NULL, event_type TEXT NOT NULL, result TEXT NOT NULL " +
+                    "CHECK(result IN ('موفق','ناموفق')), description TEXT NOT NULL, " +
+                    "actor TEXT, entity_type TEXT, entity_id TEXT, details_json TEXT)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_system_event_time ON SystemEvent(occurred_at DESC, id DESC)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_system_event_category_type ON SystemEvent(category, event_type)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_system_event_result ON SystemEvent(result)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_system_event_actor ON SystemEvent(actor)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_system_event_entity ON SystemEvent(entity_type, entity_id)");
+            stmt.execute("CREATE TABLE IF NOT EXISTS DeviceOperation (" +
+                    "operation_id TEXT PRIMARY KEY, operation_type TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT, " +
+                    "actor TEXT, state TEXT NOT NULL CHECK(state IN ('PENDING','DEVICE_SUCCEEDED','DB_COMMITTED','COMPLETED','FAILED','RECONCILIATION_REQUIRED')), " +
+                    "device_succeeded INTEGER NOT NULL DEFAULT -1, note TEXT, " +
+                    "details_json TEXT NOT NULL DEFAULT '{}', " +
+                    "created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')), " +
+                    "updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')))");
+            ensureColumn(conn, "DeviceOperation", "details_json", "ALTER TABLE DeviceOperation ADD COLUMN details_json TEXT NOT NULL DEFAULT '{}'");
+            stmt.execute("UPDATE DeviceOperation SET device_succeeded=-1 WHERE state='PENDING' AND device_succeeded=0");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_device_operation_state ON DeviceOperation(state, updated_at DESC)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_device_operation_entity ON DeviceOperation(entity_type, entity_id, state)");
+            stmt.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_operation_open_entity ON DeviceOperation(entity_type, entity_id) WHERE state NOT IN ('COMPLETED','FAILED')");
+
             migrateCarTableToVehicleTable(conn);
             ensureVehicleTypeColumn(conn);
             ensureVehicleHistoryColumns(conn);

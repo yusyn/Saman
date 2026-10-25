@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import com.car.rental.service.SystemEventService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,6 +41,8 @@ public class FingerprintController {
     private final FingerprintProperties props;
     private final FingerprintDeviceGate deviceGate;
     private final EmployeeService employeeService;
+    private final SystemEventService systemEvents;
+    private final AtomicReference<Boolean> lastConnectionState = new AtomicReference<>();
 
     /** Active verify future — cancel-listen completes it so the device gate is released promptly. */
     private final AtomicReference<CompletableFuture<VerificationResult>> activeVerify =
@@ -48,28 +51,35 @@ public class FingerprintController {
     public FingerprintController(FingerprintService fingerprintService,
                                  FingerprintProperties props,
                                  FingerprintDeviceGate deviceGate,
-                                 EmployeeService employeeService) {
+                                 EmployeeService employeeService,
+                                 SystemEventService systemEvents) {
         this.fingerprintService = fingerprintService;
         this.props = props;
         this.deviceGate = deviceGate;
         this.employeeService = employeeService;
+        this.systemEvents = systemEvents;
     }
 
     /** Probe the terminal while holding the same gate used by enroll and verify. */
     @GetMapping("/status")
     public ConnectionStatus connectionStatus() {
+        boolean connected;
         try {
-            return deviceGate.call(() -> {
+            connected = deviceGate.call(() -> {
                 try {
                     fingerprintService.connect();
-                    return new ConnectionStatus(fingerprintService.isConnected());
+                    return fingerprintService.isConnected();
                 } finally {
                     fingerprintService.disconnect();
                 }
             });
         } catch (Exception e) {
-            return new ConnectionStatus(false);
+            connected = false;
         }
+        Boolean previous = lastConnectionState.getAndSet(connected);
+        if (previous != null && previous != connected) systemEvents.record("دستگاه اثرانگشت", connected ? "اتصال دستگاه" : "قطع اتصال دستگاه",
+                connected ? "موفق" : "ناموفق", connected ? "ارتباط دستگاه اثرانگشت برقرار شد" : "ارتباط دستگاه اثرانگشت قطع شد", "دستگاه", null);
+        return new ConnectionStatus(connected);
     }
 
     @PostMapping("/verify")
@@ -99,6 +109,7 @@ public class FingerprintController {
                     VerificationResult result = future.get(timeoutSeconds + 10L, TimeUnit.SECONDS);
                     VerificationResponse response = VerificationResponse.from(result);
                     enrichWithEmployee(response);
+                    systemEvents.record("دستگاه اثرانگشت", "احراز هویت", "موفق", "احراز هویت اثرانگشتی موفق بود", "کارمند", result == null ? null : result.getDeviceUserId());
                     return response;
                 } catch (TimeoutException e) {
                     fingerprintService.cancelListen();
