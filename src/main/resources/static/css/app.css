@@ -97,6 +97,30 @@ body {
 
 .view { display: none; }
 .view.active { display: block; }
+.icon-definitions { position: absolute; width: 0; height: 0; overflow: hidden; }
+.fingerprint-status {
+  position: fixed;
+  z-index: 20;
+  left: 1rem;
+  bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .65rem;
+  border: 1px solid #35445b;
+  border-radius: 999px;
+  background: #111a28;
+  color: #dbe5f2;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .3);
+  font-size: .78rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.fingerprint-status[hidden] { display: none; }
+.fingerprint-status-icon { width: 1.1rem; height: 1.1rem; color: #aabbd2; flex: 0 0 auto; }
+.fingerprint-status-dot { width: .48rem; height: .48rem; border-radius: 50%; background: #aabbd2; flex: 0 0 auto; }
+.fingerprint-status.is-connected .fingerprint-status-dot { background: var(--ok); box-shadow: 0 0 7px rgba(34, 197, 94, .55); }
+.fingerprint-status.is-disconnected .fingerprint-status-dot { background: var(--danger); box-shadow: 0 0 7px rgba(239, 68, 68, .45); }
 
 .cards {
   display: grid;
@@ -134,7 +158,8 @@ body {
 .kpi-value { font-size: 2rem; line-height: 1.2; }
 .kpi-label { color: var(--muted); font-size: 0.88rem; }
 .kpi-breakdown { display: flex; gap: 1rem; font-size: 0.9rem; }
-.kpi-breakdown span { white-space: nowrap; }
+.kpi-breakdown span { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; }
+.kpi-vehicle-icon { width: 1.05rem; height: 1.05rem; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
 .kpi-breakdown b { font-weight: 700; }
 .kpi-available { border-top-color: var(--ok); }
 .kpi-available .kpi-value { color: var(--ok); }
@@ -353,21 +378,12 @@ th { color: var(--muted); font-weight: 600; }
   display: inline-block;
   width: 1.4rem;
   height: 1.4rem;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   vertical-align: middle;
-  font-size: 0 !important;
-  color: transparent !important;
-  line-height: 0;
-  overflow: hidden;
-  filter: invert(1) brightness(1.05);
-}
-.vtype-car {
-  background-image: url("/icons/car.svg");
-}
-.vtype-moto {
-  background-image: url("/icons/motorcycle.svg");
 }
 .col-type { text-align: center !important; width: 3rem; }
 

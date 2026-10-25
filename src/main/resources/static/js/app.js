@@ -15,6 +15,28 @@
   let pickupAuth = null;
   let returnAuth = null;
   let sessionUser = null;
+  const fingerprintStatusEl = $("#fingerprintStatus");
+  let fingerprintStatusRequest = false;
+
+  async function refreshFingerprintStatus() {
+    if (fingerprintStatusRequest) return;
+    fingerprintStatusRequest = true;
+    try {
+      const status = await Api.fingerprintStatus();
+      fingerprintStatusEl.classList.toggle("is-connected", !!status.connected);
+      fingerprintStatusEl.classList.toggle("is-disconnected", !status.connected);
+      fingerprintStatusEl.classList.remove("is-unknown");
+      fingerprintStatusEl.querySelector(".fingerprint-status-label").textContent = status.connected
+        ? "دستگاه اثرانگشت: متصل"
+        : "دستگاه اثرانگشت: قطع";
+    } catch (_) {
+      fingerprintStatusEl.classList.remove("is-connected", "is-unknown");
+      fingerprintStatusEl.classList.add("is-disconnected");
+      fingerprintStatusEl.querySelector(".fingerprint-status-label").textContent = "دستگاه اثرانگشت: قطع";
+    } finally {
+      fingerprintStatusRequest = false;
+    }
+  }
 
   function toast(message, type = "ok") {
     toastEl.textContent = message;
@@ -62,9 +84,9 @@
 
   function vehicleTypeIcon(type) {
     if (isMotorcycleType(type)) {
-      return '<span class="vtype-icon vtype-moto" title="موتور" aria-label="موتور">🏍</span>';
+      return '<svg class="vtype-icon vtype-moto" viewBox="0 0 24 24" fill="none" title="موتور" aria-label="موتور"><use href="#icon-motorcycle" /></svg>';
     }
-    return '<span class="vtype-icon vtype-car" title="ماشین" aria-label="ماشین">🚗</span>';
+    return '<svg class="vtype-icon vtype-car" viewBox="0 0 24 24" fill="none" title="ماشین" aria-label="ماشین"><use href="#icon-car" /></svg>';
   }
 
   function parsePlate(plate) {
@@ -231,6 +253,8 @@
   });
 
   function showView(name) {
+    fingerprintStatusEl.hidden = name !== "dashboard" && name !== "employees" && name !== "rentals";
+    if (!fingerprintStatusEl.hidden) refreshFingerprintStatus();
     document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
     const view = document.getElementById("view-" + name);
     if (view) view.classList.add("active");
@@ -246,6 +270,11 @@
     if (name === "rentals") loadAvailablePlates();
     if (name === "report") loadReport();
   }
+
+  refreshFingerprintStatus();
+  window.setInterval(() => {
+    if (!fingerprintStatusEl.hidden) refreshFingerprintStatus();
+  }, 10000);
 
   document.getElementById("nav").addEventListener("click", (e) => {
     const btn = e.target.closest(".nav-item");

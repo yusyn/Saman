@@ -133,6 +133,7 @@ const Api = (() => {
 
   return {
     health: () => request("/api/health", { timeoutMs: 8000 }),
+    fingerprintStatus: () => request("/api/fingerprint/status", { timeoutMs: 10000 }),
     login: (username, password) =>
       request("/api/auth/login", {
         method: "POST",

@@ -11,6 +11,7 @@ import com.car.rental.service.FingerprintException;
 import com.car.rental.service.FingerprintService;
 import com.car.rental.service.VerificationResult;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,6 +27,12 @@ import java.util.logging.Logger;
 @RestController
 @RequestMapping("/api/fingerprint")
 public class FingerprintController {
+
+    public static class ConnectionStatus {
+        private final boolean connected;
+        public ConnectionStatus(boolean connected) { this.connected = connected; }
+        public boolean isConnected() { return connected; }
+    }
 
     private static final Logger log = Logger.getLogger(FingerprintController.class.getName());
 
@@ -46,6 +53,23 @@ public class FingerprintController {
         this.props = props;
         this.deviceGate = deviceGate;
         this.employeeService = employeeService;
+    }
+
+    /** Probe the terminal while holding the same gate used by enroll and verify. */
+    @GetMapping("/status")
+    public ConnectionStatus connectionStatus() {
+        try {
+            return deviceGate.call(() -> {
+                try {
+                    fingerprintService.connect();
+                    return new ConnectionStatus(fingerprintService.isConnected());
+                } finally {
+                    fingerprintService.disconnect();
+                }
+            });
+        } catch (Exception e) {
+            return new ConnectionStatus(false);
+        }
     }
 
     @PostMapping("/verify")

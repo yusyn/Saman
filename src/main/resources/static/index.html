@@ -10,6 +10,16 @@
   <link rel="stylesheet" href="/css/vehicle-history.css" />
 </head>
 <body>
+  <svg class="icon-definitions" aria-hidden="true" focusable="false">
+    <symbol id="icon-car" viewBox="0 0 24 24">
+      <path d="M5 11l1.4-4.2A2 2 0 0 1 8.3 5.5h7.4a2 2 0 0 1 1.9 1.3L19 11l1.4 1.2a1.8 1.8 0 0 1 .6 1.4V18h-2v-2H5v2H3v-4.4a1.8 1.8 0 0 1 .6-1.4L5 11zM6.2 11h11.6M6.5 13.5h.1m10.8 0h.1" />
+    </symbol>
+    <symbol id="icon-motorcycle" viewBox="0 0 24 24">
+      <circle cx="6" cy="16.5" r="3" />
+      <circle cx="18" cy="16.5" r="3" />
+      <path d="M6 16.5l3.5-6h3l3.5 6h-5l-2-3.5m4-2.5h2l2 2.5m-9-2.5H6m8-2h2" />
+    </symbol>
+  </svg>
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
@@ -44,6 +54,14 @@
 
       <div id="toast" class="toast hidden" role="status"></div>
 
+      <div id="fingerprintStatus" class="fingerprint-status is-unknown" role="status" aria-live="polite">
+        <svg class="fingerprint-status-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 11a2 2 0 0 0-2 2c0 3.2-.4 5.2-1.2 7M14 13c0 2.5-.2 4.5-.7 6.5M6.8 18.5c.8-1.7 1.2-3.6 1.2-5.5a4 4 0 0 1 8 0c0 1.1 0 2.1-.1 3.1M5 15.5c.2-.8.3-1.7.3-2.5a6.7 6.7 0 0 1 13.4 0c0 .5 0 1-.1 1.5M9 5.2A8.7 8.7 0 0 1 20.7 13M4 12a8 8 0 0 1 2.2-5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="fingerprint-status-label">دستگاه اثرانگشت: بررسی وضعیت</span>
+        <span class="fingerprint-status-dot" aria-hidden="true"></span>
+      </div>
+
       <section class="view active" id="view-dashboard">
         <div class="dashboard-toolbar">
           <span id="dashboardUpdatedAt" class="muted small" aria-live="polite">در انتظار دریافت آمار…</span>
@@ -55,25 +73,25 @@
             <h3>کل وسایل فعال</h3>
             <strong class="kpi-value" id="kpiTotal">—</strong>
             <span class="kpi-label" id="kpiTotalLabel">وسیله فعال</span>
-            <div class="kpi-breakdown"><span>🚗 <b id="kpiTotalCars">—</b></span><span>🛵 <b id="kpiTotalMotorcycles">—</b></span></div>
+            <div class="kpi-breakdown"><span><svg class="kpi-vehicle-icon" aria-hidden="true"><use href="#icon-car" /></svg><b id="kpiTotalCars">—</b></span><span><svg class="kpi-vehicle-icon" aria-hidden="true"><use href="#icon-motorcycle" /></svg><b id="kpiTotalMotorcycles">—</b></span></div>
           </article>
           <article class="card kpi-card kpi-available">
             <h3>آزاد و آماده تحویل</h3>
             <strong class="kpi-value" id="kpiAvailable">—</strong>
             <span class="kpi-label" id="kpiAvailableLabel">وسیله آزاد</span>
-            <div class="kpi-breakdown"><span>🚗 <b id="kpiAvailableCars">—</b></span><span>🛵 <b id="kpiAvailableMotorcycles">—</b></span></div>
+            <div class="kpi-breakdown"><span><svg class="kpi-vehicle-icon" aria-hidden="true"><use href="#icon-car" /></svg><b id="kpiAvailableCars">—</b></span><span><svg class="kpi-vehicle-icon" aria-hidden="true"><use href="#icon-motorcycle" /></svg><b id="kpiAvailableMotorcycles">—</b></span></div>
           </article>
           <article class="card kpi-card kpi-mission">
             <h3>در مأموریت</h3>
             <strong class="kpi-value" id="kpiOnMission">—</strong>
             <span class="kpi-label" id="kpiOnMissionLabel">وسیله در مأموریت</span>
-            <div class="kpi-breakdown"><span>🚗 <b id="kpiMissionCars">—</b></span><span>🛵 <b id="kpiMissionMotorcycles">—</b></span></div>
+            <div class="kpi-breakdown"><span><svg class="kpi-vehicle-icon" aria-hidden="true"><use href="#icon-car" /></svg><b id="kpiMissionCars">—</b></span><span><svg class="kpi-vehicle-icon" aria-hidden="true"><use href="#icon-motorcycle" /></svg><b id="kpiMissionMotorcycles">—</b></span></div>
           </article>
           <article class="card kpi-card kpi-repair">
             <h3>در تعمیر</h3>
             <strong class="kpi-value" id="kpiInRepair">—</strong>
             <span class="kpi-label" id="kpiInRepairLabel">وسیله در تعمیر</span>
-            <div class="kpi-breakdown"><span>🚗 <b id="kpiRepairCars">—</b></span><span>🛵 <b id="kpiRepairMotorcycles">—</b></span></div>
+            <div class="kpi-breakdown"><span><svg class="kpi-vehicle-icon" aria-hidden="true"><use href="#icon-car" /></svg><b id="kpiRepairCars">—</b></span><span><svg class="kpi-vehicle-icon" aria-hidden="true"><use href="#icon-motorcycle" /></svg><b id="kpiRepairMotorcycles">—</b></span></div>
           </article>
         </div>
         <section class="card dashboard-active-list" aria-labelledby="activeRentalsTitle">
@@ -112,8 +130,8 @@
             <form id="formCar" class="form" requires-auth>
               <fieldset class="type-select">
                 <legend>نوع وسیله</legend>
-                <label class="radio-inline"><input type="radio" name="vehicleType" value="CAR" checked /> 🚗 ماشین</label>
-                <label class="radio-inline"><input type="radio" name="vehicleType" value="MOTORCYCLE" /> 🏍 موتور</label>
+                <label class="radio-inline"><input type="radio" name="vehicleType" value="CAR" checked /> <svg class="vtype-icon vtype-car" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="#icon-car" /></svg> ماشین</label>
+                <label class="radio-inline"><input type="radio" name="vehicleType" value="MOTORCYCLE" /> <svg class="vtype-icon vtype-moto" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="#icon-motorcycle" /></svg> موتور</label>
               </fieldset>
               <label>نام / مدل<input name="name"/></label>
               <label>پلاک
@@ -289,8 +307,8 @@
         <input type="hidden" id="editCarOldPlate" />
         <fieldset class="type-select">
           <legend>نوع وسیله</legend>
-          <label class="radio-inline"><input type="radio" name="editVehicleType" value="CAR" checked /> 🚗 ماشین</label>
-          <label class="radio-inline"><input type="radio" name="editVehicleType" value="MOTORCYCLE" /> 🏍 موتور</label>
+          <label class="radio-inline"><input type="radio" name="editVehicleType" value="CAR" checked /> <svg class="vtype-icon vtype-car" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="#icon-car" /></svg> ماشین</label>
+          <label class="radio-inline"><input type="radio" name="editVehicleType" value="MOTORCYCLE" /> <svg class="vtype-icon vtype-moto" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="#icon-motorcycle" /></svg> موتور</label>
         </fieldset>
         <label>نام / مدل<input id="editCarName" required /></label>
         <label>پلاک
