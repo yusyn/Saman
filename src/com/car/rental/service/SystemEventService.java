@@ -55,31 +55,42 @@ public class SystemEventService {
 
     public <T> T inTransaction(EventSpec success, EventSpec failure, SqlWork<T> work,
                                Predicate<T> shouldRecordSuccess) throws SQLException {
+        Throwable primaryFailure = null;
+        T result = null;
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             try {
-                T value = work.execute(connection);
-                if (shouldRecordSuccess.test(value)) {
+                result = work.execute(connection);
+                if (shouldRecordSuccess.test(result)) {
                     record(connection, success.category(), success.type(), "موفق", success.description(),
                             success.entityType(), success.entityId(), success.details());
                 }
                 connection.commit();
-                return value;
-            } catch (SQLException | RuntimeException e) {
-                try { connection.rollback(); } catch (SQLException rollback) { e.addSuppressed(rollback); }
-                if (e instanceof SQLException sql) {
-                    recordFailureSafely(failure, sql);
-                    throw new AuditedOperationException(sql);
+                return result;
+            } catch (Throwable t) {
+                primaryFailure = t;
+                try {
+                    connection.rollback();
+                } catch (SQLException rollback) {
+                    primaryFailure.addSuppressed(rollback);
                 }
-                recordFailureSafely(failure, e);
-                throw e;
             }
-        } catch (AuditedOperationException e) {
-            throw e;
-        } catch (SQLException e) {
-            recordFailureSafely(failure, e);
-            throw new AuditedOperationException(e);
+        } // Connection is guaranteed closed and returned to HikariCP pool here
+
+        if (primaryFailure != null) {
+            recordFailureSafely(failure, primaryFailure);
+            if (primaryFailure instanceof SQLException sql) {
+                throw new AuditedOperationException(sql);
+            }
+            if (primaryFailure instanceof RuntimeException re) {
+                throw re;
+            }
+            if (primaryFailure instanceof Error err) {
+                throw err;
+            }
+            throw new AuditedOperationException(new SQLException(primaryFailure));
         }
+        return result;
     }
 
     public void recordFailureSafely(EventSpec event, Throwable primaryFailure) {
