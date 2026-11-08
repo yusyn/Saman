@@ -29,6 +29,10 @@ public class LoginRateLimiter {
 
         long cutoff = Instant.now().toEpochMilli() - windowMillis;
         timestamps.removeIf(t -> t < cutoff);
+        if (timestamps.isEmpty()) {
+            attempts.remove(key, timestamps);
+            return false;
+        }
         return timestamps.size() >= maxAttempts;
     }
 

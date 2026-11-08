@@ -94,6 +94,7 @@ public class SystemEventService {
     }
 
     public void recordFailureSafely(EventSpec event, Throwable primaryFailure) {
+        if (event == null) return;
         try {
             record(event.category(), event.type(), "ناموفق", event.description(), event.entityType(),
                     event.entityId(), event.details());

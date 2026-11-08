@@ -32,7 +32,7 @@ public class EmployeeRepository {
 
     public String getNextDeviceUserId() throws SQLException {
         String sql = "SELECT COALESCE(MAX(CAST(device_user_id AS INTEGER)), 1000) AS max_id " +
-                     "FROM EmployeeTable WHERE device_user_id GLOB '[0-9]*'";
+                     "FROM EmployeeTable WHERE device_user_id GLOB '[0-9]*' AND device_user_id NOT GLOB '*[^0-9]*'";
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
