@@ -81,7 +81,7 @@ public class VehicleController {
         if (existing == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "وسیله یافت نشد: " + oldPlate);
         }
-        if (isOnMission(existing.getStatus())) {
+        if (isOnMission(existing)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "وسیله در مأموریت است و قابل ویرایش نیست");
         }
@@ -114,7 +114,7 @@ public class VehicleController {
         if (existing == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "وسیله یافت نشد: " + p);
         }
-        if (isOnMission(existing.getStatus())) {
+        if (isOnMission(existing)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "وسیله در مأموریت است و قابل حذف نیست");
         }
@@ -126,10 +126,7 @@ public class VehicleController {
         return vehicleService.findVehicleByPlate(plate);
     }
 
-    private static boolean isOnMission(String status) {
-        if (status == null) {
-            return false;
-        }
-        return status.contains("مأموریت") || status.contains("ماموریت");
+    static boolean isOnMission(Vehicle vehicle) {
+        return vehicle != null && vehicle.isRented();
     }
 }

@@ -16,6 +16,7 @@ public class Vehicle {
     private String vehicleType;
     /** Comma-separated history badges from DB status_flags */
     private String statusFlags;
+    private boolean rented;
 
     /** Standard order: model, plate, color, vehicleType */
     public Vehicle(String model, String plate, String color, String vehicleType) {
@@ -91,6 +92,14 @@ public class Vehicle {
 
     public String getStatusFlags() {
         return statusFlags;
+    }
+
+    public boolean isRented() {
+        return rented;
+    }
+
+    public void setRented(boolean rented) {
+        this.rented = rented;
     }
 
     public void setStatusFlags(String statusFlags) {
