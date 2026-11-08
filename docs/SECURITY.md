@@ -4,7 +4,7 @@
 
 - روش: **Session cookie** (`SAMANSESSION`) + Spring Security 6
 - نقش: حداقل `ROLE_ADMIN` برای تمام عملیات تغییردهنده (POST/PUT/PATCH/DELETE)
-- ورود: `POST /api/auth/login` با JSON `{ "username", "password" }` → ایجاد session
+- ورود: `POST /api/auth/login` با JSON `{ "username", "password" }` → ایجاد session (دارای Rate Limiter: حداکثر ۵ تلاش ناموفق در هر ۵ دقیقه به ازای IP و بازگشت 429)
 - خروج: `POST /api/auth/logout` → باطل کردن session
 - وضعیت: `GET /api/auth/me`
 - CSRF token: `GET /api/auth/csrf` یا کوکی `XSRF-TOKEN` + هدر `X-XSRF-TOKEN`
@@ -42,20 +42,25 @@ export SPRING_PROFILES_ACTIVE=dev
 
 | مسیر | توضیح |
 |------|--------|
-| `/`, `/index.html`, `/css/**`, `/js/**`, `/icons/**`, `/favicon.svg` | UI استاتیک |
+| `/`, `/index.html`, `/css/**`, `/js/**`, `/icons/**`, `/favicon.svg`, `/favicon.ico` | UI استاتیک |
 | `GET /api/health` | سلامت |
-| `GET /api/vehicles/**` | خواندن ناوگان و سابقه |
-| `GET /api/employees/**` | خواندن کارمندان |
-| `GET /api/rentals/**` | گزارش و rental فعال |
-| `POST /api/auth/login` | ورود |
+| `GET /api/vehicles/**` | خواندن کاتالوگ عمومی ناوگان (به‌جز history) |
+| `POST /api/auth/login` | ورود (محدود به ۵ تلاش ناموفق در ۵ دقیقه به ازای IP) |
 | `GET /api/auth/csrf`, `GET /api/auth/me` | کمکی auth |
 | `POST /api/auth/logout` | خروج (بدون session هم 200 امن) |
 
 ## مسیرهای محافظت‌شده
 
-تمام `POST` / `PUT` / `PATCH` / `DELETE` زیر `/api/**` نیازمند احراز هویت `ROLE_ADMIN` و CSRF معتبر:
+### نیازمند احراز هویت (`authenticated`)
+- `GET /api/employees/**`: خواندن اطلاعات و فهرست کارمندان
+- `GET /api/rentals/**`: گزارش و وضعیت اجاره‌های فعال
+- `GET /api/vehicles/history/**`: سابقه تغییرات خودروها
 
-- خودرو، کارمند، اجاره، سابقه، اثرانگشت، seed (فقط dev)
+### نیازمند دسترسی مدیر (`ROLE_ADMIN`)
+- تمام متدهای زیر `/api/admin-users/**`
+- `GET /api/system-events/**`: مشاهده وقایع سیستم
+- `GET /api/device-operations/**`: مشاهده وقایع دستگاه اثرانگشت
+- تمام متدهای تغییردهنده (`POST` / `PUT` / `PATCH` / `DELETE`) زیر `/api/**` با اعتبارسنجی CSRF معتبر: خودرو، کارمند، اجاره، سابقه، اثرانگشت، seed (فقط dev)
 
 ## CSRF در UI
 
@@ -73,6 +78,6 @@ export SPRING_PROFILES_ACTIVE=dev
 - پشت HTTPS: `SAMAN_SESSION_SECURE=true`
 - Session fixation: `migrateSession`
 
-## تصمیم محصولی (باز)
+## امنیت داده‌های پرسنلی و اجاره
 
-داده‌های GET کارمندان و گزارش اجاره فعلاً عمومی‌اند تا UI بدون لاگین قابل مشاهده بماند. در صورت نیاز محصولی می‌توان آن‌ها را نیز محافظت کرد.
+دسترسی‌های `GET` برای کارمندان (`/api/employees/**`) و گزارش اجاره (`/api/rentals/**`) نیازمند احراز هویت هستند و بدون ورود کاربر در دسترس نخواهند بود تا حریم خصوصی پرسنل و اطلاعات قراردادها حفظ گردد.

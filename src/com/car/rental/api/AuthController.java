@@ -2,6 +2,7 @@ package com.car.rental.api;
 
 import com.car.rental.api.dto.ApiError;
 import com.car.rental.api.dto.OkResponse;
+import com.car.rental.security.LoginRateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -35,17 +36,20 @@ public class AuthController {
     private final SecurityContextRepository securityContextRepository;
     private final SystemEventService systemEvents;
     private final SessionRegistry sessionRegistry;
+    private final LoginRateLimiter rateLimiter;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             SecurityContextRepository securityContextRepository,
             SystemEventService systemEvents,
-            SessionRegistry sessionRegistry
+            SessionRegistry sessionRegistry,
+            LoginRateLimiter rateLimiter
     ) {
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.systemEvents = systemEvents;
         this.sessionRegistry = sessionRegistry;
+        this.rateLimiter = rateLimiter;
     }
 
     public record LoginRequest(String username, String password) {
@@ -57,6 +61,12 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
+        String clientIp = request.getRemoteAddr();
+        if (rateLimiter.isBlocked(clientIp)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(new ApiError("تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً چند دقیقه بعد دوباره امتحان کنید.", 429));
+        }
+
         if (body == null
                 || body.username() == null || body.username().isBlank()
                 || body.password() == null || body.password().isEmpty()) {
@@ -81,6 +91,8 @@ public class AuthController {
             sessionRegistry.registerNewSession(request.getSession(false).getId(), auth.getPrincipal());
             systemEvents.recordAs(auth.getName(), "ورود", "ورود مدیر", "موفق", "ورود مدیر با موفقیت انجام شد", "مدیر", auth.getName());
 
+            rateLimiter.recordSuccess(clientIp);
+
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("ok", true);
             payload.put("username", auth.getName());
@@ -89,6 +101,7 @@ public class AuthController {
                     .collect(Collectors.toList()));
             return ResponseEntity.ok(payload);
         } catch (AuthenticationException ex) {
+            rateLimiter.recordFailure(clientIp);
             systemEvents.recordAs(body.username().strip(), "ورود", "ورود مدیر", "ناموفق", "ورود مدیر ناموفق بود", "مدیر", body.username().strip());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ApiError("نام کاربری یا رمز عبور نادرست است", 401));
