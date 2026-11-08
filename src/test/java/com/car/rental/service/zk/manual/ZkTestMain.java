@@ -1,4 +1,7 @@
-package com.car.rental.service;
+package com.car.rental.service.zk.manual;
+
+import com.car.rental.service.FingerprintService;
+import com.car.rental.service.ZkFingerprintService;
 
 public class ZkTestMain {
     public static void main(String[] args) throws Exception {

@@ -118,6 +118,7 @@ public class VehicleRepository {
                         rs.getString("vehicle_type"),
                         rented ? "در مأموریت" : "آزاد"
                 );
+                v.setRented(rented);
                 v.setStatusFlags(rs.getString("status_flags"));
                 list.add(v);
             }
@@ -329,13 +330,15 @@ public class VehicleRepository {
         public String statusFlags;
 
         public Vehicle toVehicle() {
-            return new Vehicle(
+            Vehicle v = new Vehicle(
                     name,
                     plate,
                     color,
                     vehicleType,
                     rented ? "در مأموریت" : "آزاد"
             );
+            v.setRented(this.rented);
+            return v;
         }
     }
 }

@@ -88,12 +88,6 @@ public class VehicleHistoryService {
 
         List<String> badges = computeStatusBadges(row, serviceList, vehicleId);
 
-        // Persist computed flags for quick list views later
-        String flagsCsv = String.join(",", badges);
-        if (row.statusFlags == null || !row.statusFlags.equals(flagsCsv)) {
-            vehicles.updateStatusFlags(vehicleId, flagsCsv);
-        }
-
         VehicleHistoryDto dto = new VehicleHistoryDto();
         dto.setVehicle(VehicleDto.from(row.toVehicle()));
         dto.setVehicleId(vehicleId);

@@ -136,6 +136,7 @@ public class SchemaInitializer implements ApplicationRunner {
                 ")";
 
         try (Connection conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.execute("PRAGMA foreign_keys = ON;");
             stmt.execute(employeeTable);
             stmt.execute(vehicleTable);
             stmt.execute(carTableLegacy);

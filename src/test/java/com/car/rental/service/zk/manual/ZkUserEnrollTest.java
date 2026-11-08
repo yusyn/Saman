@@ -1,5 +1,6 @@
-package com.car.rental.service;
+package com.car.rental.service.zk.manual;
 
+import com.car.rental.service.FingerprintException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -183,7 +184,7 @@ public class ZkUserEnrollTest {
         System.arraycopy(idBytes, 0, data, 0, 24);
         data[24] = (byte) (fingerIndex & 0xFF);
         data[25] = 1; // flag used by pyzk
-
+  
         System.out.println("STARTENROLL payload: " + toHex(data));
         byte[] reply = sendCommand(CMD_STARTENROLL, data);
         int cmd = reply == null ? -1 : getCommand(reply);
