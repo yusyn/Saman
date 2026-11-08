@@ -31,28 +31,18 @@ public class EmployeeRepository {
     }
 
     public String getNextDeviceUserId() throws SQLException {
-        String sql = "SELECT device_user_id FROM EmployeeTable";
-        int max = DEVICE_USER_ID_START - 1;
+        String sql = "SELECT COALESCE(MAX(CAST(device_user_id AS INTEGER)), 1000) AS max_id " +
+                     "FROM EmployeeTable WHERE device_user_id GLOB '[0-9]*'";
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                String raw = rs.getString("device_user_id");
-                if (raw == null) continue;
-                try {
-                    int v = Integer.parseInt(raw.trim());
-                    if (v > max) {
-                        max = v;
-                    }
-                } catch (NumberFormatException ignored) {
-                }
+            int max = rs.next() ? rs.getInt("max_id") : 1000;
+            int next = Math.max(max + 1, DEVICE_USER_ID_START);
+            if (next > 65535) {
+                throw new SQLException("Device user id range exhausted (max 65535)");
             }
+            return String.valueOf(next);
         }
-        int next = Math.max(max + 1, DEVICE_USER_ID_START);
-        if (next > 65535) {
-            throw new SQLException("Device user id range exhausted (max 65535)");
-        }
-        return String.valueOf(next);
     }
 
     public void addEmployee(String deviceUserId, String name, String phone) throws SQLException {

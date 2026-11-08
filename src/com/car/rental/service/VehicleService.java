@@ -88,6 +88,12 @@ public class VehicleService {
         return vehicles.listAvailableVehicles();
     }
 
+    public Vehicle findVehicleByPlate(String plate) throws SQLException {
+        if (plate == null || plate.isBlank()) return null;
+        VehicleRepository.VehicleRow row = vehicles.findRowByPlate(plate.strip());
+        return row != null ? row.toVehicle() : null;
+    }
+
     public List<Vehicle> getAllVehicles() throws SQLException {
         return vehicles.listAllVehicles();
     }

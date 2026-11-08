@@ -123,12 +123,7 @@ public class VehicleController {
     }
 
     private Vehicle findByPlate(String plate) throws SQLException {
-        for (Vehicle v : vehicleService.getAllVehicles()) {
-            if (plate.equals(v.getPlate())) {
-                return v;
-            }
-        }
-        return null;
+        return vehicleService.findVehicleByPlate(plate);
     }
 
     private static boolean isOnMission(String status) {
