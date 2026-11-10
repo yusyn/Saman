@@ -146,3 +146,60 @@
   word-break: break-all;
   cursor: text;
 }
+
+
+/* Sticky table headers inside scrollable table wraps */
+.table-wrap.table-sticky-wrap {
+  position: relative;
+  max-height: 520px;
+}
+.table-wrap.table-sticky-wrap thead th {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 3;
+  box-shadow: 0 1px 0 var(--border);
+}
+
+/* System events table layout */
+.table-system-events {
+  table-layout: fixed;
+  width: 100%;
+}
+.table-system-events th:nth-child(1),
+.table-system-events td:nth-child(1) { width: 13%; white-space: nowrap; } /* زمان */
+
+.table-system-events th:nth-child(2),
+.table-system-events td:nth-child(2) { width: 13%; white-space: nowrap; } /* دسته / نوع */
+
+.table-system-events th:nth-child(3),
+.table-system-events td:nth-child(3) { width: 8%; white-space: nowrap; text-align: center; } /* نتیجه */
+
+/* شرح - چندخطی کامل، بدون قطع شدن با ... و بدون پنهان شدن */
+.table-system-events th:nth-child(4),
+.table-system-events td:nth-child(4) {
+  width: 32%;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+.event-desc-cell {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.6;
+  text-align: right;
+  max-width: 100%;
+}
+
+.table-system-events th:nth-child(5),
+.table-system-events td:nth-child(5) { width: 10%; white-space: nowrap; } /* عامل */
+
+.table-system-events th:nth-child(6),
+.table-system-events td:nth-child(6) {
+  width: 14%;
+  white-space: normal;
+  overflow: visible;
+} /* موجودیت */
+
+.table-system-events th:nth-child(7),
+.table-system-events td:nth-child(7) { width: 10%; text-align: center; white-space: nowrap; } /* جزئیات */

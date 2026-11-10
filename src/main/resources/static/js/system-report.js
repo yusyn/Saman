@@ -37,7 +37,7 @@
       <td dir="ltr">${escapeHtml(e.occurredAt || "—")}</td>
       <td>${escapeHtml(e.category)}<br><span class="muted small">${escapeHtml(e.eventType)}</span></td>
       <td>${resultBadge(e.result)}</td>
-      <td>${escapeHtml(e.description)}</td>
+      <td><div class="event-desc-cell">${escapeHtml(e.description)}</div></td>
       <td>${escapeHtml(e.actor || "—")}</td>
       <td>${escapeHtml((e.entityType || "") + (e.entityId ? " · " + e.entityId : ""))}</td>
       <td dir="ltr">${formatDetails(e.detailsJson)}</td>
