@@ -86,10 +86,14 @@
       message.textContent=total?"تعداد رویدادهای منطبق: "+total:"رویدادی با این فیلتر یافت نشد.";
       $("#systemEventPageInfo").textContent=count+" از "+total;
       $("#btnOlderSystemEvents").disabled=count>=total;
+      const btnTop = $("#btnBackToTopSystemEvents");
+      if (btnTop) btnTop.disabled = page === 0;
     } catch(e) {
       if(!append) $("#systemEventTable").innerHTML='<tr><td colspan="7">دریافت گزارش سیستم ناموفق بود.</td></tr>';
       message.textContent=e.status===401||e.status===403?"برای مشاهدهٔ گزارش سیستم باید با حساب مدیر وارد شوید.":(e.message||"خطا در دریافت گزارش سیستم");
       $("#systemEventPageInfo").textContent="";
+      const btnTop = $("#btnBackToTopSystemEvents");
+      if (btnTop) btnTop.disabled = true;
     } finally {
       if (spinner) spinner.classList.add("hidden");
       busy=false;
@@ -102,6 +106,8 @@
     $("#btnRefreshSystemEvents").addEventListener("click", () => { load(false); loadPendingDeviceOperations(); });
     $("#btnClearSystemEvents").addEventListener("click",()=>{form.reset();load(false);});
     $("#btnOlderSystemEvents").addEventListener("click",()=>{page++;load(true);});
+    const btnTop = $("#btnBackToTopSystemEvents");
+    if (btnTop) btnTop.addEventListener("click", () => load(false));
     document.addEventListener("click", function(e) {
       const cell = e.target.closest(".details-cell");
       if (!cell) return;
