@@ -327,7 +327,10 @@
             <label>شرح یا شناسه<input id="eventSearch" /></label>
             <div class="form-actions"><button class="btn btn-primary" type="submit">اعمال فیلتر</button><button class="btn btn-ghost" type="button" id="btnClearSystemEvents">پاک‌کردن فیلترها</button></div>
           </form>
-          <p id="systemEventMessage" class="muted small" aria-live="polite"></p>
+          <div class="report-status-row">
+            <span class="spinner hidden" id="systemEventSpinner" aria-hidden="true"></span>
+            <p id="systemEventMessage" class="muted small" aria-live="polite"></p>
+          </div>
           <section aria-labelledby="pendingDeviceOperationsTitle">
             <h4 id="pendingDeviceOperationsTitle">عملیات دستگاه نیازمند بررسی</h4>
             <p id="pendingDeviceOperationsMessage" class="muted small" aria-live="polite"></p>

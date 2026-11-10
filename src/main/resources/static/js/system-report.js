@@ -47,6 +47,8 @@
   }
   async function load(append=false) {
     if (busy) return; busy=true;
+    const spinner = $("#systemEventSpinner");
+    if (spinner) spinner.classList.remove("hidden");
     const message=$("#systemEventMessage"); message.textContent="در حال بارگذاری رویدادها…";
     if(!append) { page=0; $("#systemEventTable").innerHTML='<tr><td colspan="7">در حال بارگذاری…</td></tr>'; }
     try {
@@ -60,7 +62,10 @@
       if(!append) $("#systemEventTable").innerHTML='<tr><td colspan="7">دریافت گزارش سیستم ناموفق بود.</td></tr>';
       message.textContent=e.status===401||e.status===403?"برای مشاهدهٔ گزارش سیستم باید با حساب مدیر وارد شوید.":(e.message||"خطا در دریافت گزارش سیستم");
       $("#systemEventPageInfo").textContent="";
-    } finally { busy=false; }
+    } finally {
+      if (spinner) spinner.classList.add("hidden");
+      busy=false;
+    }
   }
   window.loadSystemEvents=()=>load(false);
   document.addEventListener("DOMContentLoaded",()=>{
