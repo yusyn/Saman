@@ -96,7 +96,8 @@
 }
 
 #reportFilterSummary {
-  margin: 0 0 0.6rem;
+  margin: 0;
+  align-self: center;
 }
 #reportFiltersHost .mission-filters,
 #systemEventFilters.report-filter-grid {
@@ -112,12 +113,6 @@
   gap: 0.5rem;
   align-items: center;
 }
-
-#reportFilterSummary {
-  margin: 0;
-  align-self: center;
-}
-
 
 .report-status-row {
   display: flex;
