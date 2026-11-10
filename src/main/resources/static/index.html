@@ -327,14 +327,17 @@
             <label>شرح یا شناسه<input id="eventSearch" /></label>
             <div class="form-actions"><button class="btn btn-primary" type="submit">اعمال فیلتر</button><button class="btn btn-ghost" type="button" id="btnClearSystemEvents">پاک‌کردن فیلترها</button></div>
           </form>
-          <p id="systemEventMessage" class="muted small" aria-live="polite"></p>
+          <div class="report-status-row">
+            <span class="spinner hidden" id="systemEventSpinner" aria-hidden="true"></span>
+            <p id="systemEventMessage" class="muted small" aria-live="polite"></p>
+          </div>
           <section aria-labelledby="pendingDeviceOperationsTitle">
             <h4 id="pendingDeviceOperationsTitle">عملیات دستگاه نیازمند بررسی</h4>
             <p id="pendingDeviceOperationsMessage" class="muted small" aria-live="polite"></p>
             <div class="table-wrap"><table><thead><tr><th>شناسهٔ پیگیری</th><th>عملیات</th><th>موجودیت</th><th>وضعیت دفتر</th><th>نتیجهٔ دستگاه</th><th>شرح</th><th>جزئیات امن</th><th>آخرین به‌روزرسانی</th></tr></thead><tbody id="pendingDeviceOperationsTable"></tbody></table></div>
           </section>
           <div class="table-wrap"><table><thead><tr><th>زمان</th><th>دسته / نوع</th><th>نتیجه</th><th>شرح</th><th>عامل</th><th>موجودیت</th><th>جزئیات</th></tr></thead><tbody id="systemEventTable"></tbody></table></div>
-          <div class="card-head"><button type="button" class="btn btn-ghost" id="btnOlderSystemEvents">رویدادهای قدیمی‌تر</button><span id="systemEventPageInfo" class="muted small"></span></div>
+          <div class="card-head"><button type="button" class="btn btn-ghost" id="btnBackToTopSystemEvents" disabled>بازگشت به ابتدا</button><button type="button" class="btn btn-ghost" id="btnOlderSystemEvents">رویدادهای قدیمی‌تر</button><span id="systemEventPageInfo" class="muted small"></span></div>
         </div>
       </section>
       <section class="view" id="view-admin-users">
