@@ -1,6 +1,20 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const escapeHtml = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"}[c]));
+  function formatDetails(jsonStr) {
+    if (!jsonStr || jsonStr === "{}") return '<span class="muted">—</span>';
+    try {
+      const obj = JSON.parse(jsonStr);
+      const pretty = JSON.stringify(obj, null, 2);
+      const short = jsonStr.length > 40 ? jsonStr.substring(0, 40) + "…" : jsonStr;
+      return '<span class="details-cell" tabindex="0" title="کلیک برای نمایش جزئیات">'
+        + '<span class="details-short">' + escapeHtml(short) + '</span>'
+        + '<pre class="details-full hidden" dir="ltr">' + escapeHtml(pretty) + '</pre>'
+        + '</span>';
+    } catch (e) {
+      return '<span dir="ltr">' + escapeHtml(jsonStr) + '</span>';
+    }
+  }
   const toLatin = (v) => String(v || "").replace(/[۰-۹٠-٩]/g, (d) => {
     const fa="۰۱۲۳۴۵۶۷۸۹", ar="٠١٢٣٤٥٦٧٨٩"; const i=fa.indexOf(d); return String(i>=0?i:ar.indexOf(d));
   }).replace(/-/g,"/").trim();
@@ -20,7 +34,7 @@
         : e.result === "ناموفق"
           ? '<span class="badge badge-busy">ناموفق</span>'
           : escapeHtml(e.result);
-      return "<tr><td dir=\"ltr\">"+escapeHtml(e.occurredAt||"—")+"</td><td>"+escapeHtml(e.category)+"<br><span class=\"muted small\">"+escapeHtml(e.eventType)+"</span></td><td>"+resultBadge+"</td><td>"+escapeHtml(e.description)+"</td><td>"+escapeHtml(e.actor||"—")+"</td><td>"+escapeHtml((e.entityType||"")+(e.entityId?" · "+e.entityId:"")) + "</td><td dir=\"ltr\">"+escapeHtml(e.detailsJson||"{}")+"</td></tr>";
+      return "<tr><td dir=\"ltr\">"+escapeHtml(e.occurredAt||"—")+"</td><td>"+escapeHtml(e.category)+"<br><span class=\"muted small\">"+escapeHtml(e.eventType)+"</span></td><td>"+resultBadge+"</td><td>"+escapeHtml(e.description)+"</td><td>"+escapeHtml(e.actor||"—")+"</td><td>"+escapeHtml((e.entityType||"")+(e.entityId?" · "+e.entityId:"")) + "</td><td dir=\"ltr\">"+formatDetails(e.detailsJson)+"</td></tr>";
     }).join("");
     if (append) tbody.insertAdjacentHTML("beforeend",rows); else tbody.innerHTML=rows || '<tr><td colspan="7">رویدادی با این فیلتر یافت نشد.</td></tr>';
   }
@@ -37,7 +51,7 @@
           : o.deviceSucceeded
             ? '<span class="badge badge-free">موفق</span>'
             : '<span class="badge badge-busy">ناموفق</span>';
-        return "<tr><td dir=\"ltr\">"+escapeHtml(o.operationId)+"</td><td>"+escapeHtml(o.operationType)+"</td><td>"+escapeHtml((o.entityType||"")+(o.entityId?" · "+o.entityId:""))+"</td><td>"+escapeHtml(o.state)+"</td><td>"+devResult+"</td><td>"+escapeHtml(o.note||"—")+"</td><td dir=\"ltr\">"+escapeHtml(o.detailsJson||"{}")+"</td><td dir=\"ltr\">"+escapeHtml(o.updatedAt||"—")+"</td></tr>";
+        return "<tr><td dir=\"ltr\">"+escapeHtml(o.operationId)+"</td><td>"+escapeHtml(o.operationType)+"</td><td>"+escapeHtml((o.entityType||"")+(o.entityId?" · "+o.entityId:""))+"</td><td>"+escapeHtml(o.state)+"</td><td>"+devResult+"</td><td>"+escapeHtml(o.note||"—")+"</td><td dir=\"ltr\">"+formatDetails(o.detailsJson)+"</td><td dir=\"ltr\">"+escapeHtml(o.updatedAt||"—")+"</td></tr>";
       }).join("")||'<tr><td colspan="8">عملیات ناتمامی برای بررسی وجود ندارد.</td></tr>';
       message.textContent=items.length?"این عملیات ناتمام پس از راه‌اندازی مجدد هم باقی می‌مانند؛ پیش از تکرار، وضعیت دستگاه را بررسی کنید.":"همهٔ عملیات دستگاه تعیین تکلیف شده‌اند.";
     } catch(e) {
@@ -74,5 +88,13 @@
     $("#btnRefreshSystemEvents").addEventListener("click",()=>load(false));
     $("#btnClearSystemEvents").addEventListener("click",()=>{form.reset();load(false);});
     $("#btnOlderSystemEvents").addEventListener("click",()=>{page++;load(true);});
+    document.addEventListener("click", function(e) {
+      const cell = e.target.closest(".details-cell");
+      if (!cell) return;
+      const full = cell.querySelector(".details-full");
+      const short = cell.querySelector(".details-short");
+      if (full) full.classList.toggle("hidden");
+      if (short) short.classList.toggle("hidden");
+    });
   });
 })();

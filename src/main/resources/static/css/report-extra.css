@@ -126,3 +126,19 @@
   margin: 0.5rem 0;
 }
 .spinner.hidden { display: none; }
+
+.details-cell { cursor: pointer; }
+.details-short { font-size: 0.8rem; color: var(--muted); }
+.details-full {
+  margin: 0.3rem 0 0;
+  padding: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  max-height: 12rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.details-full.hidden { display: none; }
