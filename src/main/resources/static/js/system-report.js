@@ -46,12 +46,18 @@
     else tbody.innerHTML = rows || '<tr><td colspan="7">رویدادی با این فیلتر یافت نشد.</td></tr>';
   }
   async function loadPendingDeviceOperations() {
+    const section = $("#pendingDeviceOperationsSection");
     const body = $("#pendingDeviceOperationsTable"), message = $("#pendingDeviceOperationsMessage");
     if (!body || !message) return;
-    message.textContent = "در حال بررسی دفتر عملیات دستگاه…";
     try {
       const data = await Api.pendingDeviceOperations();
       const items = data.items || [];
+      if (items.length === 0) {
+        if (section) section.classList.add("hidden");
+        return;
+      }
+      if (section) section.classList.remove("hidden");
+      message.textContent = "این عملیات ناتمام پس از راه‌اندازی مجدد هم باقی می‌مانند؛ پیش از تکرار، وضعیت دستگاه را بررسی کنید.";
       const devResult = (o) => o.deviceSucceeded == null
         ? '<span class="badge badge-muted">نامشخص</span>'
         : o.deviceSucceeded
@@ -67,9 +73,9 @@
         <td>${escapeHtml(o.note || "—")}</td>
         <td dir="ltr">${formatDetails(o.detailsJson)}</td>
         <td dir="ltr">${escapeHtml(o.updatedAt || "—")}</td>
-      </tr>`).join("") || '<tr><td colspan="8">عملیات ناتمامی برای بررسی وجود ندارد.</td></tr>';
-      message.textContent = items.length ? "این عملیات ناتمام پس از راه‌اندازی مجدد هم باقی می‌مانند؛ پیش از تکرار، وضعیت دستگاه را بررسی کنید." : "همهٔ عملیات دستگاه تعیین تکلیف شده‌اند.";
+      </tr>`).join("");
     } catch(e) {
+      if (section) section.classList.remove("hidden");
       body.innerHTML = '<tr><td colspan="8">دریافت دفتر عملیات دستگاه انجام نشد.</td></tr>';
       message.textContent = e.message || "خطا در دریافت دفتر عملیات دستگاه";
     }
