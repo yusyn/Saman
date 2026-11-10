@@ -203,3 +203,14 @@
 
 .table-system-events th:nth-child(7),
 .table-system-events td:nth-child(7) { width: 10%; text-align: center; white-space: nowrap; } /* جزئیات */
+
+.entity-plate-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.entity-badge {
+  font-size: 0.75rem;
+  color: var(--muted);
+}

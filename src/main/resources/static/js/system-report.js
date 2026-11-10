@@ -18,6 +18,119 @@
   const toLatin = (v) => String(v || "").replace(/[۰-۹٠-٩]/g, (d) => {
     const fa="۰۱۲۳۴۵۶۷۸۹", ar="٠١٢٣٤٥٦٧٨٩"; const i=fa.indexOf(d); return String(i>=0?i:ar.indexOf(d));
   }).replace(/-/g,"/").trim();
+  function toPersianDigits(s) {
+    const map = "۰۱۲۳۴۵۶۷۸۹";
+    return String(s == null ? "" : s).replace(/[0-9]/g, (d) => map[d.charCodeAt(0) - 48]);
+  }
+
+  function isMotorcycleType(t) {
+    return String(t || "").toUpperCase() === "MOTORCYCLE";
+  }
+
+  function parsePlate(plate) {
+    if (plate == null) return null;
+    let s = toLatin(String(plate)).trim();
+    if (!s) return null;
+    s = s.replace(/ايران/g, "ایران").replace(/ايرآن/g, "ایران");
+    let m = s.match(/^(\d{2})\s+ایران\s+(\d{3})\s+(\S+)\s+(\d{2})$/);
+    if (m) return { city: m[1], mid: m[2], letter: m[3], first: m[4] };
+    const compact = s.replace(/\s+/g, "");
+    m = compact.match(/^(\d{2})(.+?)(\d{3})ایران(\d{2})$/);
+    if (m) return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
+    m = compact.match(/^(\d{2})([A-Za-z\u0600-\u06FF]+)(\d{3})(\d{2})$/);
+    if (m) return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
+    m = s.match(/^(\d{2})\s+(\S+)\s+(\d{3})\s+ایران\s+(\d{2})$/);
+    if (m) return { first: m[1], letter: m[2], mid: m[3], city: m[4] };
+    return null;
+  }
+
+  function parseMotorcyclePlate(plate) {
+    if (plate == null) return null;
+    const digits = toLatin(String(plate)).replace(/\D/g, "");
+    if (digits.length !== 8) return null;
+    return { top: digits.slice(0, 3), bottom: digits.slice(3) };
+  }
+
+  function renderIranPlate(plate) {
+    const p = parsePlate(plate);
+    if (!p) {
+      return '<span class="iran-plate-fallback" dir="ltr">' + escapeHtml(plate || "—") + "</span>";
+    }
+    return (
+      '<span class="iran-plate" dir="ltr" title="' +
+      escapeHtml(plate) +
+      '">' +
+      '<span class="iran-plate-blue">' +
+      '<span class="iran-plate-flag" aria-hidden="true"></span>' +
+      '<span class="iran-plate-ir">I.R.</span>' +
+      '<span class="iran-plate-ir">IRAN</span>' +
+      "</span>" +
+      '<span class="iran-plate-main">' +
+      '<span class="iran-plate-num">' +
+      escapeHtml(toPersianDigits(p.first)) +
+      "</span>" +
+      '<span class="iran-plate-letter">' +
+      escapeHtml(p.letter) +
+      "</span>" +
+      '<span class="iran-plate-num">' +
+      escapeHtml(toPersianDigits(p.mid)) +
+      "</span>" +
+      "</span>" +
+      '<span class="iran-plate-side">' +
+      '<span class="iran-plate-iran">ایران</span>' +
+      '<span class="iran-plate-city">' +
+      escapeHtml(toPersianDigits(p.city)) +
+      "</span>" +
+      "</span>" +
+      "</span>"
+    );
+  }
+
+  function renderMotorcyclePlate(plate) {
+    const p = parseMotorcyclePlate(plate);
+    if (!p) {
+      return '<span class="iran-plate-fallback" dir="ltr">' + escapeHtml(plate || "—") + "</span>";
+    }
+    return (
+      '<span class="moto-plate" dir="ltr" title="' +
+      escapeHtml(plate) +
+      '">' +
+      '<span class="moto-plate-blue">' +
+      '<span class="iran-plate-flag" aria-hidden="true"></span>' +
+      '<span class="iran-plate-ir">I.R.</span>' +
+      '<span class="iran-plate-ir">IRAN</span>' +
+      "</span>" +
+      '<span class="moto-plate-nums">' +
+      '<span class="moto-plate-top">' +
+      escapeHtml(toPersianDigits(p.top)) +
+      "</span>" +
+      '<span class="moto-plate-bottom">' +
+      escapeHtml(toPersianDigits(p.bottom)) +
+      "</span>" +
+      "</span>" +
+      "</span>"
+    );
+  }
+
+  function renderPlate(plate, vehicleType) {
+    if (isMotorcycleType(vehicleType)) {
+      return renderMotorcyclePlate(plate);
+    }
+    const car = parsePlate(plate);
+    if (car) return renderIranPlate(plate);
+    if (parseMotorcyclePlate(plate)) return renderMotorcyclePlate(plate);
+    return renderIranPlate(plate);
+  }
+
+  function renderEntity(entityType, entityId) {
+    if (!entityType && !entityId) return '<span class="muted">—</span>';
+    const isPlate = entityType === "وسیله" || parsePlate(entityId) || parseMotorcyclePlate(entityId);
+    if (isPlate && entityId) {
+      return `<div class="entity-plate-container"><span class="entity-badge">${escapeHtml(entityType || "وسیله")}:</span> ${renderPlate(entityId)}</div>`;
+    }
+    return escapeHtml((entityType || "") + (entityId ? " · " + entityId : ""));
+  }
+
   let page = 0, total = 0, busy = false;
 
   function filters(p = page) {
@@ -39,7 +152,7 @@
       <td>${resultBadge(e.result)}</td>
       <td><div class="event-desc-cell">${escapeHtml(e.description)}</div></td>
       <td>${escapeHtml(e.actor || "—")}</td>
-      <td>${escapeHtml((e.entityType || "") + (e.entityId ? " · " + e.entityId : ""))}</td>
+      <td>${renderEntity(e.entityType, e.entityId)}</td>
       <td dir="ltr">${formatDetails(e.detailsJson)}</td>
     </tr>`).join("");
     if (append) tbody.insertAdjacentHTML("beforeend", rows);
@@ -67,7 +180,7 @@
       body.innerHTML = items.map(o => `<tr>
         <td dir="ltr">${escapeHtml(o.operationId)}</td>
         <td>${escapeHtml(o.operationType)}</td>
-        <td>${escapeHtml((o.entityType || "") + (o.entityId ? " · " + o.entityId : ""))}</td>
+        <td>${renderEntity(o.entityType, o.entityId)}</td>
         <td>${escapeHtml(o.state)}</td>
         <td>${devResult(o)}</td>
         <td>${escapeHtml(o.note || "—")}</td>
