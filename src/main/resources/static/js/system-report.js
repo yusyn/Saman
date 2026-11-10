@@ -7,10 +7,10 @@
       const obj = JSON.parse(jsonStr);
       const pretty = JSON.stringify(obj, null, 2);
       const short = jsonStr.length > 40 ? jsonStr.substring(0, 40) + "…" : jsonStr;
-      return '<span class="details-cell" tabindex="0" title="کلیک برای نمایش جزئیات">'
-        + '<span class="details-short">' + escapeHtml(short) + '</span>'
-        + '<pre class="details-full hidden" dir="ltr">' + escapeHtml(pretty) + '</pre>'
-        + '</span>';
+      return '<details class="details-toggle">'
+        + '<summary class="details-short" title="کلیک برای نمایش/بستن جزئیات">' + escapeHtml(short) + '</summary>'
+        + '<pre class="details-full" dir="ltr">' + escapeHtml(pretty) + '</pre>'
+        + '</details>';
     } catch (e) {
       return '<span dir="ltr">' + escapeHtml(jsonStr) + '</span>';
     }
@@ -20,10 +20,10 @@
   }).replace(/-/g,"/").trim();
   let page = 0, total = 0, busy = false;
 
-  function filters() {
+  function filters(p = page) {
     return { dateFrom:toLatin($("#eventDateFrom").value), dateTo:toLatin($("#eventDateTo").value),
       category:$("#eventCategory").value, type:$("#eventType").value, result:$("#eventResult").value,
-      actor:$("#eventActor").value, q:$("#eventSearch").value, page, size:50 };
+      actor:$("#eventActor").value, q:$("#eventSearch").value, page: p, size:50 };
   }
   function render(items, append) {
     const tbody = $("#systemEventTable");
@@ -76,13 +76,17 @@
   }
   async function load(append=false) {
     if (busy) return; busy=true;
+    const targetPage = append ? page + 1 : 0;
     const spinner = $("#systemEventSpinner");
     if (spinner) spinner.classList.remove("hidden");
     const message=$("#systemEventMessage"); message.textContent="در حال بارگذاری رویدادها…";
-    if(!append) { page=0; $("#systemEventTable").innerHTML='<tr><td colspan="7">در حال بارگذاری…</td></tr>'; }
+    if(!append) { $("#systemEventTable").innerHTML='<tr><td colspan="7">در حال بارگذاری…</td></tr>'; }
     try {
-      const data=await Api.systemEvents(filters()); total=data.total||0; render(data.items,append);
-      const count=(data.page||0)*data.pageSize+(data.items||[]).length;
+      const data=await Api.systemEvents(filters(targetPage));
+      page = targetPage;
+      total=data.total||0;
+      render(data.items,append);
+      const count=(page||0)*data.pageSize+(data.items||[]).length;
       message.textContent=total?"تعداد رویدادهای منطبق: "+total:"رویدادی با این فیلتر یافت نشد.";
       $("#systemEventPageInfo").textContent=count+" از "+total;
       $("#btnOlderSystemEvents").disabled=count>=total;
@@ -93,7 +97,7 @@
       message.textContent=e.status===401||e.status===403?"برای مشاهدهٔ گزارش سیستم باید با حساب مدیر وارد شوید.":(e.message||"خطا در دریافت گزارش سیستم");
       $("#systemEventPageInfo").textContent="";
       const btnTop = $("#btnBackToTopSystemEvents");
-      if (btnTop) btnTop.disabled = true;
+      if (btnTop) btnTop.disabled = page === 0;
     } finally {
       if (spinner) spinner.classList.add("hidden");
       busy=false;
@@ -105,16 +109,11 @@
     form.addEventListener("submit",e=>{e.preventDefault();load(false);});
     $("#btnRefreshSystemEvents").addEventListener("click", () => { load(false); loadPendingDeviceOperations(); });
     $("#btnClearSystemEvents").addEventListener("click",()=>{form.reset();load(false);});
-    $("#btnOlderSystemEvents").addEventListener("click",()=>{page++;load(true);});
+    $("#btnOlderSystemEvents").addEventListener("click",()=>load(true));
     const btnTop = $("#btnBackToTopSystemEvents");
-    if (btnTop) btnTop.addEventListener("click", () => load(false));
-    document.addEventListener("click", function(e) {
-      const cell = e.target.closest(".details-cell");
-      if (!cell) return;
-      const full = cell.querySelector(".details-full");
-      const short = cell.querySelector(".details-short");
-      if (full) full.classList.toggle("hidden");
-      if (short) short.classList.toggle("hidden");
+    if (btnTop) btnTop.addEventListener("click", () => {
+      load(false);
+      document.getElementById("view-system-report")?.scrollIntoView({ behavior: "smooth" });
     });
   });
 })();

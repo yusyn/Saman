@@ -120,12 +120,21 @@
   gap: 0.5rem;
   margin: 0.5rem 0;
 }
-.spinner.hidden { display: none; }
 
-.details-cell { cursor: pointer; }
-.details-short { font-size: 0.8rem; color: var(--muted); }
+.details-toggle {
+  cursor: pointer;
+}
+.details-toggle > summary {
+  outline: none;
+  cursor: pointer;
+}
+.details-short {
+  font-size: 0.8rem;
+  color: var(--muted);
+  user-select: none;
+}
 .details-full {
-  margin: 0.3rem 0 0;
+  margin: 0.35rem 0 0;
   padding: 0.5rem;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -135,5 +144,5 @@
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-all;
+  cursor: text;
 }
-.details-full.hidden { display: none; }
