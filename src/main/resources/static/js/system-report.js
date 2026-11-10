@@ -14,7 +14,14 @@
   function render(items, append) {
     const tbody=$("#systemEventTable");
     if (!append) tbody.innerHTML="";
-    const rows=(items||[]).map(e=>"<tr><td dir=\"ltr\">"+escapeHtml(e.occurredAt||"—")+"</td><td>"+escapeHtml(e.category)+"<br><span class=\"muted small\">"+escapeHtml(e.eventType)+"</span></td><td>"+escapeHtml(e.result)+"</td><td>"+escapeHtml(e.description)+"</td><td>"+escapeHtml(e.actor||"—")+"</td><td>"+escapeHtml((e.entityType||"")+(e.entityId?" · "+e.entityId:"")) + "</td><td dir=\"ltr\">"+escapeHtml(e.detailsJson||"{}")+"</td></tr>").join("");
+    const rows=(items||[]).map(e=>{
+      const resultBadge = e.result === "موفق"
+        ? '<span class="badge badge-free">موفق</span>'
+        : e.result === "ناموفق"
+          ? '<span class="badge badge-busy">ناموفق</span>'
+          : escapeHtml(e.result);
+      return "<tr><td dir=\"ltr\">"+escapeHtml(e.occurredAt||"—")+"</td><td>"+escapeHtml(e.category)+"<br><span class=\"muted small\">"+escapeHtml(e.eventType)+"</span></td><td>"+resultBadge+"</td><td>"+escapeHtml(e.description)+"</td><td>"+escapeHtml(e.actor||"—")+"</td><td>"+escapeHtml((e.entityType||"")+(e.entityId?" · "+e.entityId:"")) + "</td><td dir=\"ltr\">"+escapeHtml(e.detailsJson||"{}")+"</td></tr>";
+    }).join("");
     if (append) tbody.insertAdjacentHTML("beforeend",rows); else tbody.innerHTML=rows || '<tr><td colspan="7">رویدادی با این فیلتر یافت نشد.</td></tr>';
   }
   async function loadPendingDeviceOperations() {
@@ -24,10 +31,17 @@
     try {
       const data=await Api.pendingDeviceOperations();
       const items=data.items||[];
-      body.innerHTML=items.map(o=>"<tr><td dir=\"ltr\">"+escapeHtml(o.operationId)+"</td><td>"+escapeHtml(o.operationType)+"</td><td>"+escapeHtml((o.entityType||"")+(o.entityId?" · "+o.entityId:""))+"</td><td>"+escapeHtml(o.state)+"</td><td>"+escapeHtml(o.deviceSucceeded==null?"نامشخص":(o.deviceSucceeded?"موفق":"ناموفق"))+"</td><td>"+escapeHtml(o.note||"—")+"</td><td dir=\"ltr\">"+escapeHtml(o.detailsJson||"{}")+"</td><td dir=\"ltr\">"+escapeHtml(o.updatedAt||"—")+"</td></tr>").join("")||'<tr><td colspan="8">عملیات ناتمامی برای بررسی وجود ندارد.</td></tr>';
+      body.innerHTML=items.map(o=>{
+        const devResult = o.deviceSucceeded == null
+          ? '<span class="badge badge-muted">نامشخص</span>'
+          : o.deviceSucceeded
+            ? '<span class="badge badge-free">موفق</span>'
+            : '<span class="badge badge-busy">ناموفق</span>';
+        return "<tr><td dir=\"ltr\">"+escapeHtml(o.operationId)+"</td><td>"+escapeHtml(o.operationType)+"</td><td>"+escapeHtml((o.entityType||"")+(o.entityId?" · "+o.entityId:""))+"</td><td>"+escapeHtml(o.state)+"</td><td>"+devResult+"</td><td>"+escapeHtml(o.note||"—")+"</td><td dir=\"ltr\">"+escapeHtml(o.detailsJson||"{}")+"</td><td dir=\"ltr\">"+escapeHtml(o.updatedAt||"—")+"</td></tr>";
+      }).join("")||'<tr><td colspan="8">عملیات ناتمامی برای بررسی وجود ندارد.</td></tr>';
       message.textContent=items.length?"این عملیات ناتمام پس از راه‌اندازی مجدد هم باقی می‌مانند؛ پیش از تکرار، وضعیت دستگاه را بررسی کنید.":"همهٔ عملیات دستگاه تعیین تکلیف شده‌اند.";
     } catch(e) {
-      body.innerHTML='<tr><td colspan="7">دریافت دفتر عملیات دستگاه انجام نشد.</td></tr>';
+      body.innerHTML='<tr><td colspan="8">دریافت دفتر عملیات دستگاه انجام نشد.</td></tr>';
       message.textContent=e.message||"خطا در دریافت دفتر عملیات دستگاه";
     }
   }
