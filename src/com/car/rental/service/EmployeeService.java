@@ -1,5 +1,6 @@
 package com.car.rental.service;
 
+import com.car.rental.db.EmployeeFingerRepository;
 import com.car.rental.db.EmployeeRepository;
 import com.car.rental.model.Employee;
 import com.car.rental.util.InputValidators;
@@ -21,17 +22,20 @@ public class EmployeeService {
     private static final Logger logger = Logger.getLogger(EmployeeService.class.getName());
 
     private final EmployeeRepository employees;
+    private final EmployeeFingerRepository fingerRepository;
     private final FingerprintService fingerprintService;
     private final FingerprintDeviceGate deviceGate;
     private final SystemEventService systemEvents;
     private final DeviceOperationService deviceOperations;
 
     public EmployeeService(EmployeeRepository employees,
+                           EmployeeFingerRepository fingerRepository,
                            FingerprintService fingerprintService,
                            FingerprintDeviceGate deviceGate,
                            SystemEventService systemEvents,
                            DeviceOperationService deviceOperations) {
         this.employees = employees;
+        this.fingerRepository = fingerRepository;
         this.fingerprintService = fingerprintService;
         this.deviceGate = deviceGate;
         this.systemEvents = systemEvents;
@@ -48,6 +52,14 @@ public class EmployeeService {
 
     public Employee findByDeviceUserId(String deviceUserId) throws SQLException {
         return employees.findByDeviceUserId(deviceUserId);
+    }
+
+    public List<Integer> getFingersForEmployee(String deviceUserId) throws SQLException {
+        return fingerRepository.getFingersByDeviceUserId(deviceUserId);
+    }
+
+    public Map<String, List<Integer>> getAllEmployeeFingers() throws SQLException {
+        return fingerRepository.getAllFingersGrouped();
     }
 
     public List<Employee> getAllEmployees() throws SQLException {
@@ -104,7 +116,7 @@ public class EmployeeService {
             return systemEvents.inTransaction(
                     new SystemEventService.EventSpec("کارمندان","ثبت کارمند","کارمند ثبت شد: "+finalName,"کارمند",deviceUserId,details),
                     new SystemEventService.EventSpec("کارمندان","ثبت کارمند","ثبت کارمند پس از عملیات دستگاه انجام نشد","کارمند",deviceUserId,Map.of("operationId",operationId)),
-                    conn->{employees.addEmployee(conn,deviceUserId,finalName,finalPhone);deviceOperations.complete(conn,operationId);return employees.findByDeviceUserId(conn,deviceUserId);});
+                    conn->{employees.addEmployee(conn,deviceUserId,finalName,finalPhone);fingerRepository.addFinger(conn,deviceUserId,fingerIndex);deviceOperations.complete(conn,operationId);return employees.findByDeviceUserId(conn,deviceUserId);});
         } catch(SQLException dbFailure) {
             boolean compensated=false;
             try { deviceGate.call(()->{ensureConnected();try{fingerprintService.deleteUser(deviceUserId);}finally{disconnectQuietly();}return null;}); compensated=true; }
@@ -208,6 +220,7 @@ public class EmployeeService {
             throw new FingerprintException("ثبت انگشت اضافه ناموفق بود", e);
         }
         deviceOperations.deviceSucceeded(operationId);
+        fingerRepository.addFinger(deviceUserId, fingerIndex);
         deviceOperations.completeDeviceOnly(operationId,"دستگاه اثرانگشت","ثبت اثر انگشت","اثر انگشت برای کارمند ثبت شد","کارمند",deviceUserId);
     }
 
@@ -222,7 +235,7 @@ public class EmployeeService {
             systemEvents.inTransaction(
                     new SystemEventService.EventSpec("کارمندان","حذف کارمند","کارمند از پایگاه‌داده حذف شد","کارمند",deviceUserId,details),
                     new SystemEventService.EventSpec("کارمندان","حذف کارمند","حذف کارمند انجام نشد","کارمند",deviceUserId,Map.of("operationId",operationId)),
-                    conn->{employees.deleteEmployeeByDeviceUserId(conn,deviceUserId);deviceOperations.databaseCommitted(conn,operationId);return null;});
+                    conn->{employees.deleteEmployeeByDeviceUserId(conn,deviceUserId);fingerRepository.deleteFingersByDeviceUserId(conn,deviceUserId);deviceOperations.databaseCommitted(conn,operationId);return null;});
         } catch(SQLException dbFailure) {
             deviceOperations.failBeforeDevice(operationId,dbFailure);
             throw dbFailure;

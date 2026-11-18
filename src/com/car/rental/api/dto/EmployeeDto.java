@@ -2,12 +2,16 @@ package com.car.rental.api.dto;
 
 import com.car.rental.model.Employee;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class EmployeeDto {
 
     private String deviceUserId;
     private String name;
     private String phone;
     private boolean renting;
+    private List<Integer> fingers = new ArrayList<>();
 
     public EmployeeDto() {
     }
@@ -19,11 +23,26 @@ public class EmployeeDto {
         this.renting = renting;
     }
 
+    public EmployeeDto(String deviceUserId, String name, String phone, boolean renting, List<Integer> fingers) {
+        this.deviceUserId = deviceUserId;
+        this.name = name;
+        this.phone = phone;
+        this.renting = renting;
+        this.fingers = fingers != null ? fingers : new ArrayList<>();
+    }
+
     public static EmployeeDto from(Employee e) {
         if (e == null) {
             return null;
         }
         return new EmployeeDto(e.getDeviceUserId(), e.getName(), e.getPhone(), e.isRenting());
+    }
+
+    public static EmployeeDto from(Employee e, List<Integer> fingers) {
+        if (e == null) {
+            return null;
+        }
+        return new EmployeeDto(e.getDeviceUserId(), e.getName(), e.getPhone(), e.isRenting(), fingers);
     }
 
     public String getDeviceUserId() {
@@ -56,5 +75,13 @@ public class EmployeeDto {
 
     public void setRenting(boolean renting) {
         this.renting = renting;
+    }
+
+    public List<Integer> getFingers() {
+        return fingers;
+    }
+
+    public void setFingers(List<Integer> fingers) {
+        this.fingers = fingers != null ? fingers : new ArrayList<>();
     }
 }
