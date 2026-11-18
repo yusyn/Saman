@@ -1,5 +1,6 @@
 package com.car.rental.service;
 
+import com.car.rental.api.dto.SyncFingerprintsResponse;
 import com.car.rental.db.EmployeeFingerRepository;
 import com.car.rental.db.EmployeeRepository;
 import com.car.rental.model.Employee;
@@ -60,6 +61,55 @@ public class EmployeeService {
 
     public Map<String, List<Integer>> getAllEmployeeFingers() throws SQLException {
         return fingerRepository.getAllFingersGrouped();
+    }
+
+    public SyncFingerprintsResponse syncFingerprintsFromDevice() throws FingerprintException, SQLException {
+        try {
+            fingerprintService.cancelListen();
+        } catch (Exception ignored) {
+        }
+
+        List<Employee> allEmployees = employees.getAllEmployees();
+
+        final int[] counts;
+        try {
+            counts = deviceGate.call(() -> {
+                ensureConnected();
+                try {
+                    int scanned = 0;
+                    int added = 0;
+                    for (Employee emp : allEmployees) {
+                        scanned++;
+                        String uid = emp.getDeviceUserId();
+                        List<Integer> existing = fingerRepository.getFingersByDeviceUserId(uid);
+                        List<Integer> onDevice = fingerprintService.getEnrolledFingers(uid);
+                        for (Integer finger : onDevice) {
+                            if (!existing.contains(finger)) {
+                                fingerRepository.addFinger(uid, finger);
+                                added++;
+                            }
+                        }
+                    }
+                    return new int[]{scanned, added};
+                } finally {
+                    disconnectQuietly();
+                }
+            });
+        } catch (Exception e) {
+            Throwable cause = unwrap(e);
+            throw new FingerprintException("همگام‌سازی اثر انگشت با دستگاه ناموفق بود", cause);
+        }
+
+        int scannedCount = counts[0];
+        int addedCount = counts[1];
+        String msg = addedCount > 0
+                ? addedCount + " اثر انگشت جدید از دستگاه با موفقیت ذخیره شد."
+                : "تمام اطلاعات اثر انگشت‌ها از قبل با دیتابیس همگام بودند.";
+
+        systemEvents.record("دستگاه اثرانگشت", "همگام‌سازی اثرانگشت‌ها", "موفق",
+                "همگام‌سازی انجام شد: " + msg, "دستگاه", null);
+
+        return new SyncFingerprintsResponse(scannedCount, addedCount, msg);
     }
 
     public List<Employee> getAllEmployees() throws SQLException {

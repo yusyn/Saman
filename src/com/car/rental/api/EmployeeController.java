@@ -4,6 +4,7 @@ import com.car.rental.api.dto.AddFingerRequest;
 import com.car.rental.api.dto.EmployeeDto;
 import com.car.rental.api.dto.OkResponse;
 import com.car.rental.api.dto.RegisterEmployeeRequest;
+import com.car.rental.api.dto.SyncFingerprintsResponse;
 import com.car.rental.api.dto.UpdateEmployeeRequest;
 import com.car.rental.model.Employee;
 import com.car.rental.service.EmployeeService;
@@ -21,7 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -36,8 +39,9 @@ public class EmployeeController {
 
     @GetMapping
     public List<EmployeeDto> list() throws SQLException {
+        Map<String, List<Integer>> fingersMap = employeeService.getAllEmployeeFingers();
         return employeeService.getAllEmployees().stream()
-                .map(EmployeeDto::from)
+                .map(e -> EmployeeDto.from(e, fingersMap.getOrDefault(e.getDeviceUserId(), Collections.emptyList())))
                 .collect(Collectors.toList());
     }
 
@@ -47,7 +51,13 @@ public class EmployeeController {
         if (e == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "کارمند یافت نشد: " + deviceUserId);
         }
-        return EmployeeDto.from(e);
+        List<Integer> fingers = employeeService.getFingersForEmployee(deviceUserId);
+        return EmployeeDto.from(e, fingers);
+    }
+
+    @PostMapping("/sync-fingerprints")
+    public SyncFingerprintsResponse syncFingerprints() throws FingerprintException, SQLException {
+        return employeeService.syncFingerprintsFromDevice();
     }
 
     @PostMapping("/register")
@@ -62,7 +72,8 @@ public class EmployeeController {
                 body.getName(),
                 body.getPhone(),
                 body.getFingerIndex());
-        return EmployeeDto.from(saved);
+        List<Integer> fingers = employeeService.getFingersForEmployee(saved.getDeviceUserId());
+        return EmployeeDto.from(saved, fingers);
     }
 
     /**
@@ -87,7 +98,8 @@ public class EmployeeController {
         emp.setPhone(body.getPhone() != null ? body.getPhone() : "");
         employeeService.updateEmployee(emp);
         Employee refreshed = employeeService.findByDeviceUserId(deviceUserId);
-        return EmployeeDto.from(refreshed != null ? refreshed : emp);
+        List<Integer> fingers = employeeService.getFingersForEmployee(deviceUserId);
+        return EmployeeDto.from(refreshed != null ? refreshed : emp, fingers);
     }
 
     @PostMapping("/{deviceUserId}/fingers")
