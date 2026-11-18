@@ -205,6 +205,7 @@ body {
   margin-bottom: 0.5rem;
 }
 .card-head h3 { margin: 0; }
+.card-head-actions { display: flex; align-items: center; gap: 0.5rem; }
 
 .form { display: flex; flex-direction: column; gap: 0.75rem; }
 .form label {

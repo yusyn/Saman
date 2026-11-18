@@ -178,12 +178,15 @@
           <div class="card">
             <div class="card-head">
               <h3>لیست کارمندان</h3>
-              <button type="button" class="btn btn-ghost" id="btnRefreshEmployees">بروزرسانی</button>
+              <div class="card-head-actions">
+                <button type="button" class="btn btn-ghost" id="btnSyncFingers" requires-auth>همگام‌سازی با دستگاه</button>
+                <button type="button" class="btn btn-ghost" id="btnRefreshEmployees">بروزرسانی</button>
+              </div>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>شناسه</th><th>نام</th><th>تلفن</th><th>مأموریت</th><th>عملیات</th></tr>
+                  <tr><th>شناسه</th><th>نام</th><th>تلفن</th><th>انگشت‌های ثبت‌شده</th><th>مأموریت</th><th>عملیات</th></tr>
                 </thead>
                 <tbody id="employeesTable"></tbody>
               </table>

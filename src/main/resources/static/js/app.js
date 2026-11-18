@@ -572,14 +572,31 @@
     }
   });
 
+  const FINGER_NAMES = [
+    "کوچک چپ", "انگشتری چپ", "میانی چپ", "اشاره چپ", "شست چپ",
+    "شست راست", "اشاره راست", "میانی راست", "انگشتری راست", "کوچک راست"
+  ];
+
+  function renderEmployeeFingers(fingers) {
+    if (!Array.isArray(fingers) || fingers.length === 0) {
+      return '<span class="muted small">ثبت‌نشده</span>';
+    }
+    return fingers
+      .map(function (idx) {
+        const name = FINGER_NAMES[idx] || ("انگشت " + idx);
+        return '<span class="badge badge-muted" title="ایندکس ' + idx + '">' + escapeHtml(name) + '</span>';
+      })
+      .join(" ");
+  }
+
   async function loadEmployees() {
     const tbody = $("#employeesTable");
-    tbody.innerHTML = "<tr><td colspan=\"5\">در حال بارگذاری…</td></tr>";
+    tbody.innerHTML = "<tr><td colspan=\"6\">در حال بارگذاری…</td></tr>";
     try {
       const rows = await Api.employees();
       employeesCache = rows || [];
       if (!employeesCache.length) {
-        tbody.innerHTML = "<tr><td colspan=\"5\">کارمندی نیست</td></tr>";
+        tbody.innerHTML = "<tr><td colspan=\"6\">کارمندی نیست</td></tr>";
         return;
       }
       tbody.innerHTML = employeesCache
@@ -591,6 +608,8 @@
             escapeHtml(emp.name) +
             '</td><td dir="ltr">' +
             escapeHtml(emp.phone) +
+            "</td><td>" +
+            renderEmployeeFingers(emp.fingers) +
             "</td><td>" +
             employeeRentingBadge(!!emp.renting) +
             '</td><td class="actions">' +
@@ -604,10 +623,28 @@
         })
         .join("");
     } catch (err) {
-      tbody.innerHTML = "<tr><td colspan=\"5\">" + escapeHtml(err.message) + "</td></tr>";
+      tbody.innerHTML = "<tr><td colspan=\"6\">" + escapeHtml(err.message) + "</td></tr>";
     }
   }
   $("#btnRefreshEmployees").addEventListener("click", loadEmployees);
+
+  const btnSyncFingers = $("#btnSyncFingers");
+  if (btnSyncFingers) {
+    btnSyncFingers.addEventListener("click", async () => {
+      btnSyncFingers.disabled = true;
+      btnSyncFingers.textContent = "در حال دریافت از دستگاه…";
+      try {
+        const res = await Api.syncFingerprints();
+        toast(res.message || "همگام‌سازی انجام شد");
+        await loadEmployees();
+      } catch (err) {
+        toast(err.message || "خطا در همگام‌سازی", "err");
+      } finally {
+        btnSyncFingers.disabled = false;
+        btnSyncFingers.textContent = "همگام‌سازی با دستگاه";
+      }
+    });
+  }
 
   $("#employeesTable").addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-act]");

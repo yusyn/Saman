@@ -193,6 +193,11 @@ const Api = (() => {
         body: JSON.stringify(body),
         timeoutMs: ENROLL_TIMEOUT_MS,
       }),
+    syncFingerprints: () =>
+      request("/api/employees/sync-fingerprints", {
+        method: "POST",
+        timeoutMs: 90000,
+      }),
     verify: (timeoutSeconds = 40) =>
       request("/api/fingerprint/verify", {
         method: "POST",
