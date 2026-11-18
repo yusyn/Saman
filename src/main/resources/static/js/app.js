@@ -254,11 +254,38 @@
     }
   });
 
-  function showView(name) {
-    if (name === "admin-users" && !isAdmin()) {
+  const VALID_VIEWS = [
+    "dashboard",
+    "cars",
+    "employees",
+    "rentals",
+    "report",
+    "system-report",
+    "admin-users",
+  ];
+
+  let authInitialized = false;
+
+  function getViewFromHash() {
+    const raw = (window.location.hash || "").replace(/^#\/?/, "").trim();
+    return VALID_VIEWS.includes(raw) ? raw : "dashboard";
+  }
+
+  function showView(name, updateHash = true) {
+    if (!VALID_VIEWS.includes(name)) {
+      name = "dashboard";
+    }
+    if (name === "admin-users" && authInitialized && !isAdmin()) {
       toast("دسترسی به مدیریت مدیران فقط برای مدیران مجاز است", "err");
       if (!isAuthenticated()) openLoginModal();
       name = "dashboard";
+    }
+    if (updateHash && window.location.hash !== "#" + name) {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, "", "#" + name);
+      } else {
+        window.location.hash = "#" + name;
+      }
     }
     fingerprintStatusEl.hidden = name !== "dashboard" && name !== "employees" && name !== "rentals";
     if (!fingerprintStatusEl.hidden) refreshFingerprintStatus();
@@ -279,6 +306,10 @@
     if (name === "system-report" && window.loadSystemEvents) window.loadSystemEvents();
     if (name === "admin-users" && window.loadAdminUsers) window.loadAdminUsers();
   }
+
+  window.addEventListener("hashchange", () => {
+    showView(getViewFromHash(), false);
+  });
 
   refreshFingerprintStatus();
   window.setInterval(() => {
@@ -1046,7 +1077,8 @@
   $("#btnRefreshReport").addEventListener("click", loadReport);
 
   loadHealth();
-  showView("dashboard");
+  const initialView = getViewFromHash();
+  showView(initialView, true);
 
   /* ── Session auth (admin) — جدا از اثرانگشت کارمند ── */
   function isAuthenticated() {
@@ -1140,7 +1172,8 @@
       if (btnLogout) btnLogout.classList.add("hidden");
     }
     document.querySelectorAll("[data-admin-only]").forEach((el) => el.classList.toggle("hidden", !isAdmin()));
-    if (!isAdmin() && $("view-admin-users") && $("view-admin-users").classList.contains("active")) {
+    const adminView = document.getElementById("view-admin-users");
+    if (!isAdmin() && adminView && adminView.classList.contains("active")) {
       showView("dashboard");
     }
     applyWriteAccess();
@@ -1170,6 +1203,8 @@
       }
     } catch (e) {
       sessionUser = null;
+    } finally {
+      authInitialized = true;
     }
     updateAuthChrome();
     if (sessionUser) loadDashboardSummary();
