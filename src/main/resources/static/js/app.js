@@ -793,6 +793,20 @@
     const profile = $("#" + kind + "AuthProfile");
     const clearBtn = $("#btnClear" + (kind === "pickup" ? "Pickup" : "Return") + "Auth");
     const submitBtn = $("#btn" + (kind === "pickup" ? "Pickup" : "Return") + "Submit");
+    const verifyBtn = $("#btnVerify" + (kind === "pickup" ? "Pickup" : "Return"));
+
+    if (verifyBtn) {
+      if (auth) {
+        verifyBtn.disabled = true;
+        verifyBtn.classList.add("btn-disabled");
+        verifyBtn.title = "احراز هویت انجام شده است";
+      } else {
+        verifyBtn.disabled = false;
+        verifyBtn.classList.remove("btn-disabled");
+        verifyBtn.title = "";
+      }
+    }
+
     if (!auth) {
       if (ph) ph.classList.remove("hidden");
       if (profile) profile.classList.add("hidden");
@@ -870,6 +884,20 @@
       if (!(kind === "return" && !r.activeRental)) {
         status.textContent = "احراز موفق";
         toast("احراز موفق");
+        if (kind === "pickup") {
+          const firstCar = $("#pickupCarList .car-pick-item");
+          if (firstCar) {
+            firstCar.focus();
+          } else {
+            const dest = $("#formPickup input[name='destination']");
+            if (dest) dest.focus();
+          }
+        } else if (kind === "return") {
+          const submitBtn = $("#btnReturnSubmit");
+          if (submitBtn && !submitBtn.disabled) {
+            submitBtn.focus();
+          }
+        }
       }
     } catch (err) {
       status.textContent = err.message || "ناموفق";
@@ -877,14 +905,29 @@
     } finally {
       wait.classList.add("hidden");
       cancelBtn.classList.add("hidden");
-      verifyBtn.disabled = false;
+      const currentAuth = kind === "pickup" ? pickupAuth : returnAuth;
+      if (verifyBtn) {
+        verifyBtn.disabled = !!currentAuth;
+        if (!currentAuth) {
+          verifyBtn.classList.remove("btn-disabled");
+          verifyBtn.title = "";
+        }
+      }
     }
   }
 
   function cancelVerify(kind) {
     $("#" + kind + "VerifyWait").classList.add("hidden");
     $("#btnCancel" + (kind === "pickup" ? "Pickup" : "Return") + "Verify").classList.add("hidden");
-    $("#btnVerify" + (kind === "pickup" ? "Pickup" : "Return")).disabled = false;
+    const currentAuth = kind === "pickup" ? pickupAuth : returnAuth;
+    const verifyBtn = $("#btnVerify" + (kind === "pickup" ? "Pickup" : "Return"));
+    if (verifyBtn) {
+      verifyBtn.disabled = !!currentAuth;
+      if (!currentAuth) {
+        verifyBtn.classList.remove("btn-disabled");
+        verifyBtn.title = "";
+      }
+    }
     try {
       Api.cancelListen && Api.cancelListen();
     } catch (e) {}
