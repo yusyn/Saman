@@ -27,6 +27,7 @@ public class MockFingerprintService implements FingerprintService {
     private final AtomicBoolean enrolling = new AtomicBoolean(false);
 
     private String mockUserId = "1001";
+    private final java.util.Map<String, java.util.Set<Integer>> mockEnrolledFingers = new java.util.concurrent.ConcurrentHashMap<>();
 
     public void setMockUserId(String mockUserId) {
         this.mockUserId = mockUserId;
@@ -141,6 +142,7 @@ public class MockFingerprintService implements FingerprintService {
     @Override
     public void deleteUser(String deviceUserId) {
         users.removeIf(u -> u.getDeviceUserId().equals(deviceUserId));
+        mockEnrolledFingers.remove(deviceUserId);
     }
 
     @Override
@@ -153,13 +155,14 @@ public class MockFingerprintService implements FingerprintService {
                     throw new FingerprintException("ثبت اثر انگشت توسط کاربر لغو شد");
                 }
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new FingerprintException("ثبت اثر انگشت توسط کاربر لغو شد");
                 }
             }
             createUser(deviceUserId, name);
+            mockEnrolledFingers.computeIfAbsent(deviceUserId, k -> java.util.Collections.synchronizedSet(new java.util.TreeSet<>())).add(fingerIndex);
         } finally {
             enrolling.set(false);
         }
@@ -174,12 +177,13 @@ public class MockFingerprintService implements FingerprintService {
                     throw new FingerprintException("ثبت اثر انگشت توسط کاربر لغو شد");
                 }
                 try {
-                    Thread.sleep(400);
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new FingerprintException("ثبت اثر انگشت توسط کاربر لغو شد");
                 }
             }
+            mockEnrolledFingers.computeIfAbsent(deviceUserId, k -> java.util.Collections.synchronizedSet(new java.util.TreeSet<>())).add(fingerIndex);
         } finally {
             enrolling.set(false);
         }
@@ -207,5 +211,18 @@ public class MockFingerprintService implements FingerprintService {
     @Override
     public DeviceInfo getDeviceInfo() {
         return new DeviceInfo("Mock FW", "MOCK-SERIAL", "MOCK_PLATFORM", "Mock Device");
+    }
+
+    @Override
+    public List<Integer> getEnrolledFingers(String deviceUserId) {
+        java.util.Set<Integer> set = mockEnrolledFingers.get(deviceUserId);
+        if (set == null || set.isEmpty()) {
+            boolean exists = users.stream().anyMatch(u -> u.getDeviceUserId().equals(deviceUserId));
+            if (exists) {
+                return List.of(6);
+            }
+            return List.of();
+        }
+        return new ArrayList<>(new java.util.TreeSet<>(set));
     }
 }

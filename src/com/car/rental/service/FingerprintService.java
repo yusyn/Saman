@@ -60,4 +60,9 @@ public interface FingerprintService {
                      Consumer<FingerprintException> onError) throws FingerprintException;
 
     DeviceInfo getDeviceInfo() throws FingerprintException;
+
+    /**
+     * Query which finger slots (0..9) are currently enrolled on the device for this user.
+     */
+    List<Integer> getEnrolledFingers(String deviceUserId) throws FingerprintException;
 }

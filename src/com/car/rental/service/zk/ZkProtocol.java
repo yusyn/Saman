@@ -18,11 +18,16 @@ public final class ZkProtocol {
     public static final int CMD_ENABLEDEVICE = 1002;
     public static final int CMD_DISABLEDEVICE = 1003;
     public static final int CMD_ACK_OK = 2000;
+    public static final int CMD_ACK_ERROR = 2001;
     public static final int CMD_REG_EVENT = 500;
     public static final int CMD_USER_WRQ = 8;
+    public static final int CMD_USERTEMP_RRQ = 9;
     public static final int CMD_DELETE_USER = 18;
     public static final int CMD_STARTVERIFY = 60;
     public static final int CMD_STARTENROLL = 61;
+    public static final int CMD_GET_USERTEMP = 88;
+    public static final int CMD_PREPARE_DATA = 1500;
+    public static final int CMD_DATA = 1501;
 
     // --- realtime event flags ---
 
@@ -134,6 +139,14 @@ public final class ZkProtocol {
         System.arraycopy(padFixed(deviceUserId, 24), 0, data, 0, 24);
         data[24] = (byte) (fingerIndex & 0xFF);
         data[25] = 1;
+        return data;
+    }
+
+    public static byte[] buildGetUserTempBody(int uid, int fingerIndex) {
+        byte[] data = new byte[3];
+        data[0] = (byte) (uid & 0xFF);
+        data[1] = (byte) ((uid >> 8) & 0xFF);
+        data[2] = (byte) (fingerIndex & 0xFF);
         return data;
     }
 

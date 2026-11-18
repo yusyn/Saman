@@ -223,4 +223,28 @@ public class ZkFingerprintService implements FingerprintService {
         return new DeviceInfo("unknown", "unknown", "ZMM100_TFT",
                 connection.getHost() + ":" + connection.getPort());
     }
+
+    @Override
+    public List<Integer> getEnrolledFingers(String deviceUserId) throws FingerprintException {
+        int uid = ZkUserCommands.toInternalUid(deviceUserId);
+        List<Integer> enrolled = new ArrayList<>();
+        connection.withWriteRetry("getEnrolledFingers", () -> {
+            connection.disableDeviceBestEffort("before getEnrolledFingers");
+            try {
+                for (int finger = 0; finger <= 9; finger++) {
+                    byte[] data = ZkProtocol.buildGetUserTempBody(uid, finger);
+                    byte[] reply = connection.sendCommand(ZkProtocol.CMD_USERTEMP_RRQ, data);
+                    if (reply != null) {
+                        int cmd = ZkProtocol.getCommand(reply);
+                        if (cmd == ZkProtocol.CMD_ACK_OK || cmd == ZkProtocol.CMD_PREPARE_DATA || cmd == ZkProtocol.CMD_DATA) {
+                            enrolled.add(finger);
+                        }
+                    }
+                }
+            } finally {
+                connection.enableDeviceBestEffort("after getEnrolledFingers");
+            }
+        });
+        return enrolled;
+    }
 }
