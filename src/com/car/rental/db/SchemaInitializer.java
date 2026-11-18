@@ -135,6 +135,16 @@ public class SchemaInitializer implements ApplicationRunner {
                 "FOREIGN KEY(employee_id) REFERENCES EmployeeTable(id)" +
                 ")";
 
+        String employeeFingerTable =
+                "CREATE TABLE IF NOT EXISTS EmployeeFinger (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "device_user_id TEXT NOT NULL, " +
+                "finger_index INTEGER NOT NULL, " +
+                "created_at TEXT DEFAULT (datetime('now','localtime')), " +
+                "UNIQUE(device_user_id, finger_index), " +
+                "FOREIGN KEY(device_user_id) REFERENCES EmployeeTable(device_user_id) ON UPDATE CASCADE" +
+                ")";
+
         try (Connection conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("PRAGMA foreign_keys = ON;");
             stmt.execute(employeeTable);
@@ -144,6 +154,8 @@ public class SchemaInitializer implements ApplicationRunner {
             stmt.execute(vehicleServiceTable);
             stmt.execute(vehicleIssueTable);
             stmt.execute(vehicleFineTable);
+            stmt.execute(employeeFingerTable);
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_employee_finger_user ON EmployeeFinger(device_user_id)");
 
             String appUserTable =
                     "CREATE TABLE IF NOT EXISTS AppUser (" +
