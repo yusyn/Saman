@@ -48,14 +48,24 @@ public class RentalService {
     }
 
     public boolean returnCar(String deviceUserId, String returnDate) throws SQLException {
+        return returnCar(deviceUserId, returnDate, null, null);
+    }
+
+    public boolean returnCar(String deviceUserId, String returnDate, Integer returnOdometer,
+                             java.util.List<com.car.rental.api.dto.CreateMissionReportRequest> reports) throws SQLException {
         if (deviceUserId == null || deviceUserId.isBlank()) {
             throw new IllegalArgumentException("شناسه کاربر خالی است");
         }
+        java.util.Map<String, Object> details = new java.util.HashMap<>();
+        details.put("employeeId", deviceUserId);
+        details.put("returnTime", returnDate == null ? "" : returnDate);
+        if (returnOdometer != null) details.put("returnOdometer", returnOdometer);
+        if (reports != null) details.put("reportsCount", reports.size());
+
         return systemEvents.inTransaction(
-                new SystemEventService.EventSpec("مأموریت‌ها","برگشت وسیله","وسیله از مأموریت برگشت داده شد","مأموریت",deviceUserId,
-                        Map.of("employeeId",deviceUserId,"returnTime",returnDate==null?"":returnDate)),
+                new SystemEventService.EventSpec("مأموریت‌ها","برگشت وسیله","وسیله از مأموریت برگشت داده شد","مأموریت",deviceUserId, details),
                 new SystemEventService.EventSpec("مأموریت‌ها","برگشت وسیله","برگشت وسیله انجام نشد","مأموریت",deviceUserId),
-                conn->rentals.returnCarByDeviceUserId(conn,deviceUserId,returnDate),
+                conn->rentals.returnCarByDeviceUserId(conn, deviceUserId, returnDate, returnOdometer, reports),
                 Boolean.TRUE::equals);
     }
 

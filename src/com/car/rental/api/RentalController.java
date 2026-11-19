@@ -61,11 +61,14 @@ public class RentalController {
         if (body == null) {
             throw new IllegalArgumentException("بدنه درخواست خالی است");
         }
+        if (body.getReturnOdometer() == null) {
+            throw new IllegalArgumentException("ثبت کیلومتر برگشت الزامی است");
+        }
         String time = body.getReturnTime();
         if (time == null || time.isBlank()) {
             time = JalaliDate.formatDateTime(LocalDateTime.now());
         }
-        boolean ok = rentalService.returnCar(body.getDeviceUserId(), time);
+        boolean ok = rentalService.returnCar(body.getDeviceUserId(), time, body.getReturnOdometer(), body.getReports());
         if (!ok) {
             return OkResponse.fail("اجاره فعالی برای این کارمند یافت نشد");
         }

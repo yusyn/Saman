@@ -1,7 +1,9 @@
 package com.car.rental.db;
 
+import com.car.rental.api.dto.CreateMissionReportRequest;
 import com.car.rental.model.RentalRecord;
 import com.car.rental.model.RentalReportFilter;
+import com.car.rental.model.VehicleMissionReport;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
@@ -23,9 +25,11 @@ public class RentalRepository {
     private static final Logger logger = Logger.getLogger(RentalRepository.class.getName());
 
     private final DataSource dataSource;
+    private final VehicleMissionReportRepository missionReportRepository;
 
-    public RentalRepository(DataSource dataSource) {
+    public RentalRepository(DataSource dataSource, VehicleMissionReportRepository missionReportRepository) {
         this.dataSource = dataSource;
+        this.missionReportRepository = missionReportRepository;
     }
 
     private Connection getConnection() throws SQLException {
@@ -60,21 +64,93 @@ public class RentalRepository {
         }
     }
 
-    /** Execute return work on the caller's transaction connection. */
-    public boolean returnCarByDeviceUserId(Connection conn,String deviceUserId,String returnDate) throws SQLException {
+    /** Execute return work on the caller's transaction connection with mandatory odometer and optional reports. */
+    public boolean returnCarByDeviceUserId(Connection conn, String deviceUserId, String returnDate,
+                                           Integer returnOdometer, List<CreateMissionReportRequest> reports) throws SQLException {
         int empId;
-        try(PreparedStatement p=conn.prepareStatement("SELECT id FROM EmployeeTable WHERE device_user_id=? AND is_active=1")){
-            p.setString(1,deviceUserId);try(ResultSet r=p.executeQuery()){if(!r.next())throw new SQLException("کارمند با شناسه دستگاه یافت نشد: "+deviceUserId);empId=r.getInt("id");}
+        try (PreparedStatement p = conn.prepareStatement("SELECT id FROM EmployeeTable WHERE device_user_id=? AND is_active=1")) {
+            p.setString(1, deviceUserId);
+            try (ResultSet r = p.executeQuery()) {
+                if (!r.next()) throw new SQLException("کارمند با شناسه دستگاه یافت نشد: " + deviceUserId);
+                empId = r.getInt("id");
+            }
         }
-        int rentalId,vehicleId;
-        try(PreparedStatement p=conn.prepareStatement("SELECT id,car_id FROM RentalTable WHERE employee_id=? AND return_date IS NULL AND is_active=1")){
-            p.setInt(1,empId);try(ResultSet r=p.executeQuery()){if(!r.next())return false;rentalId=r.getInt("id");vehicleId=r.getInt("car_id");}
+        int rentalId, vehicleId;
+        try (PreparedStatement p = conn.prepareStatement("SELECT id,car_id FROM RentalTable WHERE employee_id=? AND return_date IS NULL AND is_active=1")) {
+            p.setInt(1, empId);
+            try (ResultSet r = p.executeQuery()) {
+                if (!r.next()) return false;
+                rentalId = r.getInt("id");
+                vehicleId = r.getInt("car_id");
+            }
         }
-        try(PreparedStatement p=conn.prepareStatement("UPDATE RentalTable SET return_date=?,is_active=0 WHERE id=?")){p.setString(1,returnDate);p.setInt(2,rentalId);if(p.executeUpdate()!=1)throw new SQLException("ثبت برگشت مأموریت انجام نشد");}
-        try(PreparedStatement p=conn.prepareStatement("UPDATE VehicleTable SET is_rented=0 WHERE id=?")){p.setInt(1,vehicleId);if(p.executeUpdate()!=1)throw new SQLException("آزادسازی وسیله انجام نشد");}
-        try(PreparedStatement p=conn.prepareStatement("UPDATE EmployeeTable SET is_renting=0,updated_at=datetime('now','localtime') WHERE id=?")){p.setInt(1,empId);if(p.executeUpdate()!=1)throw new SQLException("به‌روزرسانی وضعیت کارمند انجام نشد");}
+
+        int currentOdometer = 0;
+        try (PreparedStatement p = conn.prepareStatement("SELECT current_odometer FROM VehicleTable WHERE id=?")) {
+            p.setInt(1, vehicleId);
+            try (ResultSet r = p.executeQuery()) {
+                if (r.next()) {
+                    currentOdometer = r.getInt("current_odometer");
+                }
+            }
+        }
+
+        int finalOdometer = currentOdometer;
+        if (returnOdometer != null) {
+            if (returnOdometer < currentOdometer) {
+                throw new IllegalArgumentException("کیلومتر جدید (" + returnOdometer + ") نمی‌تواند کمتر از مقدار فعلی (" + currentOdometer + ") باشد");
+            }
+            finalOdometer = returnOdometer;
+        }
+
+        try (PreparedStatement p = conn.prepareStatement("UPDATE RentalTable SET return_date=?, return_odometer=?, is_active=0 WHERE id=?")) {
+            p.setString(1, returnDate);
+            p.setInt(2, finalOdometer);
+            p.setInt(3, rentalId);
+            if (p.executeUpdate() != 1) throw new SQLException("ثبت برگشت مأموریت انجام نشد");
+        }
+        try (PreparedStatement p = conn.prepareStatement("UPDATE VehicleTable SET is_rented=0, current_odometer=? WHERE id=?")) {
+            p.setInt(1, finalOdometer);
+            p.setInt(2, vehicleId);
+            if (p.executeUpdate() != 1) throw new SQLException("آزادسازی وسیله انجام نشد");
+        }
+        try (PreparedStatement p = conn.prepareStatement("UPDATE EmployeeTable SET is_renting=0,updated_at=datetime('now','localtime') WHERE id=?")) {
+            p.setInt(1, empId);
+            if (p.executeUpdate() != 1) throw new SQLException("به‌روزرسانی وضعیت کارمند انجام نشد");
+        }
+
+        if (reports != null && !reports.isEmpty() && missionReportRepository != null) {
+            for (CreateMissionReportRequest rep : reports) {
+                if (rep == null || rep.getReportType() == null || rep.getReportType().isBlank()) continue;
+                String rDate = rep.getReportDate() != null && !rep.getReportDate().isBlank() ? rep.getReportDate() : returnDate;
+                VehicleMissionReport report = new VehicleMissionReport(
+                        0,
+                        rentalId,
+                        vehicleId,
+                        empId,
+                        rep.getReportType().toUpperCase().trim(),
+                        rep.getTitle() != null ? rep.getTitle() : rep.getReportType(),
+                        rep.getDescription(),
+                        rep.getAmount() != null ? rep.getAmount() : 0.0,
+                        rep.getLiters() != null ? rep.getLiters() : 0.0,
+                        rep.getSeverity(),
+                        rep.getFineType(),
+                        false,
+                        rep.getAttachmentId(),
+                        rDate,
+                        null
+                );
+                missionReportRepository.insert(conn, report);
+            }
+        }
         return true;
     }
+
+    public boolean returnCarByDeviceUserId(Connection conn, String deviceUserId, String returnDate) throws SQLException {
+        return returnCarByDeviceUserId(conn, deviceUserId, returnDate, null, null);
+    }
+
+
 
     public void insertRental(String deviceUserId,
                              String vehiclePlate,
