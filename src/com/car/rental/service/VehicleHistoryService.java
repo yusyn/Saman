@@ -1,24 +1,35 @@
 package com.car.rental.service;
 
 import com.car.rental.api.dto.RentalRecordDto;
+import com.car.rental.api.dto.VehicleDocumentDto;
 import com.car.rental.api.dto.VehicleDto;
 import com.car.rental.api.dto.VehicleFineDto;
 import com.car.rental.api.dto.VehicleHistoryDto;
 import com.car.rental.api.dto.VehicleIssueDto;
+import com.car.rental.api.dto.VehicleMissionReportDto;
 import com.car.rental.api.dto.VehicleServiceDto;
+import com.car.rental.db.EmployeeRepository;
 import com.car.rental.db.RentalRepository;
+import com.car.rental.db.VehicleDocumentRepository;
 import com.car.rental.db.VehicleFineRepository;
 import com.car.rental.db.VehicleIssueRepository;
+import com.car.rental.db.VehicleMissionReportRepository;
 import com.car.rental.db.VehicleRepository;
 import com.car.rental.db.VehicleRepository.VehicleRow;
 import com.car.rental.db.VehicleServiceRepository;
+import com.car.rental.model.Employee;
 import com.car.rental.model.RentalRecord;
+import com.car.rental.model.VehicleDocument;
 import com.car.rental.model.VehicleFine;
 import com.car.rental.model.VehicleIssue;
+import com.car.rental.model.VehicleMissionReport;
 import com.car.rental.model.VehicleServiceRecord;
+import com.car.rental.util.JalaliDate;
 import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,28 +43,37 @@ public class VehicleHistoryService {
 
     public static final String BADGE_DAMAGED = "DAMAGED";
     public static final String BADGE_IN_REPAIR = "IN_REPAIR";
-    public static final String BADGE_NEEDS_SERVICE = "NEEDS_SERVICE";
     public static final String BADGE_HAS_FINE = "HAS_FINE";
-
-    /** Default service interval in kilometers when next_due is not set. */
-    private static final int DEFAULT_SERVICE_INTERVAL_KM = 5000;
+    public static final String BADGE_INSURANCE_EXPIRING = "INSURANCE_EXPIRING";
+    public static final String BADGE_INSURANCE_EXPIRED = "INSURANCE_EXPIRED";
+    public static final String BADGE_INSPECTION_EXPIRING = "INSPECTION_EXPIRING";
+    public static final String BADGE_INSPECTION_EXPIRED = "INSPECTION_EXPIRED";
 
     private final VehicleRepository vehicles;
     private final VehicleServiceRepository services;
     private final VehicleIssueRepository issues;
     private final VehicleFineRepository fines;
     private final RentalRepository rentals;
+    private final VehicleMissionReportRepository missionReports;
+    private final VehicleDocumentRepository vehicleDocuments;
+    private final EmployeeRepository employees;
 
     public VehicleHistoryService(VehicleRepository vehicles,
                                  VehicleServiceRepository services,
                                  VehicleIssueRepository issues,
                                  VehicleFineRepository fines,
-                                 RentalRepository rentals) {
+                                 RentalRepository rentals,
+                                 VehicleMissionReportRepository missionReports,
+                                 VehicleDocumentRepository vehicleDocuments,
+                                 EmployeeRepository employees) {
         this.vehicles = vehicles;
         this.services = services;
         this.issues = issues;
         this.fines = fines;
         this.rentals = rentals;
+        this.missionReports = missionReports;
+        this.vehicleDocuments = vehicleDocuments;
+        this.employees = employees;
     }
 
     // ── History aggregate ──────────────────────────────────────────────
@@ -81,10 +101,20 @@ public class VehicleHistoryService {
         List<VehicleServiceRecord> serviceList = services.findByVehicleId(vehicleId);
         List<VehicleIssue> issueList = issues.findByVehicleId(vehicleId);
         List<VehicleFine> fineList = fines.findByVehicleId(vehicleId);
+        List<VehicleMissionReport> reportList = missionReports.findByVehicleId(vehicleId);
+        List<VehicleDocument> docList = vehicleDocuments.findByVehicleId(vehicleId);
 
-        double totalServiceCost = services.sumCostByVehicleId(vehicleId);
-        double totalFineAmount = fines.sumAmountByVehicleId(vehicleId);
-        double unpaidFineAmount = fines.sumUnpaidByVehicleId(vehicleId);
+        double totalServiceCost = services.sumCostByVehicleId(vehicleId)
+                + missionReports.sumAmountByVehicleIdAndType(vehicleId, "SERVICE");
+        double totalFineAmount = fines.sumAmountByVehicleId(vehicleId)
+                + missionReports.sumAmountByVehicleIdAndType(vehicleId, "FINE");
+        double unpaidFineAmount = fines.sumUnpaidByVehicleId(vehicleId)
+                + missionReports.sumUnpaidFinesByVehicleId(vehicleId);
+        double totalFuelCost = missionReports.sumAmountByVehicleIdAndType(vehicleId, "FUEL");
+        double totalFuelLiters = reportList.stream()
+                .filter(r -> "FUEL".equalsIgnoreCase(r.getReportType()))
+                .mapToDouble(VehicleMissionReport::getLiters)
+                .sum();
 
         List<String> badges = computeStatusBadges(row, serviceList, vehicleId);
 
@@ -98,67 +128,97 @@ public class VehicleHistoryService {
         dto.setTotalServiceCost(totalServiceCost);
         dto.setTotalFineAmount(totalFineAmount);
         dto.setUnpaidFineAmount(unpaidFineAmount);
+        dto.setTotalFuelCost(totalFuelCost);
+        dto.setTotalFuelLiters(totalFuelLiters);
         dto.setStatusBadges(badges);
         dto.setRentals(rentalList.stream().map(RentalRecordDto::from).collect(Collectors.toList()));
         dto.setServices(serviceList.stream().map(VehicleServiceDto::from).collect(Collectors.toList()));
         dto.setIssues(issueList.stream().map(VehicleIssueDto::from).collect(Collectors.toList()));
         dto.setFines(fineList.stream().map(VehicleFineDto::from).collect(Collectors.toList()));
+
+        List<VehicleMissionReportDto> reportDtos = new ArrayList<>();
+        for (VehicleMissionReport r : reportList) {
+            VehicleMissionReportDto rDto = VehicleMissionReportDto.from(r);
+            if (r.getEmployeeId() != null && r.getEmployeeId() > 0) {
+                try {
+                    Employee emp = employees.findById(r.getEmployeeId());
+                    if (emp != null) rDto.setEmployeeName(emp.getName());
+                } catch (Exception ignored) {}
+            }
+            reportDtos.add(rDto);
+        }
+        dto.setMissionReports(reportDtos);
+        dto.setDocuments(docList.stream().map(VehicleDocumentDto::from).collect(Collectors.toList()));
         return dto;
     }
 
     /**
      * Status badge rules:
-     * - DAMAGED: open/in-progress issue with HIGH or CRITICAL severity
+     * - DAMAGED: open/in-progress issue with HIGH or CRITICAL severity, or open accident report
      * - IN_REPAIR: any issue currently IN_PROGRESS
-     * - HAS_FINE: at least one unpaid fine
-     * - NEEDS_SERVICE: current odometer >= next due (from latest service),
-     *   or (no next_due set) last service + 5000 km exceeded
+     * - HAS_FINE: at least one unpaid fine (legacy or mission fine)
+     * - INSURANCE_EXPIRED / INSURANCE_EXPIRING: policy expired or expiring within 30 days
+     * - INSPECTION_EXPIRED / INSPECTION_EXPIRING: inspection expired or expiring within 30 days
      */
     List<String> computeStatusBadges(VehicleRow row,
                                      List<VehicleServiceRecord> serviceList,
                                      int vehicleId) throws SQLException {
         List<String> badges = new ArrayList<>();
 
-        if (issues.hasOpenHighSeverity(vehicleId)) {
+        if (issues.hasOpenHighSeverity(vehicleId) || missionReports.hasOpenAccident(vehicleId)) {
             badges.add(BADGE_DAMAGED);
         }
         if (issues.hasInProgress(vehicleId)) {
             badges.add(BADGE_IN_REPAIR);
         }
-        if (fines.hasUnpaid(vehicleId)) {
+        if (fines.hasUnpaid(vehicleId) || missionReports.hasUnpaidFine(vehicleId)) {
             badges.add(BADGE_HAS_FINE);
         }
-        if (needsService(row, serviceList)) {
-            badges.add(BADGE_NEEDS_SERVICE);
+
+        List<VehicleDocument> docs = vehicleDocuments.findByVehicleId(vehicleId);
+        boolean insExp = false, insSoon = false, inspExp = false, inspSoon = false;
+        for (VehicleDocument doc : docs) {
+            Long days = daysUntilDate(doc.getExpiryDate());
+            if (days != null) {
+                String type = doc.getDocumentType();
+                if ("THIRD_PARTY_INSURANCE".equalsIgnoreCase(type) || "BODY_INSURANCE".equalsIgnoreCase(type)) {
+                    if (days < 0) insExp = true;
+                    else if (days <= 30) insSoon = true;
+                } else if ("TECHNICAL_INSPECTION".equalsIgnoreCase(type)) {
+                    if (days < 0) inspExp = true;
+                    else if (days <= 30) inspSoon = true;
+                }
+            }
         }
+        if (insExp) badges.add(BADGE_INSURANCE_EXPIRED);
+        else if (insSoon) badges.add(BADGE_INSURANCE_EXPIRING);
+
+        if (inspExp) badges.add(BADGE_INSPECTION_EXPIRED);
+        else if (inspSoon) badges.add(BADGE_INSPECTION_EXPIRING);
 
         return badges;
     }
 
-    private boolean needsService(VehicleRow row, List<VehicleServiceRecord> serviceList) {
-        int current = row.currentOdometer;
-        if (current <= 0) {
-            return false;
-        }
-
-        // Prefer explicit next_due_odometer from the most recent service that has one
-        for (VehicleServiceRecord s : serviceList) {
-            if (s.getNextDueOdometer() != null && s.getNextDueOdometer() > 0) {
-                return current >= s.getNextDueOdometer();
+    static Long daysUntilDate(String dateStr) {
+        if (dateStr == null || dateStr.isBlank()) return null;
+        try {
+            String clean = dateStr.trim().replace('/', '-');
+            String[] parts = clean.split("-");
+            if (parts.length != 3) return null;
+            int y = Integer.parseInt(parts[0]);
+            int m = Integer.parseInt(parts[1]);
+            int d = Integer.parseInt(parts[2]);
+            if (y < 1700) {
+                JalaliDate jd = new JalaliDate(y, m, d);
+                LocalDate greg = jd.toGregorian();
+                return ChronoUnit.DAYS.between(LocalDate.now(), greg);
+            } else {
+                LocalDate greg = LocalDate.of(y, m, d);
+                return ChronoUnit.DAYS.between(LocalDate.now(), greg);
             }
+        } catch (Exception e) {
+            return null;
         }
-
-        // Fallback: last_service_odometer + default interval
-        if (row.lastServiceOdometer != null && row.lastServiceOdometer > 0) {
-            return current >= row.lastServiceOdometer + DEFAULT_SERVICE_INTERVAL_KM;
-        }
-
-        // No service history at all and odometer is high enough to suggest first service
-        if (serviceList.isEmpty() && current >= DEFAULT_SERVICE_INTERVAL_KM) {
-            return true;
-        }
-
-        return false;
     }
 
     // ── Service CRUD ───────────────────────────────────────────────────

@@ -23,6 +23,10 @@ public class VehicleHistoryDto {
     private List<VehicleServiceDto> services = new ArrayList<>();
     private List<VehicleIssueDto> issues = new ArrayList<>();
     private List<VehicleFineDto> fines = new ArrayList<>();
+    private List<VehicleMissionReportDto> missionReports = new ArrayList<>();
+    private List<VehicleDocumentDto> documents = new ArrayList<>();
+    private double totalFuelCost;
+    private double totalFuelLiters;
 
     public VehicleHistoryDto() {
     }
@@ -137,5 +141,37 @@ public class VehicleHistoryDto {
 
     public void setFines(List<VehicleFineDto> fines) {
         this.fines = fines != null ? fines : new ArrayList<>();
+    }
+
+    public List<VehicleMissionReportDto> getMissionReports() {
+        return missionReports;
+    }
+
+    public void setMissionReports(List<VehicleMissionReportDto> missionReports) {
+        this.missionReports = missionReports != null ? missionReports : new ArrayList<>();
+    }
+
+    public List<VehicleDocumentDto> getDocuments() {
+        return documents;
+    }
+
+    public void setDocuments(List<VehicleDocumentDto> documents) {
+        this.documents = documents != null ? documents : new ArrayList<>();
+    }
+
+    public double getTotalFuelCost() {
+        return totalFuelCost;
+    }
+
+    public void setTotalFuelCost(double totalFuelCost) {
+        this.totalFuelCost = totalFuelCost;
+    }
+
+    public double getTotalFuelLiters() {
+        return totalFuelLiters;
+    }
+
+    public void setTotalFuelLiters(double totalFuelLiters) {
+        this.totalFuelLiters = totalFuelLiters;
     }
 }

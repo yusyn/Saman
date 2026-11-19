@@ -59,6 +59,19 @@ public class EmployeeRepository {
         }
     }
 
+    public Employee findById(int id) throws SQLException {
+        String sql = "SELECT id, device_user_id, name, phone, is_active, is_renting " +
+                "FROM EmployeeTable WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return mapEmployee(rs);
+            }
+        }
+        return null;
+    }
+
     public Employee findByDeviceUserId(String deviceUserId) throws SQLException {
         try (Connection conn = getConnection()) { return findByDeviceUserId(conn, deviceUserId); }
     }
