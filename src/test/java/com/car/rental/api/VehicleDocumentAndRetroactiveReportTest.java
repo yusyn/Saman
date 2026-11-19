@@ -84,4 +84,26 @@ class VehicleDocumentAndRetroactiveReportTest {
         var payRes = historyController.payMissionFine(repDto.getId());
         assertTrue(payRes.isOk());
     }
+
+    @Test
+    void testVehicleHistoryRentalsContainReports() throws Exception {
+        List<RentalRecord> allRentals = rentalRepository.getRentalReport();
+        if (allRentals.isEmpty()) return;
+        RentalRecord rental = allRentals.get(0);
+
+        CreateMissionReportRequest req = new CreateMissionReportRequest();
+        req.setReportType("FUEL");
+        req.setLiters(28.5);
+        req.setCost(85500.0);
+        req.setDescription("بنزین مأموریت تستی");
+        historyController.addRetroactiveReport(rental.id, req);
+
+        var history = historyController.getHistory(rental.plate);
+        assertNotNull(history);
+        var rentalDto = history.getRentals().stream().filter(r -> r.getId() == rental.id).findFirst().orElse(null);
+        assertNotNull(rentalDto);
+        assertFalse(rentalDto.getReports().isEmpty(), "Rental reports must be populated in vehicle history!");
+        assertTrue(rentalDto.getReports().stream().anyMatch(r ->
+                "FUEL".equals(r.getReportType()) && r.getLiters() == 28.5 && r.getAmount() == 85500.0 && r.getCost() == 85500.0));
+    }
 }

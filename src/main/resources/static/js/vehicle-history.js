@@ -209,16 +209,21 @@
     rentals.forEach(function (r) {
       (r.reports || []).forEach(function (rep) {
         if (rep.reportType === "FUEL") {
-          if (rep.amount) totalFuelLiters += rep.amount;
-          if (rep.cost) totalFuelCost += rep.cost;
-        } else if (rep.reportType === "SERVICE" && rep.cost) {
-          totalServiceReportCost += rep.cost;
+          const l = rep.liters != null && !isNaN(rep.liters) ? rep.liters : (rep.amount != null && !isNaN(rep.amount) ? rep.amount : 0);
+          const c = rep.cost != null && !isNaN(rep.cost) ? rep.cost : (rep.amount != null && !isNaN(rep.amount) && l !== rep.amount ? rep.amount : 0);
+          totalFuelLiters += l;
+          totalFuelCost += c;
+        } else if (rep.reportType === "SERVICE") {
+          const c = rep.cost != null && !isNaN(rep.cost) ? rep.cost : (rep.amount != null && !isNaN(rep.amount) ? rep.amount : 0);
+          totalServiceReportCost += c;
         }
       });
     });
 
     const directServiceCost = h.totalServiceCost || 0;
-    const combinedServiceCost = directServiceCost + totalServiceReportCost;
+    const combinedServiceCost = h.totalServiceCost != null ? h.totalServiceCost : (directServiceCost + totalServiceReportCost);
+    const summaryFuelLiters = h.totalFuelLiters != null ? h.totalFuelLiters : totalFuelLiters;
+    const summaryFuelCost = h.totalFuelCost != null ? h.totalFuelCost : totalFuelCost;
 
     $("#historySummary").innerHTML =
       '<div class="history-stats">' +
@@ -229,9 +234,9 @@
       toPersianDigits(h.totalRentals || 0) +
       "</strong></div>" +
       '<div class="hist-stat"><span>مجموع بنزین مصرفی</span><strong>' +
-      toPersianDigits(totalFuelLiters.toFixed(1)) +
+      toPersianDigits(summaryFuelLiters.toFixed(1)) +
       " لیتر (" +
-      formatMoney(totalFuelCost) +
+      formatMoney(summaryFuelCost) +
       ")</strong></div>" +
       '<div class="hist-stat"><span>کل هزینه خدمات و سرویس</span><strong>' +
       formatMoney(combinedServiceCost) +
@@ -295,38 +300,43 @@
                   badgeClass = "badge-warn";
                   typeIcon = "⛽";
                   typeText = "بنزین";
-                  if (rep.amount) details += toPersianDigits(rep.amount) + " لیتر ";
-                  if (rep.cost) details += "— " + formatMoney(rep.cost);
+                  const litersVal = rep.liters != null && !isNaN(rep.liters) ? rep.liters : 0;
+                  const costVal = rep.cost != null && !isNaN(rep.cost) ? rep.cost : rep.amount;
+                  if (litersVal) details += toPersianDigits(litersVal) + " لیتر ";
+                  if (costVal) details += "— " + formatMoney(costVal);
                 } else if (rep.reportType === "SERVICE") {
                   badgeClass = "badge-service";
                   typeIcon = "🔧";
                   typeText = "سرویس: " + serviceTypeLabel(rep.title);
-                  if (rep.cost) details += "— " + formatMoney(rep.cost);
+                  const costVal = rep.cost != null && !isNaN(rep.cost) ? rep.cost : rep.amount;
+                  if (costVal) details += "— " + formatMoney(costVal);
                 } else if (rep.reportType === "ACCIDENT") {
                   badgeClass = "badge-accident";
                   typeIcon = "⚠️";
                   typeText = "تصادف (" + accidentSeverityLabel(rep.title) + ")";
-                  if (rep.cost) details += "— خسارت: " + formatMoney(rep.cost);
+                  const costVal = rep.cost != null && !isNaN(rep.cost) ? rep.cost : rep.amount;
+                  if (costVal) details += "— خسارت: " + formatMoney(costVal);
                 } else if (rep.reportType === "FINE") {
                   badgeClass = rep.paid ? "badge-success" : "badge-fine";
                   typeIcon = "📄";
                   typeText = "خلافی: " + escapeHtml(rep.title || "");
-                  if (rep.cost) details += "— " + formatMoney(rep.cost);
+                  const costVal = rep.cost != null && !isNaN(rep.cost) ? rep.cost : rep.amount;
+                  if (costVal) details += "— " + formatMoney(costVal);
                   if (rep.paid) details += " (پرداخت‌شده)";
                   else details += ' <button type="button" class="btn btn-sm btn-ghost" data-pay-report-fine="' + rep.id + '">پرداخت</button>';
                 }
 
                 let thumbHtml = "";
-                if (rep.attachment) {
-                  const url = Api.attachmentUrl(rep.attachment.id);
+                const imgUrl = rep.attachmentUrl || (rep.attachment ? Api.attachmentUrl(rep.attachment.id) : (rep.attachmentId ? Api.attachmentUrl(rep.attachmentId) : null));
+                if (imgUrl) {
                   thumbHtml =
                     '<span class="report-receipt-thumb" data-view-img="' +
-                    url +
+                    imgUrl +
                     '" data-img-title="' +
                     escapeHtml(typeText) +
                     '">' +
                     '<img src="' +
-                    url +
+                    imgUrl +
                     '" alt="رسید" /></span>';
                 }
 
@@ -408,27 +418,30 @@
 
     rentals.forEach(function (r) {
       (r.reports || []).forEach(function (rep) {
+        const costVal = rep.cost != null && !isNaN(rep.cost) ? rep.cost : rep.amount;
+        const imgUrl = rep.attachmentUrl || (rep.attachment ? Api.attachmentUrl(rep.attachment.id) : (rep.attachmentId ? Api.attachmentUrl(rep.attachmentId) : null));
         if (rep.reportType === "SERVICE") {
           items.push({
             type: "SERVICE",
             title: serviceTypeLabel(rep.title),
             date: rep.reportDate || (r.returnDate ? r.returnDate.split(" ")[0] : ""),
-            cost: rep.cost,
+            cost: costVal,
             odometer: r.returnOdometer,
             desc: rep.description,
             performedBy: r.employeeName,
-            attachmentUrl: rep.attachment ? Api.attachmentUrl(rep.attachment.id) : null,
+            attachmentUrl: imgUrl,
           });
         } else if (rep.reportType === "FUEL") {
+          const litersVal = rep.liters != null && !isNaN(rep.liters) ? rep.liters : (rep.amount != null ? rep.amount : "");
           items.push({
             type: "FUEL",
-            title: "سوخت‌گیری (" + toPersianDigits(rep.amount || "") + " لیتر)",
+            title: "سوخت‌گیری (" + toPersianDigits(litersVal) + " لیتر)",
             date: rep.reportDate || (r.returnDate ? r.returnDate.split(" ")[0] : ""),
-            cost: rep.cost,
+            cost: costVal,
             odometer: r.returnOdometer,
             desc: rep.description,
             performedBy: r.employeeName,
-            attachmentUrl: rep.attachment ? Api.attachmentUrl(rep.attachment.id) : null,
+            attachmentUrl: imgUrl,
           });
         }
       });
@@ -511,14 +524,16 @@
     rentals.forEach(function (r) {
       (r.reports || []).forEach(function (rep) {
         if (rep.reportType === "ACCIDENT") {
+          const costVal = rep.cost != null && !isNaN(rep.cost) ? rep.cost : rep.amount;
+          const imgUrl = rep.attachmentUrl || (rep.attachment ? Api.attachmentUrl(rep.attachment.id) : (rep.attachmentId ? Api.attachmentUrl(rep.attachmentId) : null));
           items.push({
             title: "تصادف در مأموریت " + (r.destination ? "مقصد " + r.destination : ""),
             severity: rep.title,
             date: rep.reportDate || (r.returnDate ? r.returnDate.split(" ")[0] : ""),
-            cost: rep.cost,
+            cost: costVal,
             desc: (r.employeeName ? "راننده: " + r.employeeName + " — " : "") + (rep.description || ""),
             status: "OPEN",
-            attachmentUrl: rep.attachment ? Api.attachmentUrl(rep.attachment.id) : null,
+            attachmentUrl: imgUrl,
           });
         }
       });
@@ -591,11 +606,12 @@
     rentals.forEach(function (r) {
       (r.reports || []).forEach(function (rep) {
         if (rep.reportType === "FINE") {
+          const costVal = rep.cost != null && !isNaN(rep.cost) ? rep.cost : rep.amount;
           items.push({
             id: rep.id,
             isMissionReport: true,
             type: rep.title || "جریمه مأموریت",
-            amount: rep.cost,
+            amount: costVal,
             date: rep.reportDate || (r.returnDate ? r.returnDate.split(" ")[0] : ""),
             paid: rep.paid,
             desc: (r.employeeName ? "راننده: " + r.employeeName + " — " : "") + (rep.description || ""),
@@ -1146,11 +1162,15 @@
         const repDate = ($("#retroReportDate") ? $("#retroReportDate").value : "").trim();
         const repDesc = ($("#retroReportDesc") ? $("#retroReportDesc").value : "").trim();
 
+        const costVal = !isNaN(repCost) ? repCost : (!isNaN(repAmount) && repType !== "FUEL" ? repAmount : null);
+        const litersVal = repType === "FUEL" && !isNaN(repAmount) ? repAmount : null;
+
         const body = {
           reportType: repType,
           title: repTitle || (repType === "FUEL" ? "بنزین" : repType === "SERVICE" ? "سرویس" : repType === "ACCIDENT" ? "تصادف" : "خلافی"),
-          amount: !isNaN(repAmount) ? repAmount : null,
-          cost: !isNaN(repCost) ? repCost : null,
+          amount: costVal,
+          cost: costVal,
+          liters: litersVal,
           reportDate: repDate || null,
           description: repDesc || null,
           attachmentId: retroAttachmentId || null,

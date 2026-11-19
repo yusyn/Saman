@@ -1169,7 +1169,8 @@
     if (!isNaN(fuelLiters) || !isNaN(fuelCost) || returnAttachments.fuel || fuelDesc) {
       reports.push({
         reportType: "FUEL",
-        amount: !isNaN(fuelLiters) ? fuelLiters : null,
+        liters: !isNaN(fuelLiters) ? fuelLiters : null,
+        amount: !isNaN(fuelCost) ? fuelCost : null,
         cost: !isNaN(fuelCost) ? fuelCost : null,
         description: fuelDesc || null,
         attachmentId: returnAttachments.fuel || null,
@@ -1184,6 +1185,7 @@
       reports.push({
         reportType: "SERVICE",
         title: srvType || "OTHER",
+        amount: !isNaN(srvCost) ? srvCost : null,
         cost: !isNaN(srvCost) ? srvCost : null,
         description: srvDesc || null,
         attachmentId: returnAttachments.service || null,
@@ -1198,6 +1200,7 @@
       reports.push({
         reportType: "ACCIDENT",
         title: accSeverity || "MINOR",
+        amount: !isNaN(accCost) ? accCost : null,
         cost: !isNaN(accCost) ? accCost : null,
         description: accDesc || null,
         attachmentId: returnAttachments.accident || null,
@@ -1213,6 +1216,7 @@
       reports.push({
         reportType: "FINE",
         title: fineTitle || "جریمه مأموریت",
+        amount: !isNaN(fineCost) ? fineCost : null,
         cost: !isNaN(fineCost) ? fineCost : null,
         reportDate: fineDate || null,
         description: fineDesc || null,

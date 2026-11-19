@@ -65,6 +65,7 @@ public class VehicleMissionReportDto {
     public void setDescription(String description) { this.description = description; }
     public double getAmount() { return amount; }
     public void setAmount(double amount) { this.amount = amount; }
+    public double getCost() { return amount; }
     public double getLiters() { return liters; }
     public void setLiters(double liters) { this.liters = liters; }
     public String getSeverity() { return severity; }

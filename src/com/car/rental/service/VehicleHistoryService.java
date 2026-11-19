@@ -131,11 +131,6 @@ public class VehicleHistoryService {
         dto.setTotalFuelCost(totalFuelCost);
         dto.setTotalFuelLiters(totalFuelLiters);
         dto.setStatusBadges(badges);
-        dto.setRentals(rentalList.stream().map(RentalRecordDto::from).collect(Collectors.toList()));
-        dto.setServices(serviceList.stream().map(VehicleServiceDto::from).collect(Collectors.toList()));
-        dto.setIssues(issueList.stream().map(VehicleIssueDto::from).collect(Collectors.toList()));
-        dto.setFines(fineList.stream().map(VehicleFineDto::from).collect(Collectors.toList()));
-
         List<VehicleMissionReportDto> reportDtos = new ArrayList<>();
         for (VehicleMissionReport r : reportList) {
             VehicleMissionReportDto rDto = VehicleMissionReportDto.from(r);
@@ -148,6 +143,23 @@ public class VehicleHistoryService {
             reportDtos.add(rDto);
         }
         dto.setMissionReports(reportDtos);
+
+        java.util.Map<Integer, List<VehicleMissionReportDto>> reportsByRental = reportDtos.stream()
+                .filter(r -> r.getRentalId() != null && r.getRentalId() > 0)
+                .collect(Collectors.groupingBy(VehicleMissionReportDto::getRentalId));
+
+        List<RentalRecordDto> rentalDtos = rentalList.stream().map(r -> {
+            RentalRecordDto rd = RentalRecordDto.from(r);
+            List<VehicleMissionReportDto> reps = reportsByRental.get(r.id);
+            if (reps != null) {
+                rd.setReports(new ArrayList<>(reps));
+            }
+            return rd;
+        }).collect(Collectors.toList());
+        dto.setRentals(rentalDtos);
+        dto.setServices(serviceList.stream().map(VehicleServiceDto::from).collect(Collectors.toList()));
+        dto.setIssues(issueList.stream().map(VehicleIssueDto::from).collect(Collectors.toList()));
+        dto.setFines(fineList.stream().map(VehicleFineDto::from).collect(Collectors.toList()));
         dto.setDocuments(docList.stream().map(VehicleDocumentDto::from).collect(Collectors.toList()));
         return dto;
     }

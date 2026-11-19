@@ -5,6 +5,7 @@ public class CreateMissionReportRequest {
     private String title;
     private String description;
     private Double amount;
+    private Double cost;
     private Double liters;
     private String severity;
     private String fineType;
@@ -19,9 +20,24 @@ public class CreateMissionReportRequest {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public Double getAmount() { return amount; }
+    public Double getAmount() {
+        if (cost != null && "FUEL".equalsIgnoreCase(reportType) && amount != null && !amount.equals(cost)) {
+            return cost;
+        }
+        return amount != null ? amount : cost;
+    }
     public void setAmount(Double amount) { this.amount = amount; }
-    public Double getLiters() { return liters; }
+    public Double getCost() {
+        return cost != null ? cost : amount;
+    }
+    public void setCost(Double cost) { this.cost = cost; }
+    public Double getLiters() {
+        if (liters != null) return liters;
+        if ("FUEL".equalsIgnoreCase(reportType) && cost != null && amount != null && !amount.equals(cost)) {
+            return amount;
+        }
+        return null;
+    }
     public void setLiters(Double liters) { this.liters = liters; }
     public String getSeverity() { return severity; }
     public void setSeverity(String severity) { this.severity = severity; }
