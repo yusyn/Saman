@@ -145,6 +145,54 @@ public class SchemaInitializer implements ApplicationRunner {
                 "FOREIGN KEY(device_user_id) REFERENCES EmployeeTable(device_user_id) ON UPDATE CASCADE" +
                 ")";
 
+        String attachmentTable =
+                "CREATE TABLE IF NOT EXISTS Attachment (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "original_name TEXT NOT NULL, " +
+                "file_path TEXT NOT NULL, " +
+                "content_type TEXT, " +
+                "file_size INTEGER, " +
+                "created_at TEXT DEFAULT (datetime('now','localtime'))" +
+                ")";
+
+        String vehicleMissionReportTable =
+                "CREATE TABLE IF NOT EXISTS VehicleMissionReport (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "rental_id INTEGER, " +
+                "vehicle_id INTEGER NOT NULL, " +
+                "employee_id INTEGER, " +
+                "report_type TEXT NOT NULL, " +
+                "title TEXT, " +
+                "description TEXT, " +
+                "amount REAL DEFAULT 0, " +
+                "liters REAL DEFAULT 0, " +
+                "severity TEXT, " +
+                "fine_type TEXT, " +
+                "is_paid INTEGER DEFAULT 0, " +
+                "attachment_id INTEGER, " +
+                "report_date TEXT NOT NULL, " +
+                "created_at TEXT DEFAULT (datetime('now','localtime')), " +
+                "FOREIGN KEY(rental_id) REFERENCES RentalTable(id), " +
+                "FOREIGN KEY(vehicle_id) REFERENCES VehicleTable(id), " +
+                "FOREIGN KEY(employee_id) REFERENCES EmployeeTable(id), " +
+                "FOREIGN KEY(attachment_id) REFERENCES Attachment(id)" +
+                ")";
+
+        String vehicleDocumentTable =
+                "CREATE TABLE IF NOT EXISTS VehicleDocument (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "vehicle_id INTEGER NOT NULL, " +
+                "document_type TEXT NOT NULL, " +
+                "document_number TEXT, " +
+                "issue_date TEXT, " +
+                "expiry_date TEXT NOT NULL, " +
+                "attachment_id INTEGER, " +
+                "notes TEXT, " +
+                "created_at TEXT DEFAULT (datetime('now','localtime')), " +
+                "FOREIGN KEY(vehicle_id) REFERENCES VehicleTable(id), " +
+                "FOREIGN KEY(attachment_id) REFERENCES Attachment(id)" +
+                ")";
+
         try (Connection conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("PRAGMA foreign_keys = ON;");
             stmt.execute(employeeTable);
@@ -156,6 +204,12 @@ public class SchemaInitializer implements ApplicationRunner {
             stmt.execute(vehicleFineTable);
             stmt.execute(employeeFingerTable);
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_employee_finger_user ON EmployeeFinger(device_user_id)");
+            stmt.execute(attachmentTable);
+            stmt.execute(vehicleMissionReportTable);
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_vm_report_vehicle ON VehicleMissionReport(vehicle_id, report_date DESC)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_vm_report_rental ON VehicleMissionReport(rental_id)");
+            stmt.execute(vehicleDocumentTable);
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_vehicle_doc_vehicle ON VehicleDocument(vehicle_id, expiry_date)");
 
             String appUserTable =
                     "CREATE TABLE IF NOT EXISTS AppUser (" +
@@ -203,6 +257,7 @@ public class SchemaInitializer implements ApplicationRunner {
             migrateCarTableToVehicleTable(conn);
             ensureVehicleTypeColumn(conn);
             ensureVehicleHistoryColumns(conn);
+            ensureMissionReportColumns(conn);
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Database init failed!", e);
         }
@@ -282,6 +337,15 @@ public class SchemaInitializer implements ApplicationRunner {
                 "ALTER TABLE VehicleTable ADD COLUMN last_service_date TEXT");
         ensureColumn(conn, "VehicleTable", "status_flags",
                 "ALTER TABLE VehicleTable ADD COLUMN status_flags TEXT DEFAULT ''");
+    }
+
+    private void ensureMissionReportColumns(Connection conn) throws SQLException {
+        ensureColumn(conn, "RentalTable", "return_odometer",
+                "ALTER TABLE RentalTable ADD COLUMN return_odometer INTEGER");
+        ensureColumn(conn, "EmployeeTable", "driver_license_number",
+                "ALTER TABLE EmployeeTable ADD COLUMN driver_license_number TEXT");
+        ensureColumn(conn, "EmployeeTable", "driver_license_expiry",
+                "ALTER TABLE EmployeeTable ADD COLUMN driver_license_expiry TEXT");
     }
 
     private void ensureColumn(Connection conn, String table, String column, String alterSql)
