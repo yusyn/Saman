@@ -273,8 +273,142 @@
               </div>
               <p class="status-line" id="returnVerifyStatus"></p>
             </div>
+            <!-- Return form with mandatory odometer and optional reports -->
             <form id="formReturn" class="form" requires-auth>
-              <button type="submit" class="btn btn-primary" id="btnReturnSubmit" disabled>ثبت برگشت</button>
+              <div class="return-odometer-box">
+                <div class="return-odometer-info">
+                  <span>کیلومتر خروج / ثبت‌شده فعلی:</span>
+                  <strong id="returnCarCurrentOdometer">—</strong>
+                </div>
+                <div class="return-odometer-input-wrap">
+                  <label for="returnOdometer"><strong>کیلومتر بازگشت (اجباری):</strong></label>
+                  <input id="returnOdometer" type="number" min="0" step="1" inputmode="numeric" dir="ltr" placeholder="مثلاً ۴۵۲۰۰" required disabled />
+                </div>
+              </div>
+
+              <!-- گزارش‌های اختیاری -->
+              <div class="accordion-section" id="accFuel">
+                <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
+                  <span class="acc-title">⛽ گزارش بنزین (اختیاری)</span>
+                  <span class="acc-icon">▼</span>
+                </div>
+                <div class="accordion-body">
+                  <div class="form-row">
+                    <label>میزان بنزین (لیتر)
+                      <input id="returnFuelLiters" type="number" step="0.1" min="0" placeholder="مثلاً ۳۰" />
+                    </label>
+                    <label>هزینه بنزین (تومان)
+                      <input id="returnFuelCost" type="number" step="1000" min="0" placeholder="مثلاً ۹۰۰۰۰" />
+                    </label>
+                  </div>
+                  <label>عکس فیش / رسید پرداخت
+                    <div class="file-upload-box">
+                      <label class="file-upload-btn">
+                        <span>انتخاب تصویر رسید…</span>
+                        <input type="file" class="file-upload-input" id="returnFuelFile" accept="image/*" />
+                      </label>
+                      <div class="file-upload-preview" id="returnFuelPreview"></div>
+                    </div>
+                  </label>
+                  <label>توضیحات (جایگاه، جزئیات)
+                    <input id="returnFuelDesc" placeholder="مثلاً جایگاه آزادی" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="accordion-section" id="accService">
+                <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
+                  <span class="acc-title">🔧 گزارش خدمات و نگهداری (کارواش، روغن، شیشه‌شور و...) (اختیاری)</span>
+                  <span class="acc-icon">▼</span>
+                </div>
+                <div class="accordion-body">
+                  <div class="form-row">
+                    <label>نوع خدمات
+                      <select id="returnServiceType">
+                        <option value="CARWASH">کارواش</option>
+                        <option value="OIL_CHANGE">تعویض روغن</option>
+                        <option value="WINDSHIELD_WASHER">مایع شیشه‌شور / ضدیخ</option>
+                        <option value="OTHER">سایر خدمات و سرویس‌ها</option>
+                      </select>
+                    </label>
+                    <label>هزینه (تومان)
+                      <input id="returnServiceCost" type="number" step="1000" min="0" placeholder="مثلاً ۱۵۰۰۰۰" />
+                    </label>
+                  </div>
+                  <label>عکس فاکتور / رسید
+                    <div class="file-upload-box">
+                      <label class="file-upload-btn">
+                        <span>انتخاب تصویر رسید…</span>
+                        <input type="file" class="file-upload-input" id="returnServiceFile" accept="image/*" />
+                      </label>
+                      <div class="file-upload-preview" id="returnServicePreview"></div>
+                    </div>
+                  </label>
+                  <label>شرح خدمات انجام‌شده
+                    <input id="returnServiceDesc" placeholder="شرح خدمات انجام‌شده..." />
+                  </label>
+                </div>
+              </div>
+
+              <div class="accordion-section" id="accAccident">
+                <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
+                  <span class="acc-title">⚠️ گزارش تصادف یا خسارت (اختیاری)</span>
+                  <span class="acc-icon">▼</span>
+                </div>
+                <div class="accordion-body">
+                  <div class="form-row">
+                    <label>شدت آسیب
+                      <select id="returnAccidentSeverity">
+                        <option value="MINOR">جزئی (خط و خش، فرورفتگی کوچک)</option>
+                        <option value="MODERATE">متوسط (آسیب به بدنه، نیاز به صافکاری)</option>
+                        <option value="SEVERE">شدید (تصادف عمده، نیاز به توقف خودرو)</option>
+                      </select>
+                    </label>
+                    <label>برآورد هزینه خسارت (در صورت مشخص بودن - تومان)
+                      <input id="returnAccidentCost" type="number" step="1000" min="0" placeholder="مثلاً ۵۰۰۰۰۰" />
+                    </label>
+                  </div>
+                  <label>عکس محل آسیب یا سانحه
+                    <div class="file-upload-box">
+                      <label class="file-upload-btn">
+                        <span>انتخاب تصویر خسارت…</span>
+                        <input type="file" class="file-upload-input" id="returnAccidentFile" accept="image/*" />
+                      </label>
+                      <div class="file-upload-preview" id="returnAccidentPreview"></div>
+                    </div>
+                  </label>
+                  <label>شرح سانحه و جزئیات خسارت
+                    <input id="returnAccidentDesc" placeholder="محل و علت بروز حادثه..." />
+                  </label>
+                </div>
+              </div>
+
+              <div class="accordion-section" id="accFine">
+                <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
+                  <span class="acc-title">📄 گزارش جریمه و خلافی در مأموریت (اختیاری)</span>
+                  <span class="acc-icon">▼</span>
+                </div>
+                <div class="accordion-body">
+                  <div class="form-row">
+                    <label>نوع تخلف
+                      <input id="returnFineTitle" placeholder="مثلاً سرعت غیرمجاز، ورود به طرح" />
+                    </label>
+                    <label>مبلغ جریمه (تومان)
+                      <input id="returnFineCost" type="number" step="1000" min="0" placeholder="مثلاً ۱۰۰۰۰۰" />
+                    </label>
+                  </div>
+                  <div class="form-row">
+                    <label>تاریخ تخلف (شمسی)
+                      <input id="returnFineDate" placeholder="۱۴۰۵/۰۱/۰۱" />
+                    </label>
+                    <label>شماره قبض / شناسه پرداخت یا توضیحات
+                      <input id="returnFineDesc" placeholder="شناسه پرداخت یا توضیحات..." />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary" id="btnReturnSubmit" disabled>ثبت برگشت وسیله نقلیه</button>
             </form>
           </div>
         </div>
@@ -421,6 +555,10 @@
         <input type="hidden" id="editEmpId" />
         <label>نام<input id="editEmpName" required dir="ltr" /></label>
         <label>تلفن<input id="editEmpPhone" dir="ltr" /></label>
+        <div class="form-row">
+          <label>شماره گواهینامه<input id="editEmpLicenseNum" dir="ltr" placeholder="مثلاً ۹۸۷۶۵۴۳۲" /></label>
+          <label>انقضای گواهینامه (شمسی)<input id="editEmpLicenseExpiry" dir="ltr" placeholder="۱۴۰۶/۰۵/۰۱" /></label>
+        </div>
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary">ذخیره</button>
           <button type="button" class="btn btn-ghost" data-close="modalEmployee">انصراف</button>
@@ -438,10 +576,11 @@
       </div>
       <div class="history-tabs" role="tablist">
         <button type="button" class="history-tab active" data-htab="summary">خلاصه</button>
-        <button type="button" class="history-tab" data-htab="rentals">سفرها</button>
-        <button type="button" class="history-tab" data-htab="services">سرویس</button>
-        <button type="button" class="history-tab" data-htab="issues">خرابی</button>
-        <button type="button" class="history-tab" data-htab="fines">خلافی</button>
+        <button type="button" class="history-tab" data-htab="rentals">مأموریت‌ها</button>
+        <button type="button" class="history-tab" data-htab="services">خدمات و بنزین</button>
+        <button type="button" class="history-tab" data-htab="accidents">تصادفات</button>
+        <button type="button" class="history-tab" data-htab="fines">خلافی‌ها</button>
+        <button type="button" class="history-tab" data-htab="documents">مدارک و بیمه</button>
       </div>
       <div class="history-body">
         <div class="history-pane active" data-hpane="summary">
@@ -482,10 +621,10 @@
             <button type="submit" class="btn btn-primary btn-sm">ثبت سرویس</button>
           </form>
         </div>
-        <div class="history-pane" data-hpane="issues">
-          <div id="historyIssuesList"></div>
-          <form id="formHistoryIssue" class="form hist-form">
-            <h4 class="hist-form-title">ثبت خرابی</h4>
+        <div class="history-pane" data-hpane="accidents">
+          <div id="historyAccidentsList"></div>
+          <form id="formHistoryAccident" class="form hist-form">
+            <h4 class="hist-form-title">ثبت سانحه یا آسیب‌دیدگی</h4>
             <label>عنوان<input id="histIssueTitle" required /></label>
             <div class="form-row">
               <label>شدت
@@ -502,7 +641,7 @@
               <label>هزینه<input id="histIssueCost" dir="ltr" inputmode="numeric" /></label>
               <label>توضیحات<input id="histIssueDesc" /></label>
             </div>
-            <button type="submit" class="btn btn-primary btn-sm">ثبت خرابی</button>
+            <button type="submit" class="btn btn-primary btn-sm">ثبت سانحه</button>
           </form>
         </div>
         <div class="history-pane" data-hpane="fines">
@@ -527,6 +666,97 @@
             <button type="submit" class="btn btn-primary btn-sm">ثبت خلافی</button>
           </form>
         </div>
+        <div class="history-pane" data-hpane="documents">
+          <div id="historyDocumentsList"></div>
+          <form id="formHistoryDocument" class="form hist-form">
+            <h4 class="hist-form-title">افزودن مدرک / بیمه‌نامه</h4>
+            <div class="form-row">
+              <label>نوع مدرک
+                <select id="histDocType">
+                  <option value="THIRD_PARTY_INSURANCE">بیمه شخص ثالث</option>
+                  <option value="BODY_INSURANCE">بیمه بدنه</option>
+                  <option value="TECHNICAL_INSPECTION">معاینه فنی</option>
+                  <option value="OTHER">سایر مدارک</option>
+                </select>
+              </label>
+              <label>شماره بیمه‌نامه / مدرک<input id="histDocNumber" dir="ltr" placeholder="مثلاً ۹۸/۱۴۰۲" /></label>
+            </div>
+            <div class="form-row">
+              <label>تاریخ انقضا (شمسی)<input id="histDocExpiry" dir="ltr" placeholder="۱۴۰۵/۰۶/۱۵" required /></label>
+              <label>شرکت بیمه‌گر / مرجع صادرکننده<input id="histDocCompany" placeholder="مثلاً بیمه ایران" /></label>
+            </div>
+            <label>یادداشت / توضیحات<input id="histDocNotes" placeholder="توضیحات اختیاری..." /></label>
+            <button type="submit" class="btn btn-primary btn-sm">ثبت مدرک</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Retroactive Mission Report -->
+  <div id="modalRetroReport" class="modal hidden">
+    <div class="modal-backdrop" data-close="modalRetroReport"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3 id="retroReportTitle">ثبت گزارش برای مأموریت</h3>
+        <button type="button" class="btn btn-ghost btn-sm" data-close="modalRetroReport">بستن</button>
+      </div>
+      <form id="formRetroReport" class="form" requires-auth>
+        <input type="hidden" id="retroRentalId" />
+        <label>نوع گزارش
+          <select id="retroReportType">
+            <option value="FUEL">⛽ بنزین و سوخت</option>
+            <option value="SERVICE">🔧 خدمات و سرویس (کارواش، روغن و...)</option>
+            <option value="ACCIDENT">⚠️ تصادف و آسیب‌دیدگی</option>
+            <option value="FINE">📄 جریمه و خلافی</option>
+          </select>
+        </label>
+        <label>عنوان / شرح اولیه
+          <input id="retroReportTitleInput" placeholder="عنوان یا نوع خدمت..." />
+        </label>
+        <div class="form-row">
+          <label>میزان بنزین (لیتر - در صورت سوخت)
+            <input id="retroReportAmount" type="number" step="0.1" min="0" placeholder="مثلاً ۳۰" />
+          </label>
+          <label>مبلغ / هزینه (تومان)
+            <input id="retroReportCost" type="number" step="1000" min="0" placeholder="مثلاً ۹۰۰۰۰" />
+          </label>
+        </div>
+        <div class="form-row">
+          <label>تاریخ (شمسی)
+            <input id="retroReportDate" placeholder="۱۴۰۵/۰۱/۰۱" />
+          </label>
+          <label>تصویر فاکتور / رسید / خسارت
+            <div class="file-upload-box">
+              <label class="file-upload-btn">
+                <span>انتخاب تصویر…</span>
+                <input type="file" class="file-upload-input" id="retroReportFile" accept="image/*" />
+              </label>
+              <div class="file-upload-preview" id="retroReportPreview"></div>
+            </div>
+          </label>
+        </div>
+        <label>توضیحات تکمیلی
+          <textarea id="retroReportDesc" rows="2" placeholder="جزئیات تکمیلی..."></textarea>
+        </label>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary" id="btnRetroSubmit">ثبت گزارش</button>
+          <button type="button" class="btn btn-ghost" data-close="modalRetroReport">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal for Attachment Photo View -->
+  <div id="modalImageViewer" class="modal hidden">
+    <div class="modal-backdrop" data-close="modalImageViewer"></div>
+    <div class="modal-panel modal-panel-sm" style="text-align: center; max-width: 600px;">
+      <div class="modal-head">
+        <h3 id="imageViewerTitle">تصویر پیوست</h3>
+        <button type="button" class="btn btn-ghost btn-sm" data-close="modalImageViewer">بستن</button>
+      </div>
+      <div style="margin: 0.5rem 0;">
+        <img id="imageViewerImg" src="" alt="تصویر پیوست" style="max-width: 100%; max-height: 70vh; border-radius: 6px; border: 1px solid var(--border);" />
       </div>
     </div>
   </div>

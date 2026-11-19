@@ -14,6 +14,7 @@ public class RentalRecord {
     /** CAR or MOTORCYCLE */
     public String vehicleType;
     public Integer returnOdometer;
+    public Integer currentOdometer;
 
     public RentalRecord(String deviceUserId, String employeeName, String carName, String carColor,
                         String plate, String pickupDate, String returnDate, String destination) {

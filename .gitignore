@@ -48,3 +48,5 @@ buildNumber.properties
 
 ### Logs ###
 *.log
+
+data/

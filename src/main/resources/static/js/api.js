@@ -274,5 +274,50 @@ const Api = (() => {
         method: "PUT",
         body: JSON.stringify({ odometer }),
       }),
+    uploadAttachment: async (file) => {
+      const token = await ensureCsrf();
+      const formData = new FormData();
+      formData.append("file", file);
+      const headers = { Accept: "application/json" };
+      if (token) headers[csrfHeaderName] = token;
+      const res = await fetch("/api/attachments/upload", {
+        method: "POST",
+        headers,
+        body: formData,
+        credentials: "same-origin",
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        let msg = "خطا در آپلود فایل";
+        try {
+          const j = JSON.parse(text);
+          if (j && (j.message || j.error)) msg = j.message || j.error;
+        } catch (_) {}
+        throw new Error(msg);
+      }
+      return await res.json();
+    },
+    attachmentUrl: (id) => "/api/attachments/" + id,
+    addRetroactiveReport: (rentalId, body) =>
+      request("/api/vehicles/history/rentals/" + rentalId + "/reports", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    payMissionFine: (reportId) =>
+      request("/api/vehicles/history/reports/" + reportId + "/pay", {
+        method: "PATCH",
+        body: "{}",
+      }),
+    vehicleDocuments: (plate) =>
+      request("/api/vehicles/" + encodeURIComponent(plate) + "/documents"),
+    addVehicleDocument: (plate, body) =>
+      request("/api/vehicles/" + encodeURIComponent(plate) + "/documents", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    deleteVehicleDocument: (plate, docId) =>
+      request("/api/vehicles/" + encodeURIComponent(plate) + "/documents/" + docId, {
+        method: "DELETE",
+      }),
   };
 })();

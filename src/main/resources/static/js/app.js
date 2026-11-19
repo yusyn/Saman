@@ -687,6 +687,8 @@
       $("#editEmpId").value = emp.deviceUserId || "";
       $("#editEmpName").value = emp.name || "";
       $("#editEmpPhone").value = emp.phone || "";
+      if ($("#editEmpLicenseNum")) $("#editEmpLicenseNum").value = emp.driverLicenseNumber || "";
+      if ($("#editEmpLicenseExpiry")) $("#editEmpLicenseExpiry").value = emp.driverLicenseExpiry || "";
       openModal("modalEmployee");
       return;
     }
@@ -730,6 +732,8 @@
     const body = {
       name: $("#editEmpName").value.trim(),
       phone: $("#editEmpPhone").value.trim(),
+      driverLicenseNumber: ($("#editEmpLicenseNum") ? $("#editEmpLicenseNum").value.trim() : "") || null,
+      driverLicenseExpiry: ($("#editEmpLicenseExpiry") ? $("#editEmpLicenseExpiry").value.trim() : "") || null,
     };
     try {
       await Api.updateEmployee(id, body);
@@ -760,9 +764,21 @@
     if (!m) {
       box.innerHTML = "";
       box.classList.add("hidden");
+      resetReturnForm();
       return;
     }
     box.classList.remove("hidden");
+    const curOdoEl = $("#returnCarCurrentOdometer");
+    const retOdoInput = $("#returnOdometer");
+    const curOdoVal = m.currentOdometer != null ? m.currentOdometer : 0;
+    if (curOdoEl) {
+      curOdoEl.textContent = toPersianDigits(curOdoVal.toLocaleString("fa-IR")) + " کیلومتر";
+    }
+    if (retOdoInput) {
+      retOdoInput.disabled = false;
+      retOdoInput.min = String(curOdoVal);
+      retOdoInput.placeholder = "حداقل " + toPersianDigits(curOdoVal);
+    }
     const vehicleLabel =
       (m.carName || "—") +
       (m.carColor ? " · " + m.carColor : "");
@@ -1053,6 +1069,67 @@
     }
   });
 
+  let returnAttachments = {
+    fuel: null,
+    service: null,
+    accident: null,
+  };
+
+  function setupFileUpload(inputId, previewId, key) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    if (!input || !preview) return;
+    input.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      preview.innerHTML = '<span class="spinner" style="width:14px;height:14px;display:inline-block;"></span> در حال آپلود...';
+      try {
+        const att = await Api.uploadAttachment(file);
+        returnAttachments[key] = att.id;
+        preview.innerHTML =
+          '<img src="' + Api.attachmentUrl(att.id) + '" alt="رسید" />' +
+          '<span>' + escapeHtml(att.originalFilename || file.name) + '</span>' +
+          '<button type="button" class="file-upload-remove" title="حذف">✕</button>';
+        const rm = preview.querySelector(".file-upload-remove");
+        if (rm) {
+          rm.addEventListener("click", () => {
+            returnAttachments[key] = null;
+            input.value = "";
+            preview.innerHTML = "";
+          });
+        }
+      } catch (err) {
+        toast(err.message || "خطا در آپلود فایل", "err");
+        preview.innerHTML = "";
+        input.value = "";
+      }
+    });
+  }
+
+  setupFileUpload("returnFuelFile", "returnFuelPreview", "fuel");
+  setupFileUpload("returnServiceFile", "returnServicePreview", "service");
+  setupFileUpload("returnAccidentFile", "returnAccidentPreview", "accident");
+
+  function resetReturnForm() {
+    const form = $("#formReturn");
+    if (form) form.reset();
+    returnAttachments = { fuel: null, service: null, accident: null };
+    const curOdo = $("#returnCarCurrentOdometer");
+    if (curOdo) curOdo.textContent = "—";
+    const retOdo = $("#returnOdometer");
+    if (retOdo) {
+      retOdo.value = "";
+      retOdo.disabled = true;
+    }
+    const fuelPrev = $("#returnFuelPreview");
+    if (fuelPrev) fuelPrev.innerHTML = "";
+    const srvPrev = $("#returnServicePreview");
+    if (srvPrev) srvPrev.innerHTML = "";
+    const accPrev = $("#returnAccidentPreview");
+    if (accPrev) accPrev.innerHTML = "";
+    document.querySelectorAll(".accordion-section.open").forEach((el) => el.classList.remove("open"));
+  }
+
   $("#formReturn").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!returnAuth || !returnAuth.deviceUserId) {
@@ -1063,15 +1140,100 @@
       toast("کارمند مأموریت فعالی ندارد", "err");
       return;
     }
-    const body = { deviceUserId: returnAuth.deviceUserId };
+    const returnOdoInput = $("#returnOdometer");
+    const returnOdoStr = (returnOdoInput ? returnOdoInput.value : "").trim();
+    const returnOdometerVal = parseInt(toLatinDigits(returnOdoStr), 10);
+    const minOdo = (returnAuth.activeRental && returnAuth.activeRental.currentOdometer != null)
+      ? returnAuth.activeRental.currentOdometer : 0;
+
+    if (isNaN(returnOdometerVal)) {
+      toast("لطفاً کیلومتر بازگشت را وارد کنید", "err");
+      if (returnOdoInput) returnOdoInput.focus();
+      return;
+    }
+    if (returnOdometerVal < minOdo) {
+      toast(
+        "کیلومتر بازگشت (" + toPersianDigits(returnOdometerVal) + ") نمی‌تواند کمتر از کیلومتر فعلی (" + toPersianDigits(minOdo) + ") باشد",
+        "err"
+      );
+      if (returnOdoInput) returnOdoInput.focus();
+      return;
+    }
+
+    const reports = [];
+
+    // 1. Fuel
+    const fuelLiters = parseFloat(toLatinDigits($("#returnFuelLiters") ? $("#returnFuelLiters").value : ""));
+    const fuelCost = parseInt(toLatinDigits($("#returnFuelCost") ? $("#returnFuelCost").value : ""), 10);
+    const fuelDesc = ($("#returnFuelDesc") ? $("#returnFuelDesc").value : "").trim();
+    if (!isNaN(fuelLiters) || !isNaN(fuelCost) || returnAttachments.fuel || fuelDesc) {
+      reports.push({
+        reportType: "FUEL",
+        amount: !isNaN(fuelLiters) ? fuelLiters : null,
+        cost: !isNaN(fuelCost) ? fuelCost : null,
+        description: fuelDesc || null,
+        attachmentId: returnAttachments.fuel || null,
+      });
+    }
+
+    // 2. Service
+    const srvType = $("#returnServiceType") ? $("#returnServiceType").value : "OTHER";
+    const srvCost = parseInt(toLatinDigits($("#returnServiceCost") ? $("#returnServiceCost").value : ""), 10);
+    const srvDesc = ($("#returnServiceDesc") ? $("#returnServiceDesc").value : "").trim();
+    if (!isNaN(srvCost) || returnAttachments.service || srvDesc) {
+      reports.push({
+        reportType: "SERVICE",
+        title: srvType || "OTHER",
+        cost: !isNaN(srvCost) ? srvCost : null,
+        description: srvDesc || null,
+        attachmentId: returnAttachments.service || null,
+      });
+    }
+
+    // 3. Accident
+    const accSeverity = $("#returnAccidentSeverity") ? $("#returnAccidentSeverity").value : "MINOR";
+    const accCost = parseInt(toLatinDigits($("#returnAccidentCost") ? $("#returnAccidentCost").value : ""), 10);
+    const accDesc = ($("#returnAccidentDesc") ? $("#returnAccidentDesc").value : "").trim();
+    if (returnAttachments.accident || accDesc || !isNaN(accCost)) {
+      reports.push({
+        reportType: "ACCIDENT",
+        title: accSeverity || "MINOR",
+        cost: !isNaN(accCost) ? accCost : null,
+        description: accDesc || null,
+        attachmentId: returnAttachments.accident || null,
+      });
+    }
+
+    // 4. Fine
+    const fineTitle = ($("#returnFineTitle") ? $("#returnFineTitle").value : "").trim();
+    const fineCost = parseInt(toLatinDigits($("#returnFineCost") ? $("#returnFineCost").value : ""), 10);
+    const fineDate = ($("#returnFineDate") ? $("#returnFineDate").value : "").trim();
+    const fineDesc = ($("#returnFineDesc") ? $("#returnFineDesc").value : "").trim();
+    if (fineTitle || !isNaN(fineCost) || fineDate || fineDesc) {
+      reports.push({
+        reportType: "FINE",
+        title: fineTitle || "جریمه مأموریت",
+        cost: !isNaN(fineCost) ? fineCost : null,
+        reportDate: fineDate || null,
+        description: fineDesc || null,
+      });
+    }
+
+    const body = {
+      deviceUserId: returnAuth.deviceUserId,
+      returnOdometer: returnOdometerVal,
+      reports: reports.length > 0 ? reports : null,
+    };
+
     const btn = $("#btnReturnSubmit");
     btn.disabled = true;
     try {
       const r = await Api.returnCar(body);
       toast(
-        r.message || (r.ok === false ? "ناموفق" : "برگشت ثبت شد"),
+        r.message || (r.ok === false ? "ناموفق" : "برگشت با موفقیت ثبت شد"),
         r.ok === false ? "err" : "ok"
       );
+      resetReturnForm();
       clearAuth("return");
       await loadAvailablePlates();
     } catch (err) {

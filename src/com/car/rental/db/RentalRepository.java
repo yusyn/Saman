@@ -390,7 +390,7 @@ public class RentalRepository {
 
     /** All rental records for a given vehicle (by VehicleTable.id). */
     public List<RentalRecord> findByVehicleId(int vehicleId) throws SQLException {
-        String sql = "SELECT r.id, r.return_odometer, e.device_user_id, e.name AS employee_name, " +
+        String sql = "SELECT r.id, r.return_odometer, v.current_odometer, e.device_user_id, e.name AS employee_name, " +
                 "v.name AS car_name, v.color AS car_color, v.plate, v.vehicle_type, " +
                 "r.pickup_date, r.return_date, r.destination " +
                 "FROM RentalTable r " +
@@ -411,7 +411,7 @@ public class RentalRepository {
     }
 
     public RentalRecord findById(int id) throws SQLException {
-        String sql = "SELECT r.id, r.return_odometer, e.device_user_id, e.name AS employee_name, " +
+        String sql = "SELECT r.id, r.return_odometer, v.current_odometer, e.device_user_id, e.name AS employee_name, " +
                 "v.name AS car_name, v.color AS car_color, v.plate, v.vehicle_type, " +
                 "r.pickup_date, r.return_date, r.destination " +
                 "FROM RentalTable r " +
@@ -460,6 +460,9 @@ public class RentalRepository {
             r.returnOdometer = (Integer) rs.getObject("return_odometer");
         } catch (SQLException ignored) {}
         try {
+            r.currentOdometer = (Integer) rs.getObject("current_odometer");
+        } catch (SQLException ignored) {}
+        try {
             r.vehicleType = rs.getString("vehicle_type");
         } catch (SQLException ignored) {
             r.vehicleType = "CAR";
@@ -468,7 +471,7 @@ public class RentalRepository {
     }
 
     public RentalRecord getActiveRentalByDeviceUserId(String deviceUserId) throws SQLException {
-        String query = "SELECT r.id, r.return_odometer, e.device_user_id, e.name AS employee_name, " +
+        String query = "SELECT r.id, r.return_odometer, v.current_odometer, e.device_user_id, e.name AS employee_name, " +
                 "v.name AS car_name, v.color AS car_color, v.plate, v.vehicle_type, " +
                 "r.pickup_date, r.return_date, r.destination " +
                 "FROM RentalTable r " +

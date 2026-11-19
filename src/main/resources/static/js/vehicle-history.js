@@ -1,15 +1,30 @@
 /**
- * Vehicle history UI (stage 7) — badges, history button, modal.
- * Loaded after app.js; enhances the fleet table without forking the whole app.
+ * Vehicle history UI — comprehensive dossier with tabs:
+ * 1. Summary (خلاصه)
+ * 2. Missions (مأموریت‌ها با گزارش‌ها و ثبت عطف‌به‌ماسبق)
+ * 3. Services & Fuel (خدمات و بنزین)
+ * 4. Accidents (تصادفات و آسیب‌ها)
+ * 5. Fines (خلافی‌ها با قابلیت پرداخت)
+ * 6. Documents & Insurance (مدارک و بیمه‌نامه‌ها)
  */
 (function () {
   const $ = (sel) => document.querySelector(sel);
 
   const HISTORY_BADGE_META = {
-    DAMAGED: { cls: "badge-danger", label: "آسیب", title: "خرابی جدی باز" },
+    DAMAGED: { cls: "badge-accident", label: "آسیب‌دیده", title: "تصادف یا خسارت باز" },
     IN_REPAIR: { cls: "badge-warn", label: "تعمیر", title: "در حال تعمیر" },
-    NEEDS_SERVICE: { cls: "badge-service", label: "سرویس", title: "نیاز به سرویس" },
-    HAS_FINE: { cls: "badge-fine", label: "خلافی", title: "خلافی پرداخت‌نشده" },
+    HAS_FINE: { cls: "badge-fine", label: "خلافی باز", title: "جریمه پرداخت‌نشده" },
+    INSURANCE_EXPIRING: { cls: "badge-warn", label: "انقضای بیمه", title: "بیمه‌نامه تا ۳۰ روز آینده منقضی می‌شود" },
+    INSURANCE_EXPIRED: { cls: "badge-danger", label: "بیمه منقضی", title: "بیمه‌نامه منقضی شده است!" },
+    INSPECTION_EXPIRING: { cls: "badge-warn", label: "انقضای معاینه", title: "معاینه فنی تا ۳۰ روز آینده منقضی می‌شود" },
+    INSPECTION_EXPIRED: { cls: "badge-danger", label: "معاینه منقضی", title: "معاینه فنی منقضی شده است!" },
+  };
+
+  const DOC_TYPE_META = {
+    THIRD_PARTY_INSURANCE: { label: "بیمه شخص ثالث", icon: "🛡️" },
+    BODY_INSURANCE: { label: "بیمه بدنه", icon: "🚗" },
+    TECHNICAL_INSPECTION: { label: "معاینه فنی", icon: "📋" },
+    OTHER: { label: "سایر مدارک", icon: "📄" },
   };
 
   function escapeHtml(s) {
@@ -47,7 +62,7 @@
       .map(function (f) {
         f = f.trim();
         if (!f) return "";
-        const meta = HISTORY_BADGE_META[f] || { cls: "badge-muted", label: f, title: f };
+        const meta = HISTORY_BADGE_META[f] || { cls: "badge-neutral", label: f, title: f };
         return (
           '<span class="badge ' +
           meta.cls +
@@ -63,43 +78,43 @@
 
   function formatMoney(n) {
     const v = Number(n) || 0;
-    return toPersianDigits(v.toLocaleString("en-US"));
+    return toPersianDigits(v.toLocaleString("fa-IR")) + " تومان";
   }
 
   function serviceTypeLabel(t) {
     const map = {
+      CARWASH: "کارواش",
       OIL_CHANGE: "تعویض روغن",
+      WINDSHIELD_WASHER: "مایع شیشه‌شور / ضدیخ",
       FILTER: "فیلتر",
       TIRE: "لاستیک",
       BATTERY: "باتری",
       BRAKE: "ترمز",
       INSPECTION: "معاینه / بازرسی",
-      OTHER: "سایر",
+      OTHER: "سایر خدمات",
     };
     return map[t] || t || "—";
   }
 
-  function issueSeverityLabel(s) {
-    const map = { LOW: "کم", MEDIUM: "متوسط", HIGH: "زیاد", CRITICAL: "بحرانی" };
-    return map[s] || s || "—";
-  }
-
-  function issueStatusLabel(s) {
+  function accidentSeverityLabel(s) {
     const map = {
-      OPEN: "باز",
-      IN_PROGRESS: "در حال تعمیر",
-      RESOLVED: "رفع شده",
-      CLOSED: "بسته",
+      MINOR: "جزئی",
+      MODERATE: "متوسط",
+      SEVERE: "شدید",
+      LOW: "کم",
+      MEDIUM: "متوسط",
+      HIGH: "زیاد",
+      CRITICAL: "بحرانی",
     };
     return map[s] || s || "—";
   }
 
   function fineTypeLabel(t) {
     const map = {
-      SPEED: "سرعت",
-      PARKING: "پارک",
-      RED_LIGHT: "چراغ قرمز",
-      OTHER: "سایر",
+      SPEED: "سرعت غیرمجاز",
+      PARKING: "پارک ممنوع",
+      RED_LIGHT: "عبور از چراغ قرمز",
+      OTHER: "سایر تخلفات",
     };
     return map[t] || t || "—";
   }
@@ -123,9 +138,20 @@
     toastEl._t = setTimeout(() => toastEl.classList.add("hidden"), 4500);
   }
 
+  function showImagePreview(src, title) {
+    const modal = document.getElementById("modalImageViewer");
+    const img = document.getElementById("imageViewerImg");
+    const titleEl = document.getElementById("imageViewerTitle");
+    if (img) img.src = src;
+    if (titleEl && title) titleEl.textContent = title;
+    if (modal) modal.classList.remove("hidden");
+  }
+
   let historyPlate = null;
   let historyData = null;
+  let historyDocs = [];
   let vehicleFlagsCache = {};
+  let retroAttachmentId = null;
 
   function switchHistoryTab(tab) {
     document.querySelectorAll(".history-tab").forEach(function (b) {
@@ -134,16 +160,21 @@
     document.querySelectorAll(".history-pane").forEach(function (p) {
       p.classList.toggle("active", p.getAttribute("data-hpane") === tab);
     });
+    if (tab === "documents" && historyPlate) {
+      loadVehicleDocuments(historyPlate);
+    }
   }
 
   async function openVehicleHistory(plate) {
     historyPlate = plate;
     historyData = null;
+    historyDocs = [];
     const title = $("#historyTitle");
-    if (title) title.textContent = "سابقه وسیله — " + plate;
+    if (title) title.textContent = "پرونده و سوابق وسیله — " + plate;
     const summary = $("#historySummary");
-    if (summary) summary.innerHTML = '<p class="muted">در حال بارگذاری…</p>';
-    ["#historyRentals", "#historyServicesList", "#historyIssuesList", "#historyFinesList"].forEach(
+    if (summary) summary.innerHTML = '<p class="muted">در حال بارگذاری پرونده وسیله…</p>';
+
+    ["#historyRentals", "#historyServicesList", "#historyAccidentsList", "#historyFinesList", "#historyDocumentsList"].forEach(
       function (sel) {
         const el = $(sel);
         if (el) el.innerHTML = "";
@@ -159,135 +190,537 @@
         enhanceCarsTable();
       }
     } catch (err) {
-      if (summary)
-        summary.innerHTML =
-          '<p class="status-line err">' + escapeHtml(err.message || "خطا") + "</p>";
+      if (summary) {
+        summary.innerHTML = '<p class="status-line err">' + escapeHtml(err.message || "خطا در بارگذاری سوابق") + "</p>";
+      }
     }
   }
 
   function renderHistory(h) {
     if (!h) return;
     const badges = (h.statusBadges || []).join(",");
+
+    // 1. Summary pane
+    const rentals = h.rentals || [];
+    let totalFuelLiters = 0;
+    let totalFuelCost = 0;
+    let totalServiceReportCost = 0;
+
+    rentals.forEach(function (r) {
+      (r.reports || []).forEach(function (rep) {
+        if (rep.reportType === "FUEL") {
+          if (rep.amount) totalFuelLiters += rep.amount;
+          if (rep.cost) totalFuelCost += rep.cost;
+        } else if (rep.reportType === "SERVICE" && rep.cost) {
+          totalServiceReportCost += rep.cost;
+        }
+      });
+    });
+
+    const directServiceCost = h.totalServiceCost || 0;
+    const combinedServiceCost = directServiceCost + totalServiceReportCost;
+
     $("#historySummary").innerHTML =
       '<div class="history-stats">' +
       '<div class="hist-stat"><span>کیلومتر فعلی</span><strong>' +
-      toPersianDigits(h.currentOdometer || 0) +
+      toPersianDigits((h.currentOdometer || 0).toLocaleString("fa-IR")) +
       "</strong></div>" +
-      '<div class="hist-stat"><span>تعداد سفر</span><strong>' +
+      '<div class="hist-stat"><span>تعداد مأموریت‌ها</span><strong>' +
       toPersianDigits(h.totalRentals || 0) +
       "</strong></div>" +
-      '<div class="hist-stat"><span>هزینه سرویس</span><strong>' +
-      formatMoney(h.totalServiceCost) +
+      '<div class="hist-stat"><span>مجموع بنزین مصرفی</span><strong>' +
+      toPersianDigits(totalFuelLiters.toFixed(1)) +
+      " لیتر (" +
+      formatMoney(totalFuelCost) +
+      ")</strong></div>" +
+      '<div class="hist-stat"><span>کل هزینه خدمات و سرویس</span><strong>' +
+      formatMoney(combinedServiceCost) +
       "</strong></div>" +
-      '<div class="hist-stat"><span>خلافی (پرداخت‌نشده)</span><strong>' +
-      formatMoney(h.unpaidFineAmount) +
+      '<div class="hist-stat"><span>خلافی پرداخت‌نشده</span><strong>' +
+      formatMoney(h.unpaidFineAmount || 0) +
       "</strong></div>" +
       "</div>" +
       '<div class="history-badges-row">' +
       renderHistoryBadges(badges) +
-      (badges ? "" : '<span class="muted small">بدون هشدار</span>') +
+      (badges ? "" : '<span class="badge badge-success">بدون هشدار — وضعیت مطلوب</span>') +
       "</div>" +
-      '<p class="muted small">آخرین سرویس: ' +
+      '<p class="muted small">آخرین سرویس دوره‌ای: ' +
       escapeHtml(h.lastServiceDate || "—") +
       (h.lastServiceOdometer != null
-        ? " — کیلومتر " + toPersianDigits(h.lastServiceOdometer)
+        ? " — در کیلومتر " + toPersianDigits(h.lastServiceOdometer.toLocaleString("fa-IR"))
         : "") +
       "</p>";
 
-    const rentals = h.rentals || [];
-    $("#historyRentals").innerHTML = rentals.length
-      ? '<div class="table-wrap"><table class="table-hist"><thead><tr><th>کارمند</th><th>تحویل</th><th>برگشت</th><th>مقصد</th></tr></thead><tbody>' +
-        rentals
-          .map(function (r) {
-            return (
-              "<tr><td>" +
-              escapeHtml(r.employeeName) +
-              '</td><td dir="ltr">' +
-              escapeHtml(r.pickupDate) +
-              '</td><td dir="ltr">' +
-              escapeHtml(r.returnDate) +
-              "</td><td>" +
-              escapeHtml(r.destination) +
-              "</td></tr>"
-            );
-          })
-          .join("") +
-        "</tbody></table></div>"
-      : '<p class="muted">سفری ثبت نشده</p>';
+    const histOdoInput = $("#histOdometer");
+    if (histOdoInput && h.currentOdometer != null) {
+      histOdoInput.value = h.currentOdometer;
+    }
 
-    const services = h.services || [];
-    $("#historyServicesList").innerHTML = services.length
-      ? '<div class="table-wrap"><table class="table-hist"><thead><tr><th>نوع</th><th>تاریخ</th><th>کیلومتر</th><th>هزینه</th><th>توضیح</th></tr></thead><tbody>' +
-        services
-          .map(function (s) {
-            return (
-              "<tr><td>" +
-              escapeHtml(serviceTypeLabel(s.serviceType)) +
-              '</td><td dir="ltr">' +
-              escapeHtml(s.serviceDate) +
-              '</td><td dir="ltr">' +
-              toPersianDigits(s.odometer != null ? s.odometer : "—") +
-              "</td><td>" +
-              formatMoney(s.cost) +
-              "</td><td>" +
-              escapeHtml(s.description || "") +
-              "</td></tr>"
-            );
-          })
-          .join("") +
-        "</tbody></table></div>"
-      : '<p class="muted">سرویسی ثبت نشده</p>';
+    // 2. Rentals (Missions) pane
+    renderRentalsList(rentals);
 
-    const issues = h.issues || [];
-    $("#historyIssuesList").innerHTML = issues.length
-      ? '<div class="table-wrap"><table class="table-hist"><thead><tr><th>عنوان</th><th>شدت</th><th>وضعیت</th><th>تاریخ</th><th>هزینه</th></tr></thead><tbody>' +
-        issues
-          .map(function (i) {
-            return (
-              "<tr><td>" +
-              escapeHtml(i.title) +
-              "</td><td>" +
-              escapeHtml(issueSeverityLabel(i.severity)) +
-              "</td><td>" +
-              escapeHtml(issueStatusLabel(i.status)) +
-              '</td><td dir="ltr">' +
-              escapeHtml(i.reportedAt) +
-              "</td><td>" +
-              formatMoney(i.cost) +
-              "</td></tr>"
-            );
-          })
-          .join("") +
-        "</tbody></table></div>"
-      : '<p class="muted">خرابیی ثبت نشده</p>';
+    // 3. Services & Fuel combined pane
+    renderServicesList(h.services || [], rentals);
 
-    const fines = h.fines || [];
-    $("#historyFinesList").innerHTML = fines.length
-      ? '<div class="table-wrap"><table class="table-hist"><thead><tr><th>نوع</th><th>مبلغ</th><th>تاریخ</th><th>وضعیت</th><th></th></tr></thead><tbody>' +
-        fines
-          .map(function (f) {
-            const payBtn = f.paid
-              ? '<span class="badge badge-free">پرداخت‌شده</span>'
+    // 4. Accidents pane
+    renderAccidentsList(h.issues || [], rentals);
+
+    // 5. Fines pane
+    renderFinesList(h.fines || [], rentals);
+  }
+
+  function renderRentalsList(rentals) {
+    const host = $("#historyRentals");
+    if (!host) return;
+    if (!rentals || rentals.length === 0) {
+      host.innerHTML = '<p class="muted">مأموریتی برای این وسیله ثبت نشده است.</p>';
+      return;
+    }
+
+    host.innerHTML = rentals
+      .map(function (r) {
+        const reports = r.reports || [];
+        let reportsHtml = "";
+        if (reports.length > 0) {
+          reportsHtml =
+            '<div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem;">' +
+            reports
+              .map(function (rep) {
+                let badgeClass = "badge-neutral";
+                let typeIcon = "📄";
+                let typeText = rep.reportType;
+                let details = "";
+
+                if (rep.reportType === "FUEL") {
+                  badgeClass = "badge-warn";
+                  typeIcon = "⛽";
+                  typeText = "بنزین";
+                  if (rep.amount) details += toPersianDigits(rep.amount) + " لیتر ";
+                  if (rep.cost) details += "— " + formatMoney(rep.cost);
+                } else if (rep.reportType === "SERVICE") {
+                  badgeClass = "badge-service";
+                  typeIcon = "🔧";
+                  typeText = "سرویس: " + serviceTypeLabel(rep.title);
+                  if (rep.cost) details += "— " + formatMoney(rep.cost);
+                } else if (rep.reportType === "ACCIDENT") {
+                  badgeClass = "badge-accident";
+                  typeIcon = "⚠️";
+                  typeText = "تصادف (" + accidentSeverityLabel(rep.title) + ")";
+                  if (rep.cost) details += "— خسارت: " + formatMoney(rep.cost);
+                } else if (rep.reportType === "FINE") {
+                  badgeClass = rep.paid ? "badge-success" : "badge-fine";
+                  typeIcon = "📄";
+                  typeText = "خلافی: " + escapeHtml(rep.title || "");
+                  if (rep.cost) details += "— " + formatMoney(rep.cost);
+                  if (rep.paid) details += " (پرداخت‌شده)";
+                  else details += ' <button type="button" class="btn btn-sm btn-ghost" data-pay-report-fine="' + rep.id + '">پرداخت</button>';
+                }
+
+                let thumbHtml = "";
+                if (rep.attachment) {
+                  const url = Api.attachmentUrl(rep.attachment.id);
+                  thumbHtml =
+                    '<span class="report-receipt-thumb" data-view-img="' +
+                    url +
+                    '" data-img-title="' +
+                    escapeHtml(typeText) +
+                    '">' +
+                    '<img src="' +
+                    url +
+                    '" alt="رسید" /></span>';
+                }
+
+                return (
+                  '<div class="report-card">' +
+                  '<div class="report-card-head">' +
+                  '<span class="badge ' +
+                  badgeClass +
+                  '">' +
+                  typeIcon +
+                  " " +
+                  escapeHtml(typeText) +
+                  "</span>" +
+                  '<span class="muted small" dir="ltr">' +
+                  escapeHtml(rep.createdAt || "") +
+                  "</span>" +
+                  "</div>" +
+                  '<div style="font-size: 0.85rem;">' +
+                  escapeHtml(details) +
+                  (rep.description ? ' <span class="muted">(' + escapeHtml(rep.description) + ")</span>" : "") +
+                  "</div>" +
+                  thumbHtml +
+                  "</div>"
+                );
+              })
+              .join("") +
+            "</div>";
+        }
+
+        return (
+          '<div class="report-card" style="margin-bottom: 0.85rem; padding: 0.85rem;">' +
+          '<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.5rem;">' +
+          '<div><strong>' +
+          escapeHtml(r.employeeName || "کارمند") +
+          '</strong> <span class="muted small">· مقصد: ' +
+          escapeHtml(r.destination || "—") +
+          "</span></div>" +
+          '<button type="button" class="btn btn-sm btn-ghost" data-retro-rental-id="' +
+          r.id +
+          '" data-rental-emp="' +
+          escapeHtml(r.employeeName || "") +
+          '">+ ثبت گزارش برای این مأموریت</button>' +
+          "</div>" +
+          '<div style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.83rem;" class="muted">' +
+          '<div>زمان تحویل: <strong dir="ltr" class="text-white">' +
+          escapeHtml(r.pickupDate || "—") +
+          "</strong></div>" +
+          '<div>زمان بازگشت: <strong dir="ltr" class="text-white">' +
+          escapeHtml(r.returnDate || "—") +
+          "</strong></div>" +
+          '<div>کیلومتر ثبت بازگشت: <strong class="text-white">' +
+          (r.returnOdometer != null ? toPersianDigits(r.returnOdometer.toLocaleString("fa-IR")) : "—") +
+          "</strong></div>" +
+          "</div>" +
+          reportsHtml +
+          "</div>"
+        );
+      })
+      .join("");
+  }
+
+  function renderServicesList(directServices, rentals) {
+    const host = $("#historyServicesList");
+    if (!host) return;
+
+    const items = [];
+    directServices.forEach(function (s) {
+      items.push({
+        type: "SERVICE",
+        title: serviceTypeLabel(s.serviceType),
+        date: s.serviceDate,
+        cost: s.cost,
+        odometer: s.odometer,
+        desc: s.description,
+        performedBy: s.performedBy,
+        attachmentUrl: null,
+      });
+    });
+
+    rentals.forEach(function (r) {
+      (r.reports || []).forEach(function (rep) {
+        if (rep.reportType === "SERVICE") {
+          items.push({
+            type: "SERVICE",
+            title: serviceTypeLabel(rep.title),
+            date: rep.reportDate || (r.returnDate ? r.returnDate.split(" ")[0] : ""),
+            cost: rep.cost,
+            odometer: r.returnOdometer,
+            desc: rep.description,
+            performedBy: r.employeeName,
+            attachmentUrl: rep.attachment ? Api.attachmentUrl(rep.attachment.id) : null,
+          });
+        } else if (rep.reportType === "FUEL") {
+          items.push({
+            type: "FUEL",
+            title: "سوخت‌گیری (" + toPersianDigits(rep.amount || "") + " لیتر)",
+            date: rep.reportDate || (r.returnDate ? r.returnDate.split(" ")[0] : ""),
+            cost: rep.cost,
+            odometer: r.returnOdometer,
+            desc: rep.description,
+            performedBy: r.employeeName,
+            attachmentUrl: rep.attachment ? Api.attachmentUrl(rep.attachment.id) : null,
+          });
+        }
+      });
+    });
+
+    if (items.length === 0) {
+      host.innerHTML = '<p class="muted">سرویس یا سوخت‌گیری ثبت نشده است.</p>';
+      return;
+    }
+
+    items.sort(function (a, b) {
+      return String(b.date || "").localeCompare(String(a.date || ""));
+    });
+
+    host.innerHTML =
+      '<div class="table-wrap"><table class="table-hist"><thead><tr><th>نوع</th><th>تاریخ</th><th>کیلومتر</th><th>هزینه</th><th>انجام‌دهنده</th><th>رسید</th><th>توضیح</th></tr></thead><tbody>' +
+      items
+        .map(function (it) {
+          const icon = it.type === "FUEL" ? "⛽" : "🔧";
+          let thumb = "—";
+          if (it.attachmentUrl) {
+            thumb =
+              '<span class="report-receipt-thumb" data-view-img="' +
+              it.attachmentUrl +
+              '" data-img-title="' +
+              escapeHtml(it.title) +
+              '"><img src="' +
+              it.attachmentUrl +
+              '" alt="رسید" /></span>';
+          }
+          return (
+            "<tr>" +
+            "<td>" +
+            icon +
+            " " +
+            escapeHtml(it.title) +
+            "</td>" +
+            '<td dir="ltr">' +
+            escapeHtml(it.date || "—") +
+            "</td>" +
+            '<td dir="ltr">' +
+            (it.odometer != null ? toPersianDigits(it.odometer.toLocaleString("fa-IR")) : "—") +
+            "</td>" +
+            "<td>" +
+            formatMoney(it.cost) +
+            "</td>" +
+            "<td>" +
+            escapeHtml(it.performedBy || "—") +
+            "</td>" +
+            "<td>" +
+            thumb +
+            "</td>" +
+            "<td>" +
+            escapeHtml(it.desc || "—") +
+            "</td>" +
+            "</tr>"
+          );
+        })
+        .join("") +
+      "</tbody></table></div>";
+  }
+
+  function renderAccidentsList(directIssues, rentals) {
+    const host = $("#historyAccidentsList");
+    if (!host) return;
+
+    const items = [];
+    directIssues.forEach(function (i) {
+      items.push({
+        title: i.title,
+        severity: i.severity,
+        date: i.reportedAt,
+        cost: i.cost,
+        desc: i.description,
+        status: i.status,
+        attachmentUrl: null,
+      });
+    });
+
+    rentals.forEach(function (r) {
+      (r.reports || []).forEach(function (rep) {
+        if (rep.reportType === "ACCIDENT") {
+          items.push({
+            title: "تصادف در مأموریت " + (r.destination ? "مقصد " + r.destination : ""),
+            severity: rep.title,
+            date: rep.reportDate || (r.returnDate ? r.returnDate.split(" ")[0] : ""),
+            cost: rep.cost,
+            desc: (r.employeeName ? "راننده: " + r.employeeName + " — " : "") + (rep.description || ""),
+            status: "OPEN",
+            attachmentUrl: rep.attachment ? Api.attachmentUrl(rep.attachment.id) : null,
+          });
+        }
+      });
+    });
+
+    if (items.length === 0) {
+      host.innerHTML = '<p class="muted">هیچ تصادف یا سانحه‌ای برای این وسیله گزارش نشده است.</p>';
+      return;
+    }
+
+    host.innerHTML =
+      '<div class="table-wrap"><table class="table-hist"><thead><tr><th>شرح سانحه</th><th>شدت</th><th>تاریخ</th><th>هزینه برآوردی</th><th>تصویر خسارت</th><th>جزئیات</th></tr></thead><tbody>' +
+      items
+        .map(function (it) {
+          let thumb = "—";
+          if (it.attachmentUrl) {
+            thumb =
+              '<span class="report-receipt-thumb" data-view-img="' +
+              it.attachmentUrl +
+              '" data-img-title="' +
+              escapeHtml(it.title) +
+              '"><img src="' +
+              it.attachmentUrl +
+              '" alt="خسارت" /></span>';
+          }
+          return (
+            "<tr>" +
+            "<td>" +
+            escapeHtml(it.title) +
+            "</td>" +
+            '<td><span class="badge badge-accident">' +
+            escapeHtml(accidentSeverityLabel(it.severity)) +
+            "</span></td>" +
+            '<td dir="ltr">' +
+            escapeHtml(it.date || "—") +
+            "</td>" +
+            "<td>" +
+            formatMoney(it.cost) +
+            "</td>" +
+            "<td>" +
+            thumb +
+            "</td>" +
+            "<td>" +
+            escapeHtml(it.desc || "—") +
+            "</td>" +
+            "</tr>"
+          );
+        })
+        .join("") +
+      "</tbody></table></div>";
+  }
+
+  function renderFinesList(directFines, rentals) {
+    const host = $("#historyFinesList");
+    if (!host) return;
+
+    const items = [];
+    directFines.forEach(function (f) {
+      items.push({
+        id: f.id,
+        isMissionReport: false,
+        type: fineTypeLabel(f.fineType),
+        amount: f.amount,
+        date: f.fineDate,
+        paid: f.paid,
+        desc: f.description,
+      });
+    });
+
+    rentals.forEach(function (r) {
+      (r.reports || []).forEach(function (rep) {
+        if (rep.reportType === "FINE") {
+          items.push({
+            id: rep.id,
+            isMissionReport: true,
+            type: rep.title || "جریمه مأموریت",
+            amount: rep.cost,
+            date: rep.reportDate || (r.returnDate ? r.returnDate.split(" ")[0] : ""),
+            paid: rep.paid,
+            desc: (r.employeeName ? "راننده: " + r.employeeName + " — " : "") + (rep.description || ""),
+          });
+        }
+      });
+    });
+
+    if (items.length === 0) {
+      host.innerHTML = '<p class="muted">خلافی یا جریمه‌ای ثبت نشده است.</p>';
+      return;
+    }
+
+    host.innerHTML =
+      '<div class="table-wrap"><table class="table-hist"><thead><tr><th>نوع تخلف</th><th>مبلغ</th><th>تاریخ</th><th>وضعیت</th><th>توضیحات</th><th>عملیات</th></tr></thead><tbody>' +
+      items
+        .map(function (f) {
+          let payBtn = '<span class="badge badge-success">تسویه شده</span>';
+          if (!f.paid) {
+            payBtn = f.isMissionReport
+              ? '<button type="button" class="btn btn-sm btn-primary" data-pay-report-fine="' +
+                f.id +
+                '">پرداخت</button>'
               : '<button type="button" class="btn btn-sm btn-primary" data-pay-fine="' +
                 f.id +
                 '">پرداخت</button>';
-            return (
-              "<tr><td>" +
-              escapeHtml(fineTypeLabel(f.fineType)) +
-              "</td><td>" +
-              formatMoney(f.amount) +
-              '</td><td dir="ltr">' +
-              escapeHtml(f.fineDate) +
-              "</td><td>" +
-              (f.paid ? "پرداخت‌شده" : "باز") +
-              "</td><td>" +
-              payBtn +
-              "</td></tr>"
-            );
-          })
-          .join("") +
-        "</tbody></table></div>"
-      : '<p class="muted">خلافیی ثبت نشده</p>';
+          }
+          return (
+            "<tr>" +
+            "<td>" +
+            escapeHtml(f.type) +
+            "</td>" +
+            "<td>" +
+            formatMoney(f.amount) +
+            "</td>" +
+            '<td dir="ltr">' +
+            escapeHtml(f.date || "—") +
+            "</td>" +
+            "<td>" +
+            (f.paid ? "پرداخت‌شده" : '<span class="badge badge-fine">پرداخت‌نشده</span>') +
+            "</td>" +
+            "<td>" +
+            escapeHtml(f.desc || "—") +
+            "</td>" +
+            "<td>" +
+            payBtn +
+            "</td>" +
+            "</tr>"
+          );
+        })
+        .join("") +
+      "</tbody></table></div>";
+  }
+
+  async function loadVehicleDocuments(plate) {
+    const host = $("#historyDocumentsList");
+    if (!host) return;
+    host.innerHTML = '<p class="muted">در حال بارگذاری مدارک و بیمه‌نامه‌ها…</p>';
+    try {
+      historyDocs = await Api.vehicleDocuments(plate);
+      renderDocumentsList(historyDocs);
+    } catch (err) {
+      host.innerHTML = '<p class="status-line err">' + escapeHtml(err.message || "خطا در دریافت مدارک") + "</p>";
+    }
+  }
+
+  function renderDocumentsList(docs) {
+    const host = $("#historyDocumentsList");
+    if (!host) return;
+    if (!docs || docs.length === 0) {
+      host.innerHTML = '<p class="muted">هیچ مدرک، بیمه‌نامه یا گواهی معاینه‌ای برای این وسیله ثبت نشده است.</p>';
+      return;
+    }
+
+    host.innerHTML =
+      '<div style="display: flex; flex-direction: column; gap: 0.5rem;">' +
+      docs
+        .map(function (d) {
+          const typeMeta = DOC_TYPE_META[d.documentType] || { label: d.documentType, icon: "📄" };
+          let badgeStatus = "";
+          if (d.expired) {
+            badgeStatus = '<span class="badge badge-danger">منقضی شده</span>';
+          } else if (d.expiringSoon) {
+            badgeStatus =
+              '<span class="badge badge-warn">' +
+              toPersianDigits(d.daysUntilExpiry != null ? d.daysUntilExpiry : "—") +
+              " روز مانده</span>";
+          } else {
+            badgeStatus =
+              '<span class="badge badge-success">' +
+              toPersianDigits(d.daysUntilExpiry != null ? d.daysUntilExpiry : "—") +
+              " روز تا انقضا</span>";
+          }
+
+          return (
+            '<div class="doc-item report-card">' +
+            '<div class="doc-meta">' +
+            '<span style="font-size: 1.25rem;">' +
+            typeMeta.icon +
+            "</span>" +
+            "<div>" +
+            "<div><strong>" +
+            escapeHtml(typeMeta.label) +
+            "</strong>" +
+            (d.company ? ' <span class="muted">(' + escapeHtml(d.company) + ")</span>" : "") +
+            "</div>" +
+            '<div class="muted small">' +
+            (d.documentNumber ? "شماره: " + escapeHtml(d.documentNumber) + " · " : "") +
+            "انقضا: " +
+            escapeHtml(d.expiryDate) +
+            (d.notes ? " · " + escapeHtml(d.notes) : "") +
+            "</div>" +
+            "</div>" +
+            "</div>" +
+            '<div style="display: flex; align-items: center; gap: 0.5rem;">' +
+            badgeStatus +
+            '<button type="button" class="btn btn-sm btn-danger" data-doc-del-id="' +
+            d.id +
+            '">حذف</button>' +
+            "</div>" +
+            "</div>"
+          );
+        })
+        .join("") +
+      "</div>";
   }
 
   let carsTableObserver = null;
@@ -350,7 +783,6 @@
     });
   }
 
-  /** Prefetch statusFlags from vehicles API response if present. */
   async function prefetchFlags() {
     try {
       const cars = await Api.vehicles();
@@ -368,21 +800,22 @@
   }
 
   function bindOnce() {
+    // Tab switching
     document.querySelectorAll(".history-tab").forEach(function (btn) {
       btn.addEventListener("click", function () {
         switchHistoryTab(btn.getAttribute("data-htab"));
       });
     });
 
+    // Modal close buttons
     document.querySelectorAll("[data-close]").forEach(function (el) {
       const target = el.getAttribute("data-close");
-      if (target === "modalHistory") {
-        el.addEventListener("click", function () {
-          closeModal("modalHistory");
-        });
-      }
+      el.addEventListener("click", function () {
+        closeModal(target);
+      });
     });
 
+    // Cars table 'سابقه' button
     const carsTable = $("#carsTable");
     if (carsTable) {
       carsTable.addEventListener("click", function (e) {
@@ -398,9 +831,81 @@
       carsTableObserver.observe(carsTable, { childList: true, subtree: true });
     }
 
+    // Modal body image preview click delegate
+    const modalHist = $("#modalHistory");
+    if (modalHist) {
+      modalHist.addEventListener("click", function (e) {
+        const thumb = e.target.closest("[data-view-img]");
+        if (thumb) {
+          const url = thumb.getAttribute("data-view-img");
+          const title = thumb.getAttribute("data-img-title") || "تصویر پیوست";
+          showImagePreview(url, title);
+        }
+      });
+    }
+
+    // Rentals list retroactive report button delegate
+    const rentalsHost = $("#historyRentals");
+    if (rentalsHost) {
+      rentalsHost.addEventListener("click", function (e) {
+        const btn = e.target.closest("[data-retro-rental-id]");
+        if (!btn) return;
+        const rentalId = btn.getAttribute("data-retro-rental-id");
+        const empName = btn.getAttribute("data-rental-emp") || "";
+        const titleEl = $("#retroReportTitle");
+        if (titleEl) titleEl.textContent = "ثبت گزارش برای مأموریت (" + empName + ")";
+        const hiddenId = $("#retroRentalId");
+        if (hiddenId) hiddenId.value = rentalId;
+        const form = $("#formRetroReport");
+        if (form) form.reset();
+        retroAttachmentId = null;
+        const prev = $("#retroReportPreview");
+        if (prev) prev.innerHTML = "";
+        openModal("modalRetroReport");
+      });
+
+      // Pay mission fine delegate
+      rentalsHost.addEventListener("click", async function (e) {
+        const btn = e.target.closest("[data-pay-report-fine]");
+        if (!btn) return;
+        const id = parseInt(btn.getAttribute("data-pay-report-fine"), 10);
+        if (!confirm("آیا این جریمه مأموریت پرداخت شده است؟")) return;
+        try {
+          await Api.payMissionFine(id);
+          toast("جریمه با موفقیت تسویه شد");
+          if (historyPlate) {
+            historyData = await Api.vehicleHistory(historyPlate);
+            renderHistory(historyData);
+            await prefetchFlags();
+          }
+        } catch (err) {
+          toast(err.message || "خطا در تسویه جریمه", "err");
+        }
+      });
+    }
+
+    // Direct pay fine in fines pane
     const histFinesList = $("#historyFinesList");
     if (histFinesList) {
       histFinesList.addEventListener("click", async function (e) {
+        const btnMission = e.target.closest("[data-pay-report-fine]");
+        if (btnMission) {
+          const id = parseInt(btnMission.getAttribute("data-pay-report-fine"), 10);
+          if (!confirm("این خلافی مأموریت پرداخت شود؟")) return;
+          try {
+            await Api.payMissionFine(id);
+            toast("خلافی پرداخت شد");
+            if (historyPlate) {
+              historyData = await Api.vehicleHistory(historyPlate);
+              renderHistory(historyData);
+              await prefetchFlags();
+            }
+          } catch (err) {
+            toast(err.message || "خطا", "err");
+          }
+          return;
+        }
+
         const btn = e.target.closest("[data-pay-fine]");
         if (!btn || !historyPlate) return;
         const id = parseInt(btn.getAttribute("data-pay-fine"), 10);
@@ -417,6 +922,28 @@
       });
     }
 
+    // Documents delete delegate
+    const docsList = $("#historyDocumentsList");
+    if (docsList) {
+      docsList.addEventListener("click", async function (e) {
+        const btn = e.target.closest("[data-doc-del-id]");
+        if (!btn || !historyPlate) return;
+        const docId = parseInt(btn.getAttribute("data-doc-del-id"), 10);
+        if (!confirm("آیا از حذف این مدرک اطمینان دارید؟")) return;
+        try {
+          await Api.deleteVehicleDocument(historyPlate, docId);
+          toast("مدرک حذف شد");
+          await loadVehicleDocuments(historyPlate);
+          historyData = await Api.vehicleHistory(historyPlate);
+          renderHistory(historyData);
+          await prefetchFlags();
+        } catch (err) {
+          toast(err.message || "خطا در حذف مدرک", "err");
+        }
+      });
+    }
+
+    // Form: Odometer
     const formOdo = $("#formHistoryOdometer");
     if (formOdo) {
       formOdo.addEventListener("submit", async function (e) {
@@ -439,6 +966,7 @@
       });
     }
 
+    // Form: Service
     const formSvc = $("#formHistoryService");
     if (formSvc) {
       formSvc.addEventListener("submit", async function (e) {
@@ -477,19 +1005,20 @@
       });
     }
 
-    const formIssue = $("#formHistoryIssue");
-    if (formIssue) {
-      formIssue.addEventListener("submit", async function (e) {
+    // Form: Accident (replacing old issue form)
+    const formAcc = $("#formHistoryAccident");
+    if (formAcc) {
+      formAcc.addEventListener("submit", async function (e) {
         e.preventDefault();
         if (!historyPlate) return;
         const body = {
-          title: $("#histIssueTitle").value.trim(),
-          description: $("#histIssueDesc").value.trim(),
-          severity: $("#histIssueSeverity").value,
-          cost: $("#histIssueCost").value
+          title: $("#histIssueTitle") ? $("#histIssueTitle").value.trim() : "سانحه / خسارت",
+          description: $("#histIssueDesc") ? $("#histIssueDesc").value.trim() : "",
+          severity: $("#histIssueSeverity") ? $("#histIssueSeverity").value : "MEDIUM",
+          cost: $("#histIssueCost") && $("#histIssueCost").value
             ? parseFloat(toLatinDigits($("#histIssueCost").value))
             : 0,
-          reportedAt: $("#histIssueDate").value.trim(),
+          reportedAt: $("#histIssueDate") ? $("#histIssueDate").value.trim() : "",
           notes: "",
         };
         if (!body.title || !body.reportedAt) {
@@ -498,7 +1027,7 @@
         }
         try {
           await Api.addVehicleIssue(historyPlate, body);
-          toast("خرابی ثبت شد");
+          toast("گزارش سانحه ثبت شد");
           e.target.reset();
           historyData = await Api.vehicleHistory(historyPlate);
           renderHistory(historyData);
@@ -509,6 +1038,7 @@
       });
     }
 
+    // Form: Fine
     const formFine = $("#formHistoryFine");
     if (formFine) {
       formFine.addEventListener("submit", async function (e) {
@@ -533,6 +1063,114 @@
           await prefetchFlags();
         } catch (err) {
           toast(err.message || "خطا", "err");
+        }
+      });
+    }
+
+    // Form: Document
+    const formDoc = $("#formHistoryDocument");
+    if (formDoc) {
+      formDoc.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        if (!historyPlate) return;
+        const body = {
+          documentType: $("#histDocType").value,
+          documentNumber: $("#histDocNumber").value.trim(),
+          expiryDate: $("#histDocExpiry").value.trim(),
+          company: $("#histDocCompany").value.trim(),
+          notes: $("#histDocNotes").value.trim(),
+        };
+        if (!body.expiryDate) {
+          toast("تاریخ انقضا الزامی است", "err");
+          return;
+        }
+        try {
+          await Api.addVehicleDocument(historyPlate, body);
+          toast("مدرک با موفقیت ثبت شد");
+          e.target.reset();
+          await loadVehicleDocuments(historyPlate);
+          historyData = await Api.vehicleHistory(historyPlate);
+          renderHistory(historyData);
+          await prefetchFlags();
+        } catch (err) {
+          toast(err.message || "خطا در ثبت مدرک", "err");
+        }
+      });
+    }
+
+    // Retroactive file upload
+    const retroFileInput = document.getElementById("retroReportFile");
+    const retroPrev = document.getElementById("retroReportPreview");
+    if (retroFileInput && retroPrev) {
+      retroFileInput.addEventListener("change", async function (e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        retroPrev.innerHTML = '<span class="spinner" style="width:14px;height:14px;display:inline-block;"></span> آپلود...';
+        try {
+          const att = await Api.uploadAttachment(file);
+          retroAttachmentId = att.id;
+          retroPrev.innerHTML =
+            '<img src="' + Api.attachmentUrl(att.id) + '" alt="رسید" />' +
+            '<span>' + escapeHtml(att.originalFilename || file.name) + '</span>' +
+            '<button type="button" class="file-upload-remove" title="حذف">✕</button>';
+          const rm = retroPrev.querySelector(".file-upload-remove");
+          if (rm) {
+            rm.addEventListener("click", function () {
+              retroAttachmentId = null;
+              retroFileInput.value = "";
+              retroPrev.innerHTML = "";
+            });
+          }
+        } catch (err) {
+          toast(err.message || "خطا در آپلود فایل", "err");
+          retroPrev.innerHTML = "";
+          retroFileInput.value = "";
+        }
+      });
+    }
+
+    // Form: Retroactive Report
+    const formRetro = $("#formRetroReport");
+    if (formRetro) {
+      formRetro.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const rentalId = parseInt($("#retroRentalId").value, 10);
+        if (isNaN(rentalId)) {
+          toast("شناسه مأموریت نامعتبر است", "err");
+          return;
+        }
+        const repType = $("#retroReportType").value;
+        const repTitle = ($("#retroReportTitleInput") ? $("#retroReportTitleInput").value : "").trim();
+        const repAmount = parseFloat(toLatinDigits($("#retroReportAmount") ? $("#retroReportAmount").value : ""));
+        const repCost = parseInt(toLatinDigits($("#retroReportCost") ? $("#retroReportCost").value : ""), 10);
+        const repDate = ($("#retroReportDate") ? $("#retroReportDate").value : "").trim();
+        const repDesc = ($("#retroReportDesc") ? $("#retroReportDesc").value : "").trim();
+
+        const body = {
+          reportType: repType,
+          title: repTitle || (repType === "FUEL" ? "بنزین" : repType === "SERVICE" ? "سرویس" : repType === "ACCIDENT" ? "تصادف" : "خلافی"),
+          amount: !isNaN(repAmount) ? repAmount : null,
+          cost: !isNaN(repCost) ? repCost : null,
+          reportDate: repDate || null,
+          description: repDesc || null,
+          attachmentId: retroAttachmentId || null,
+        };
+
+        const btn = $("#btnRetroSubmit");
+        if (btn) btn.disabled = true;
+        try {
+          await Api.addRetroactiveReport(rentalId, body);
+          toast("گزارش با موفقیت برای مأموریت ثبت شد");
+          closeModal("modalRetroReport");
+          if (historyPlate) {
+            historyData = await Api.vehicleHistory(historyPlate);
+            renderHistory(historyData);
+            await prefetchFlags();
+          }
+        } catch (err) {
+          toast(err.message || "خطا در ثبت گزارش", "err");
+        } finally {
+          if (btn) btn.disabled = false;
         }
       });
     }

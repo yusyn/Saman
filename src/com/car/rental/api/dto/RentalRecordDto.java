@@ -15,6 +15,7 @@ public class RentalRecordDto {
     private String destination;
     private String vehicleType;
     private Integer returnOdometer;
+    private Integer currentOdometer;
     private java.util.List<VehicleMissionReportDto> reports = new java.util.ArrayList<>();
 
     public RentalRecordDto() {
@@ -36,6 +37,7 @@ public class RentalRecordDto {
         d.destination = r.destination;
         d.vehicleType = r.vehicleType != null ? r.vehicleType : "CAR";
         d.returnOdometer = r.returnOdometer;
+        d.currentOdometer = r.currentOdometer;
         return d;
     }
 
@@ -133,5 +135,13 @@ public class RentalRecordDto {
 
     public void setVehicleType(String vehicleType) {
         this.vehicleType = vehicleType;
+    }
+
+    public Integer getCurrentOdometer() {
+        return currentOdometer;
+    }
+
+    public void setCurrentOdometer(Integer currentOdometer) {
+        this.currentOdometer = currentOdometer;
     }
 }
