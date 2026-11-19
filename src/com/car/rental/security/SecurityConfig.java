@@ -93,6 +93,7 @@ public class SecurityConfig {
                         // Health
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         // Sensitive read-only business data requires authentication
+                        .requestMatchers(HttpMethod.GET, "/api/attachments/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/vehicles/history/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/system-events/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/device-operations/**").hasRole("ADMIN")
