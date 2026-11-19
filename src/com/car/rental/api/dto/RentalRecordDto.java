@@ -4,6 +4,7 @@ import com.car.rental.model.RentalRecord;
 
 public class RentalRecordDto {
 
+    private int id;
     private String deviceUserId;
     private String employeeName;
     private String carName;
@@ -13,6 +14,8 @@ public class RentalRecordDto {
     private String returnDate;
     private String destination;
     private String vehicleType;
+    private Integer returnOdometer;
+    private java.util.List<VehicleMissionReportDto> reports = new java.util.ArrayList<>();
 
     public RentalRecordDto() {
     }
@@ -22,6 +25,7 @@ public class RentalRecordDto {
             return null;
         }
         RentalRecordDto d = new RentalRecordDto();
+        d.id = r.id;
         d.deviceUserId = r.deviceUserId;
         d.employeeName = r.employeeName;
         d.carName = r.carName;
@@ -31,7 +35,32 @@ public class RentalRecordDto {
         d.returnDate = r.returnDate;
         d.destination = r.destination;
         d.vehicleType = r.vehicleType != null ? r.vehicleType : "CAR";
+        d.returnOdometer = r.returnOdometer;
         return d;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public Integer getReturnOdometer() {
+        return returnOdometer;
+    }
+
+    public void setReturnOdometer(Integer returnOdometer) {
+        this.returnOdometer = returnOdometer;
+    }
+
+    public java.util.List<VehicleMissionReportDto> getReports() {
+        return reports;
+    }
+
+    public void setReports(java.util.List<VehicleMissionReportDto> reports) {
+        this.reports = reports != null ? reports : new java.util.ArrayList<>();
     }
 
     public String getDeviceUserId() {

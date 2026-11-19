@@ -7,6 +7,8 @@ public class UpdateEmployeeRequest {
 
     private String name;
     private String phone;
+    private String driverLicenseNumber;
+    private String driverLicenseExpiry;
 
     public String getName() {
         return name;
@@ -22,5 +24,21 @@ public class UpdateEmployeeRequest {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getDriverLicenseNumber() {
+        return driverLicenseNumber;
+    }
+
+    public void setDriverLicenseNumber(String driverLicenseNumber) {
+        this.driverLicenseNumber = driverLicenseNumber;
+    }
+
+    public String getDriverLicenseExpiry() {
+        return driverLicenseExpiry;
+    }
+
+    public void setDriverLicenseExpiry(String driverLicenseExpiry) {
+        this.driverLicenseExpiry = driverLicenseExpiry;
     }
 }

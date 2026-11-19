@@ -52,6 +52,30 @@ public class VehicleHistoryController {
         return historyService.getHistoryByPlate(plate.strip());
     }
 
+    // ── Mission Reports ───────────────────────────────────────────────
+
+    /**
+     * Add a report (fine, fuel, service, accident) retroactively to a past rental.
+     * POST /api/vehicles/history/rentals/{rentalId}/reports
+     */
+    @PostMapping("/rentals/{rentalId}/reports")
+    @ResponseStatus(HttpStatus.CREATED)
+    public com.car.rental.api.dto.VehicleMissionReportDto addRetroactiveReport(
+            @PathVariable("rentalId") int rentalId,
+            @RequestBody com.car.rental.api.dto.CreateMissionReportRequest body) throws SQLException {
+        return historyService.addRetroactiveReport(rentalId, body);
+    }
+
+    /**
+     * Mark a mission fine report as paid.
+     * PATCH /api/vehicles/history/reports/{reportId}/pay
+     */
+    @PatchMapping("/reports/{reportId}/pay")
+    public OkResponse payMissionFine(@PathVariable("reportId") int reportId) throws SQLException {
+        historyService.payMissionFine(reportId);
+        return OkResponse.ok("خلافی پرداخت شد");
+    }
+
     // ── Services ───────────────────────────────────────────────────────
 
     /**

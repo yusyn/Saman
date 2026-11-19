@@ -221,6 +221,55 @@ public class VehicleHistoryService {
         }
     }
 
+    public VehicleMissionReportDto addRetroactiveReport(int rentalId, com.car.rental.api.dto.CreateMissionReportRequest body) throws SQLException {
+        if (body == null || body.getReportType() == null || body.getReportType().isBlank()) {
+            throw new IllegalArgumentException("نوع گزارش الزامی است");
+        }
+        RentalRecord rental = rentals.findById(rentalId);
+        if (rental == null) {
+            throw new SQLException("مأموریت یافت نشد: id=" + rentalId);
+        }
+        VehicleRow row = vehicles.findRowByPlate(rental.plate);
+        if (row == null) {
+            throw new SQLException("وسیله یافت نشد: " + rental.plate);
+        }
+        Employee emp = employees.findByDeviceUserId(rental.deviceUserId);
+        Integer empId = emp != null ? emp.getId() : null;
+
+        String rDate = body.getReportDate() != null && !body.getReportDate().isBlank()
+                ? body.getReportDate().strip()
+                : (rental.returnDate != null && !rental.returnDate.contains("منتظر") ? rental.returnDate : rental.pickupDate);
+
+        VehicleMissionReport report = new VehicleMissionReport(
+                0,
+                rentalId,
+                row.id,
+                empId,
+                body.getReportType().toUpperCase().trim(),
+                body.getTitle() != null && !body.getTitle().isBlank() ? body.getTitle().strip() : body.getReportType(),
+                body.getDescription(),
+                body.getAmount() != null ? body.getAmount() : 0.0,
+                body.getLiters() != null ? body.getLiters() : 0.0,
+                body.getSeverity(),
+                body.getFineType(),
+                false,
+                body.getAttachmentId(),
+                rDate,
+                null
+        );
+        int id = missionReports.insert(report);
+        refreshStatusFlags(row.id);
+
+        VehicleMissionReportDto dto = VehicleMissionReportDto.from(report);
+        dto.setId(id);
+        if (emp != null) dto.setEmployeeName(emp.getName());
+        return dto;
+    }
+
+    public void payMissionFine(int reportId) throws SQLException {
+        missionReports.markFinePaid(reportId);
+    }
+
     // ── Service CRUD ───────────────────────────────────────────────────
 
     public VehicleServiceDto addService(String plate, String serviceType, String description,

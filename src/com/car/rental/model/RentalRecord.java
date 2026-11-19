@@ -1,6 +1,7 @@
 package com.car.rental.model;
 
 public class RentalRecord {
+    public int id;
     /** Device User ID (PIN on fingerprint terminal), not internal DB id. */
     public String deviceUserId;
     public String employeeName;
@@ -12,6 +13,7 @@ public class RentalRecord {
     public String destination;
     /** CAR or MOTORCYCLE */
     public String vehicleType;
+    public Integer returnOdometer;
 
     public RentalRecord(String deviceUserId, String employeeName, String carName, String carColor,
                         String plate, String pickupDate, String returnDate, String destination) {

@@ -316,7 +316,7 @@ public class RentalRepository {
         }
 
         StringBuilder sql = new StringBuilder(
-                "SELECT e.device_user_id, e.name AS employee_name, " +
+                "SELECT r.id, r.return_odometer, e.device_user_id, e.name AS employee_name, " +
                 "v.name AS car_name, v.color AS car_color, v.plate, v.vehicle_type, " +
                 "r.pickup_date, r.return_date, r.destination " +
                 "FROM RentalTable r " +
@@ -390,7 +390,7 @@ public class RentalRepository {
 
     /** All rental records for a given vehicle (by VehicleTable.id). */
     public List<RentalRecord> findByVehicleId(int vehicleId) throws SQLException {
-        String sql = "SELECT e.device_user_id, e.name AS employee_name, " +
+        String sql = "SELECT r.id, r.return_odometer, e.device_user_id, e.name AS employee_name, " +
                 "v.name AS car_name, v.color AS car_color, v.plate, v.vehicle_type, " +
                 "r.pickup_date, r.return_date, r.destination " +
                 "FROM RentalTable r " +
@@ -408,6 +408,26 @@ public class RentalRepository {
             }
         }
         return records;
+    }
+
+    public RentalRecord findById(int id) throws SQLException {
+        String sql = "SELECT r.id, r.return_odometer, e.device_user_id, e.name AS employee_name, " +
+                "v.name AS car_name, v.color AS car_color, v.plate, v.vehicle_type, " +
+                "r.pickup_date, r.return_date, r.destination " +
+                "FROM RentalTable r " +
+                "JOIN EmployeeTable e ON r.employee_id = e.id " +
+                "JOIN VehicleTable v ON r.car_id = v.id " +
+                "WHERE r.id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRentalRecord(rs);
+                }
+            }
+        }
+        return null;
     }
 
     public int countByVehicleId(int vehicleId) throws SQLException {
@@ -436,6 +456,10 @@ public class RentalRepository {
                 rs.getString("destination")
         );
         try {
+            r.id = rs.getInt("id");
+            r.returnOdometer = (Integer) rs.getObject("return_odometer");
+        } catch (SQLException ignored) {}
+        try {
             r.vehicleType = rs.getString("vehicle_type");
         } catch (SQLException ignored) {
             r.vehicleType = "CAR";
@@ -444,7 +468,7 @@ public class RentalRepository {
     }
 
     public RentalRecord getActiveRentalByDeviceUserId(String deviceUserId) throws SQLException {
-        String query = "SELECT e.device_user_id, e.name AS employee_name, " +
+        String query = "SELECT r.id, r.return_odometer, e.device_user_id, e.name AS employee_name, " +
                 "v.name AS car_name, v.color AS car_color, v.plate, v.vehicle_type, " +
                 "r.pickup_date, r.return_date, r.destination " +
                 "FROM RentalTable r " +

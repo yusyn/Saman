@@ -109,12 +109,14 @@ public class EmployeeRepository {
     }
 
     public void updateEmployee(Connection conn, Employee emp) throws SQLException {
-        String sql = "UPDATE EmployeeTable SET name = ?, phone = ?, " +
+        String sql = "UPDATE EmployeeTable SET name = ?, phone = ?, driver_license_number = ?, driver_license_expiry = ?, " +
                 "updated_at = datetime('now','localtime') WHERE id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, emp.getName());
             stmt.setString(2, emp.getPhone());
-            stmt.setInt(3, emp.getId());
+            stmt.setString(3, emp.getDriverLicenseNumber());
+            stmt.setString(4, emp.getDriverLicenseExpiry());
+            stmt.setInt(5, emp.getId());
             stmt.executeUpdate();
         }
     }
@@ -144,7 +146,7 @@ public class EmployeeRepository {
     }
 
     private Employee mapEmployee(ResultSet rs) throws SQLException {
-        return new Employee(
+        Employee e = new Employee(
                 rs.getInt("id"),
                 rs.getString("device_user_id"),
                 rs.getString("name"),
@@ -152,5 +154,10 @@ public class EmployeeRepository {
                 rs.getInt("is_active") == 1,
                 rs.getInt("is_renting") == 1
         );
+        try {
+            e.setDriverLicenseNumber(rs.getString("driver_license_number"));
+            e.setDriverLicenseExpiry(rs.getString("driver_license_expiry"));
+        } catch (SQLException ignored) {}
+        return e;
     }
 }

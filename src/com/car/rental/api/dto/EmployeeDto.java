@@ -12,6 +12,8 @@ public class EmployeeDto {
     private String phone;
     private boolean renting;
     private List<Integer> fingers = new ArrayList<>();
+    private String driverLicenseNumber;
+    private String driverLicenseExpiry;
 
     public EmployeeDto() {
     }
@@ -35,14 +37,20 @@ public class EmployeeDto {
         if (e == null) {
             return null;
         }
-        return new EmployeeDto(e.getDeviceUserId(), e.getName(), e.getPhone(), e.isRenting());
+        EmployeeDto dto = new EmployeeDto(e.getDeviceUserId(), e.getName(), e.getPhone(), e.isRenting());
+        dto.setDriverLicenseNumber(e.getDriverLicenseNumber());
+        dto.setDriverLicenseExpiry(e.getDriverLicenseExpiry());
+        return dto;
     }
 
     public static EmployeeDto from(Employee e, List<Integer> fingers) {
         if (e == null) {
             return null;
         }
-        return new EmployeeDto(e.getDeviceUserId(), e.getName(), e.getPhone(), e.isRenting(), fingers);
+        EmployeeDto dto = new EmployeeDto(e.getDeviceUserId(), e.getName(), e.getPhone(), e.isRenting(), fingers);
+        dto.setDriverLicenseNumber(e.getDriverLicenseNumber());
+        dto.setDriverLicenseExpiry(e.getDriverLicenseExpiry());
+        return dto;
     }
 
     public String getDeviceUserId() {
@@ -83,5 +91,21 @@ public class EmployeeDto {
 
     public void setFingers(List<Integer> fingers) {
         this.fingers = fingers != null ? fingers : new ArrayList<>();
+    }
+
+    public String getDriverLicenseNumber() {
+        return driverLicenseNumber;
+    }
+
+    public void setDriverLicenseNumber(String driverLicenseNumber) {
+        this.driverLicenseNumber = driverLicenseNumber;
+    }
+
+    public String getDriverLicenseExpiry() {
+        return driverLicenseExpiry;
+    }
+
+    public void setDriverLicenseExpiry(String driverLicenseExpiry) {
+        this.driverLicenseExpiry = driverLicenseExpiry;
     }
 }

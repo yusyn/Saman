@@ -96,6 +96,8 @@ public class EmployeeController {
         }
         emp.setName(body.getName());
         emp.setPhone(body.getPhone() != null ? body.getPhone() : "");
+        if (body.getDriverLicenseNumber() != null) emp.setDriverLicenseNumber(body.getDriverLicenseNumber());
+        if (body.getDriverLicenseExpiry() != null) emp.setDriverLicenseExpiry(body.getDriverLicenseExpiry());
         employeeService.updateEmployee(emp);
         Employee refreshed = employeeService.findByDeviceUserId(deviceUserId);
         List<Integer> fingers = employeeService.getFingersForEmployee(deviceUserId);

@@ -12,6 +12,8 @@ public class Employee {
     private String phone;
     private boolean active;
     private boolean renting;
+    private String driverLicenseNumber;
+    private String driverLicenseExpiry;
 
     /** Constructor for creating a new employee (not yet saved). */
     public Employee(String deviceUserId, String name, String phone) {
@@ -76,6 +78,22 @@ public class Employee {
 
     public void setRenting(boolean renting) {
         this.renting = renting;
+    }
+
+    public String getDriverLicenseNumber() {
+        return driverLicenseNumber;
+    }
+
+    public void setDriverLicenseNumber(String driverLicenseNumber) {
+        this.driverLicenseNumber = driverLicenseNumber;
+    }
+
+    public String getDriverLicenseExpiry() {
+        return driverLicenseExpiry;
+    }
+
+    public void setDriverLicenseExpiry(String driverLicenseExpiry) {
+        this.driverLicenseExpiry = driverLicenseExpiry;
     }
 
     @Override
