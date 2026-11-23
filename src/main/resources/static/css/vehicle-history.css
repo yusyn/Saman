@@ -39,6 +39,35 @@
   margin-bottom: 0.6rem;
 }
 
+.history-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.history-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.history-title-group h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+#historyPlateBox {
+  display: inline-flex;
+  align-items: center;
+}
+
+#historyVehicleSubtitle {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 .history-tabs {
   flex-shrink: 0;
   display: flex;

@@ -170,7 +170,26 @@
     historyData = null;
     historyDocs = [];
     const title = $("#historyTitle");
-    if (title) title.textContent = "پرونده و سوابق وسیله — " + plate;
+    if (title) title.textContent = "پرونده و سوابق وسیله";
+
+    const cars = (window.Saman && window.Saman.getCars) ? window.Saman.getCars() : [];
+    const vehicle = cars.find((c) => c.plate === plate) || {};
+    const plateBox = $("#historyPlateBox");
+    if (plateBox) {
+      if (window.Saman && window.Saman.renderPlate) {
+        plateBox.innerHTML = window.Saman.renderPlate(plate, vehicle.vehicleType);
+      } else {
+        plateBox.textContent = plate;
+      }
+    }
+    const subtitle = $("#historyVehicleSubtitle");
+    if (subtitle) {
+      const parts = [];
+      if (vehicle.name) parts.push(vehicle.name);
+      if (vehicle.color) parts.push(vehicle.color);
+      subtitle.textContent = parts.length ? parts.join(" · ") : "";
+    }
+
     const summary = $("#historySummary");
     if (summary) summary.innerHTML = '<p class="muted">در حال بارگذاری پرونده وسیله…</p>';
 

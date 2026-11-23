@@ -193,6 +193,11 @@
     return renderIranPlate(plate);
   }
 
+  window.Saman = window.Saman || {};
+  window.Saman.renderPlate = renderPlate;
+  window.Saman.getEmployees = () => employeesCache;
+  window.Saman.getCars = () => carsCache;
+
   function formatNowJalali() {
     try {
       const s = new Date().toLocaleString("fa-IR", {
