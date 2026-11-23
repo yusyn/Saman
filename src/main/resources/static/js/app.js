@@ -604,20 +604,26 @@
   });
 
   const FINGER_NAMES = [
-    "کوچک چپ", "انگشتری چپ", "میانی چپ", "اشاره چپ", "شست چپ",
-    "شست راست", "اشاره راست", "میانی راست", "انگشتری راست", "کوچک راست"
+    "شست راست", "اشاره راست", "میانی راست", "انگشتری راست", "کوچک راست",
+    "شست چپ", "اشاره چپ", "میانی چپ", "انگشتری چپ", "کوچک چپ"
   ];
 
   function renderEmployeeFingers(fingers) {
     if (!Array.isArray(fingers) || fingers.length === 0) {
       return '<span class="muted small">ثبت‌نشده</span>';
     }
-    return fingers
-      .map(function (idx) {
-        const name = FINGER_NAMES[idx] || ("انگشت " + idx);
-        return '<span class="badge badge-muted" title="ایندکس ' + idx + '">' + escapeHtml(name) + '</span>';
-      })
-      .join(" ");
+    const names = fingers.map(function (idx) {
+      return FINGER_NAMES[idx] || ("انگشت " + idx);
+    });
+    const tooltip = escapeHtml(names.join("، "));
+    return (
+      '<span class="badge badge-finger" title="' +
+      tooltip +
+      '">' +
+      escapeHtml(toPersianDigits(fingers.length)) +
+      " انگشت" +
+      "</span>"
+    );
   }
 
   async function loadEmployees() {
@@ -677,6 +683,109 @@
     });
   }
 
+  let editEmpLicensePicker = null;
+  const editEmpPickerContainer = $("#editEmpLicensePicker");
+  if (editEmpPickerContainer && window.JalaliDatePicker) {
+    editEmpLicensePicker = window.JalaliDatePicker.attach(editEmpPickerContainer, "#editEmpLicenseExpiry");
+  }
+
+  function renderModalFingers(emp) {
+    const listEl = $("#editEmpFingersList");
+    const selectEl = $("#editEmpNewFingerIndex");
+    const statusEl = $("#editEmpFingerStatus");
+    if (statusEl) statusEl.textContent = "";
+    if (!listEl) return;
+
+    const fingers = Array.isArray(emp.fingers) ? emp.fingers : [];
+    if (!fingers.length) {
+      listEl.innerHTML = '<span class="muted small">هیچ اثر انگشتی ثبت نشده است</span>';
+    } else {
+      listEl.innerHTML = fingers
+        .map(
+          (idx) =>
+            `<span class="finger-chip">` +
+            `<span>${escapeHtml(FINGER_NAMES[idx] || "انگشت " + idx)}</span>` +
+            `<button type="button" class="finger-chip-del" data-finger="${idx}" title="حذف این اثر انگشت">✕</button>` +
+            `</span>`
+        )
+        .join("");
+    }
+
+    if (selectEl) {
+      selectEl.innerHTML = "";
+      for (let i = 0; i <= 9; i++) {
+        if (!fingers.includes(i)) {
+          const opt = document.createElement("option");
+          opt.value = i;
+          opt.textContent = i + " — " + FINGER_NAMES[i];
+          selectEl.appendChild(opt);
+        }
+      }
+      const addBtn = $("#btnEditEmpAddFinger");
+      if (addBtn) addBtn.disabled = selectEl.options.length === 0;
+    }
+  }
+
+  const fingersListEl = $("#editEmpFingersList");
+  if (fingersListEl) {
+    fingersListEl.addEventListener("click", async (e) => {
+      const btn = e.target.closest(".finger-chip-del");
+      if (!btn) return;
+      const fingerIdx = Number(btn.dataset.finger);
+      const empId = $("#editEmpId").value;
+      const emp = employeesCache.find((x) => String(x.deviceUserId) === String(empId));
+      const fingerName = FINGER_NAMES[fingerIdx] || ("ایندکس " + fingerIdx);
+      if (!confirm(`آیا از حذف اثر انگشت «${fingerName}» از دستگاه اطمینان دارید؟`)) return;
+
+      const status = $("#editEmpFingerStatus");
+      if (status) status.textContent = "در حال حذف از دستگاه…";
+      btn.disabled = true;
+      try {
+        await Api.deleteFinger(empId, fingerIdx);
+        toast("اثر انگشت حذف شد");
+        if (emp && Array.isArray(emp.fingers)) {
+          emp.fingers = emp.fingers.filter((f) => f !== fingerIdx);
+          renderModalFingers(emp);
+        }
+        await loadEmployees();
+      } catch (err) {
+        toast(err.message || "خطا در حذف اثر انگشت", "err");
+        if (status) status.textContent = err.message || "خطا در حذف";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  const btnEditAddFinger = $("#btnEditEmpAddFinger");
+  if (btnEditAddFinger) {
+    btnEditAddFinger.addEventListener("click", async () => {
+      const empId = $("#editEmpId").value;
+      const emp = employeesCache.find((x) => String(x.deviceUserId) === String(empId));
+      const selectEl = $("#editEmpNewFingerIndex");
+      if (!selectEl || !selectEl.value) return;
+      const fingerIdx = Number(selectEl.value);
+
+      const status = $("#editEmpFingerStatus");
+      if (status) status.textContent = "لطفاً انگشت را روی دستگاه قرار دهید…";
+      btnEditAddFinger.disabled = true;
+      try {
+        await Api.addFinger(empId, { fingerIndex: fingerIdx });
+        toast("اثر انگشت جدید با موفقیت ثبت شد");
+        if (emp && Array.isArray(emp.fingers)) {
+          if (!emp.fingers.includes(fingerIdx)) emp.fingers.push(fingerIdx);
+          renderModalFingers(emp);
+        }
+        await loadEmployees();
+      } catch (err) {
+        toast(err.message || "خطا در ثبت اثر انگشت", "err");
+        if (status) status.textContent = err.message || "خطا در ثبت";
+      } finally {
+        btnEditAddFinger.disabled = false;
+      }
+    });
+  }
+
   $("#employeesTable").addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-act]");
     if (!btn) return;
@@ -688,7 +797,12 @@
       $("#editEmpName").value = emp.name || "";
       $("#editEmpPhone").value = emp.phone || "";
       if ($("#editEmpLicenseNum")) $("#editEmpLicenseNum").value = emp.driverLicenseNumber || "";
-      if ($("#editEmpLicenseExpiry")) $("#editEmpLicenseExpiry").value = emp.driverLicenseExpiry || "";
+      if (editEmpLicensePicker) {
+        editEmpLicensePicker.setValue(emp.driverLicenseExpiry || "");
+      } else if ($("#editEmpLicenseExpiry")) {
+        $("#editEmpLicenseExpiry").value = emp.driverLicenseExpiry || "";
+      }
+      renderModalFingers(emp);
       openModal("modalEmployee");
       return;
     }

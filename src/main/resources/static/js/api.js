@@ -193,6 +193,11 @@ const Api = (() => {
         body: JSON.stringify(body),
         timeoutMs: ENROLL_TIMEOUT_MS,
       }),
+    deleteFinger: (deviceUserId, fingerIndex) =>
+      request("/api/employees/" + encodeURIComponent(deviceUserId) + "/fingers/" + encodeURIComponent(fingerIndex), {
+        method: "DELETE",
+        timeoutMs: DEVICE_WRITE_TIMEOUT_MS,
+      }),
     syncFingerprints: () =>
       request("/api/employees/sync-fingerprints", {
         method: "POST",

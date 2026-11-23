@@ -571,10 +571,26 @@
         <label>تلفن<input id="editEmpPhone" dir="ltr" /></label>
         <div class="form-row">
           <label>شماره گواهینامه<input id="editEmpLicenseNum" dir="ltr" placeholder="مثلاً ۹۸۷۶۵۴۳۲" /></label>
-          <label>انقضای گواهینامه (شمسی)<input id="editEmpLicenseExpiry" dir="ltr" placeholder="۱۴۰۶/۰۵/۰۱" /></label>
+          <label>انقضای گواهینامه (شمسی)
+            <div id="editEmpLicensePicker"></div>
+            <input type="hidden" id="editEmpLicenseExpiry" />
+          </label>
         </div>
+
+        <div class="field edit-emp-fingers-section">
+          <span class="field-label">مدیریت اثر انگشت‌ها روی دستگاه</span>
+          <div id="editEmpFingersList" class="emp-fingers-chips"></div>
+          <div class="form-row add-finger-row">
+            <label style="flex: 1;">افزودن انگشت جدید
+              <select id="editEmpNewFingerIndex"></select>
+            </label>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnEditEmpAddFinger">ثبت روی دستگاه</button>
+          </div>
+          <p class="status-line small" id="editEmpFingerStatus"></p>
+        </div>
+
         <div class="modal-actions">
-          <button type="submit" class="btn btn-primary">ذخیره</button>
+          <button type="submit" class="btn btn-primary">ذخیره مشخصات</button>
           <button type="button" class="btn btn-ghost" data-close="modalEmployee">انصراف</button>
         </div>
       </form>

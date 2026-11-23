@@ -925,3 +925,59 @@ body.auth-loading #btnLoginSubmit {
   outline: none;
   border-color: var(--primary);
 }
+
+/* ── Fingerprint badges & modal management ── */
+.badge-finger {
+  display: inline-block;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  color: #38bdf8;
+  font-size: 0.78rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  cursor: help;
+  white-space: nowrap;
+}
+.badge-finger:hover {
+  background: rgba(14, 165, 233, 0.25);
+  border-color: #38bdf8;
+}
+
+.edit-emp-fingers-section {
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+.emp-fingers-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.4rem 0;
+  min-height: 28px;
+}
+.finger-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.8rem;
+}
+.finger-chip-del {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 0 0.15rem;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.finger-chip-del:hover {
+  opacity: 0.8;
+}
+.add-finger-row {
+  align-items: flex-end;
+  margin-top: 0.5rem;
+}
