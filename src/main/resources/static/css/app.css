@@ -981,3 +981,16 @@ body.auth-loading #btnLoginSubmit {
   align-items: flex-end;
   margin-top: 0.5rem;
 }
+
+.alert {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+.alert-danger {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--danger);
+  color: #fca5a5;
+}

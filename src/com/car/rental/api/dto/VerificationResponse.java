@@ -13,6 +13,8 @@ public class VerificationResponse {
     private String name;
     private String phone;
     private boolean renting;
+    private String driverLicenseNumber;
+    private String driverLicenseExpiry;
 
     public VerificationResponse() {
     }
@@ -29,7 +31,7 @@ public class VerificationResponse {
         return d;
     }
 
-    /** Attach employee profile fields from DB (name/phone/renting). */
+    /** Attach employee profile fields from DB (name/phone/renting/license). */
     public void applyEmployee(Employee e) {
         if (e == null) {
             return;
@@ -40,6 +42,8 @@ public class VerificationResponse {
         this.name = e.getName();
         this.phone = e.getPhone();
         this.renting = e.isRenting();
+        this.driverLicenseNumber = e.getDriverLicenseNumber();
+        this.driverLicenseExpiry = e.getDriverLicenseExpiry();
     }
 
     public String getDeviceUserId() {
@@ -88,5 +92,21 @@ public class VerificationResponse {
 
     public void setRenting(boolean renting) {
         this.renting = renting;
+    }
+
+    public String getDriverLicenseNumber() {
+        return driverLicenseNumber;
+    }
+
+    public void setDriverLicenseNumber(String driverLicenseNumber) {
+        this.driverLicenseNumber = driverLicenseNumber;
+    }
+
+    public String getDriverLicenseExpiry() {
+        return driverLicenseExpiry;
+    }
+
+    public void setDriverLicenseExpiry(String driverLicenseExpiry) {
+        this.driverLicenseExpiry = driverLicenseExpiry;
     }
 }

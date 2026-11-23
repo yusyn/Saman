@@ -210,6 +210,25 @@
     }
   }
 
+  function isJalaliExpired(dateStr) {
+    if (!dateStr) return true;
+    const parsed = window.JalaliDatePicker ? window.JalaliDatePicker.parseDate(dateStr) : null;
+    if (!parsed) return true;
+    const nowStr = formatNowJalali().split(/[\s,]+/)[0].trim();
+    const nowParts = nowStr.split("/");
+    if (nowParts.length >= 3) {
+      const curY = parseInt(nowParts[0], 10);
+      const curM = parseInt(nowParts[1], 10);
+      const curD = parseInt(nowParts[2], 10);
+      if (parsed.year < curY) return true;
+      if (parsed.year > curY) return false;
+      if (parsed.month < curM) return true;
+      if (parsed.month > curM) return false;
+      return parsed.day < curD;
+    }
+    return false;
+  }
+
   function isOnMissionStatus(status) {
     if (!status) return false;
     return String(status).includes("مأموریت") || String(status).includes("ماموریت");
@@ -973,6 +992,17 @@
       if (profile) profile.classList.add("hidden");
       if (clearBtn) clearBtn.classList.add("hidden");
       if (submitBtn) submitBtn.disabled = true;
+      if (kind === "pickup") {
+        const numEl = $("#pickupAuthLicenseNum");
+        const expEl = $("#pickupAuthLicenseExp");
+        const alertEl = $("#pickupLicenseAlert");
+        if (numEl) numEl.textContent = "—";
+        if (expEl) expEl.textContent = "—";
+        if (alertEl) {
+          alertEl.textContent = "";
+          alertEl.classList.add("hidden");
+        }
+      }
       if (kind === "return") renderReturnMission(null);
       return;
     }
@@ -988,6 +1018,41 @@
     if (kind === "return") {
       renderReturnMission(auth);
       if (submitBtn) submitBtn.disabled = !(auth.renting && auth.activeRental);
+    } else if (kind === "pickup") {
+      const numEl = $("#pickupAuthLicenseNum");
+      const expEl = $("#pickupAuthLicenseExp");
+      const alertEl = $("#pickupLicenseAlert");
+      if (numEl) numEl.textContent = auth.driverLicenseNumber || "ثبت‌نشده";
+      if (expEl) expEl.textContent = auth.driverLicenseExpiry || "ثبت‌نشده";
+
+      let licenseErr = null;
+      if (!auth.driverLicenseNumber || !auth.driverLicenseNumber.trim()) {
+        licenseErr = "کارمند فاقد شماره گواهینامه ثبت‌شده است؛ تحویل وسیله مجاز نیست.";
+      } else if (!auth.driverLicenseExpiry || !auth.driverLicenseExpiry.trim()) {
+        licenseErr = "تاریخ انقضای گواهینامه کارمند ثبت نشده است؛ تحویل وسیله مجاز نیست.";
+      } else if (isJalaliExpired(auth.driverLicenseExpiry)) {
+        licenseErr = "گواهینامه کارمند در تاریخ " + auth.driverLicenseExpiry + " منقضی شده است؛ تحویل وسیله مجاز نیست.";
+      }
+
+      if (alertEl) {
+        if (licenseErr) {
+          alertEl.textContent = licenseErr;
+          alertEl.classList.remove("hidden");
+        } else {
+          alertEl.textContent = "";
+          alertEl.classList.add("hidden");
+        }
+      }
+
+      if (submitBtn) {
+        if (licenseErr) {
+          submitBtn.disabled = true;
+          submitBtn.title = licenseErr;
+        } else {
+          submitBtn.disabled = false;
+          submitBtn.title = "";
+        }
+      }
     } else if (submitBtn) {
       submitBtn.disabled = false;
     }
@@ -1010,12 +1075,14 @@
     status.textContent = "";
     try {
       const r = await Api.verify(40);
-      if (r && r.deviceUserId && (!r.name || !r.phone)) {
+      if (r && r.deviceUserId && (!r.name || !r.phone || !r.driverLicenseNumber || !r.driverLicenseExpiry)) {
         try {
           const emp = await Api.employee(r.deviceUserId);
           if (emp) {
             r.name = emp.name || r.name;
             r.phone = emp.phone || r.phone;
+            r.driverLicenseNumber = emp.driverLicenseNumber || r.driverLicenseNumber;
+            r.driverLicenseExpiry = emp.driverLicenseExpiry || r.driverLicenseExpiry;
             if (typeof emp.renting === "boolean") r.renting = emp.renting;
           }
         } catch (lookupErr) {
@@ -1183,6 +1250,14 @@
     e.preventDefault();
     if (!pickupAuth || !pickupAuth.deviceUserId) {
       toast("ابتدا برای تحویل احراز هویت کنید", "err");
+      return;
+    }
+    if (!pickupAuth.driverLicenseNumber || !pickupAuth.driverLicenseNumber.trim()) {
+      toast("کارمند فاقد شماره گواهینامه ثبت‌شده است؛ تحویل مجاز نیست", "err");
+      return;
+    }
+    if (!pickupAuth.driverLicenseExpiry || isJalaliExpired(pickupAuth.driverLicenseExpiry)) {
+      toast("گواهینامه کارمند فاقد اعتبار یا منقضی شده است؛ تحویل مجاز نیست", "err");
       return;
     }
     if (pickupAuth.renting) {
