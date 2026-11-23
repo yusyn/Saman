@@ -117,6 +117,14 @@ public class EmployeeController {
         return OkResponse.ok("اثر انگشت اضافه شد");
     }
 
+    @DeleteMapping("/{deviceUserId}/fingers/{fingerIndex}")
+    public OkResponse deleteFinger(@PathVariable String deviceUserId,
+                                   @PathVariable int fingerIndex)
+            throws FingerprintException, SQLException {
+        employeeService.deleteFingerprint(deviceUserId, fingerIndex);
+        return OkResponse.ok("اثر انگشت با موفقیت حذف شد");
+    }
+
     @DeleteMapping("/{deviceUserId}")
     public OkResponse delete(@PathVariable String deviceUserId) throws SQLException {
         Employee emp = employeeService.findByDeviceUserId(deviceUserId);

@@ -55,6 +55,9 @@ public interface FingerprintService {
     /** Enroll an additional finger for an existing device user (blocking). */
     void enrollFingerOnly(String deviceUserId, int fingerIndex) throws FingerprintException;
 
+    /** Delete an enrolled finger slot for an existing device user (blocking). */
+    void deleteFingerOnly(String deviceUserId, int fingerIndex) throws FingerprintException;
+
     void startEnroll(String deviceUserId, int fingerIndex,
                      Consumer<EnrollResult> onFinished,
                      Consumer<FingerprintException> onError) throws FingerprintException;

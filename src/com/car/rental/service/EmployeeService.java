@@ -292,6 +292,37 @@ public class EmployeeService {
         deviceOperations.completeDeviceOnly(operationId,"دستگاه اثرانگشت","ثبت اثر انگشت","اثر انگشت برای کارمند ثبت شد","کارمند",deviceUserId);
     }
 
+    public void deleteFingerprint(String deviceUserId, int fingerIndex)
+            throws FingerprintException, SQLException {
+        if (deviceUserId == null || deviceUserId.isBlank()) {
+            throw new IllegalArgumentException("شناسه کارمند خالی است");
+        }
+        validateFingerIndex(fingerIndex);
+        if (!employees.isDeviceUserIdExists(deviceUserId)) {
+            throw new IllegalArgumentException("کارمند در دیتابیس نیست: " + deviceUserId);
+        }
+        try {
+            fingerprintService.cancelListen();
+        } catch (Exception ignored) {
+        }
+        try {
+            deviceGate.call(() -> {
+                ensureConnected();
+                try {
+                    fingerprintService.deleteFingerOnly(deviceUserId, fingerIndex);
+                } finally {
+                    disconnectQuietly();
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to delete finger from hardware device: " + e.getMessage(), e);
+        }
+        fingerRepository.deleteFinger(deviceUserId, fingerIndex);
+        systemEvents.record("دستگاه اثرانگشت", "حذف اثرانگشت", "موفق",
+                "اثرانگشت ایندکس " + fingerIndex + " حذف شد", "کارمند", deviceUserId);
+    }
+
     public void deleteEmployee(String deviceUserId) throws SQLException {
         Employee before = employees.findByDeviceUserId(deviceUserId);
         if(before==null)throw new SQLException("کارمند برای حذف یافت نشد");

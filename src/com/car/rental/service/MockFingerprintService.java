@@ -190,6 +190,14 @@ public class MockFingerprintService implements FingerprintService {
     }
 
     @Override
+    public void deleteFingerOnly(String deviceUserId, int fingerIndex) throws FingerprintException {
+        java.util.Set<Integer> set = mockEnrolledFingers.get(deviceUserId);
+        if (set != null) {
+            set.remove(fingerIndex);
+        }
+    }
+
+    @Override
     public void startEnroll(String deviceUserId, int fingerIndex,
                             Consumer<EnrollResult> onFinished,
                             Consumer<FingerprintException> onError) {

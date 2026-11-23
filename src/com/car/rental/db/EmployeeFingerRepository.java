@@ -85,6 +85,21 @@ public class EmployeeFingerRepository {
         }
     }
 
+    public void deleteFinger(Connection conn, String deviceUserId, int fingerIndex) throws SQLException {
+        String sql = "DELETE FROM EmployeeFinger WHERE device_user_id = ? AND finger_index = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, deviceUserId);
+            stmt.setInt(2, fingerIndex);
+            stmt.executeUpdate();
+        }
+    }
+
+    public void deleteFinger(String deviceUserId, int fingerIndex) throws SQLException {
+        try (Connection conn = getConnection()) {
+            deleteFinger(conn, deviceUserId, fingerIndex);
+        }
+    }
+
     public void deleteFingersByDeviceUserId(Connection conn, String deviceUserId) throws SQLException {
         String sql = "DELETE FROM EmployeeFinger WHERE device_user_id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {

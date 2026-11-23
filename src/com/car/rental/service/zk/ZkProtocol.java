@@ -26,6 +26,7 @@ public final class ZkProtocol {
     public static final int CMD_STARTVERIFY = 60;
     public static final int CMD_STARTENROLL = 61;
     public static final int CMD_GET_USERTEMP = 88;
+    public static final int CMD_DEL_USER_TEMP = 134;
     public static final int CMD_PREPARE_DATA = 1500;
     public static final int CMD_DATA = 1501;
 

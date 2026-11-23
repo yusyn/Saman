@@ -200,6 +200,20 @@ public class ZkFingerprintService implements FingerprintService {
     }
 
     @Override
+    public synchronized void deleteFingerOnly(String deviceUserId, int fingerIndex) throws FingerprintException {
+        int uid = ZkUserCommands.toInternalUid(deviceUserId);
+        connection.withWriteRetry("deleteFingerOnly", () -> {
+            connection.disableDeviceBestEffort("before deleteFingerOnly");
+            try {
+                byte[] data = ZkProtocol.buildGetUserTempBody(uid, fingerIndex);
+                connection.sendCommand(ZkProtocol.CMD_DEL_USER_TEMP, data);
+            } finally {
+                connection.enableDeviceBestEffort("after deleteFingerOnly");
+            }
+        });
+    }
+
+    @Override
     public void startEnroll(String deviceUserId, int fingerIndex,
                             Consumer<EnrollResult> onFinished,
                             Consumer<FingerprintException> onError) {

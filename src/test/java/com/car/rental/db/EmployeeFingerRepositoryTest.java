@@ -57,4 +57,27 @@ class EmployeeFingerRepositoryTest {
             }
         }
     }
+
+    @Test
+    @DisplayName("deleteFinger removes only the targeted finger index")
+    void testDeleteSingleFinger() throws Exception {
+        String testUserId = "9902";
+        try {
+            employeeRepository.addEmployee(testUserId, "Finger Delete Test", "09122222222");
+            repository.addFinger(testUserId, 0);
+            repository.addFinger(testUserId, 1);
+            repository.deleteFinger(testUserId, 0);
+            List<Integer> remaining = repository.getFingersByDeviceUserId(testUserId);
+            assertEquals(List.of(1), remaining);
+        } finally {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement ps = conn.prepareStatement("DELETE FROM EmployeeFinger WHERE device_user_id = ?");
+                 PreparedStatement ps2 = conn.prepareStatement("DELETE FROM EmployeeTable WHERE device_user_id = ?")) {
+                ps.setString(1, testUserId);
+                ps.executeUpdate();
+                ps2.setString(1, testUserId);
+                ps2.executeUpdate();
+            }
+        }
+    }
 }
