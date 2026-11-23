@@ -121,6 +121,16 @@ public class EmployeeService {
                                             String phone,
                                             int fingerIndex)
             throws SQLException, FingerprintException {
+        return registerWithFingerprint(requestedDeviceUserId, name, phone, fingerIndex, null, null);
+    }
+
+    public Employee registerWithFingerprint(String requestedDeviceUserId,
+                                            String name,
+                                            String phone,
+                                            int fingerIndex,
+                                            String driverLicenseNumber,
+                                            String driverLicenseExpiry)
+            throws SQLException, FingerprintException {
 
         String nameError = InputValidators.validateEnglishFullName(name);
         if (nameError != null) {
@@ -128,6 +138,14 @@ public class EmployeeService {
         }
         final String finalName = name.strip();
         final String finalPhone = phone != null ? phone : "";
+        final String finalLicenseNumber = (driverLicenseNumber != null && !driverLicenseNumber.isBlank())
+                ? driverLicenseNumber.trim() : null;
+        final String finalLicenseExpiry;
+        if (driverLicenseExpiry != null && !driverLicenseExpiry.isBlank()) {
+            finalLicenseExpiry = com.car.rental.util.JalaliDate.normalizeDate(driverLicenseExpiry);
+        } else {
+            finalLicenseExpiry = null;
+        }
         validateFingerIndex(fingerIndex);
 
         final String deviceUserId;
@@ -166,7 +184,7 @@ public class EmployeeService {
             return systemEvents.inTransaction(
                     new SystemEventService.EventSpec("کارمندان","ثبت کارمند","کارمند ثبت شد: "+finalName,"کارمند",deviceUserId,details),
                     new SystemEventService.EventSpec("کارمندان","ثبت کارمند","ثبت کارمند پس از عملیات دستگاه انجام نشد","کارمند",deviceUserId,Map.of("operationId",operationId)),
-                    conn->{employees.addEmployee(conn,deviceUserId,finalName,finalPhone);fingerRepository.addFinger(conn,deviceUserId,fingerIndex);deviceOperations.complete(conn,operationId);return employees.findByDeviceUserId(conn,deviceUserId);});
+                    conn->{employees.addEmployee(conn,deviceUserId,finalName,finalPhone,finalLicenseNumber,finalLicenseExpiry);fingerRepository.addFinger(conn,deviceUserId,fingerIndex);deviceOperations.complete(conn,operationId);return employees.findByDeviceUserId(conn,deviceUserId);});
         } catch(SQLException dbFailure) {
             boolean compensated=false;
             try { deviceGate.call(()->{ensureConnected();try{fingerprintService.deleteUser(deviceUserId);}finally{disconnectQuietly();}return null;}); compensated=true; }

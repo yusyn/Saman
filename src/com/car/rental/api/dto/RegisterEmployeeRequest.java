@@ -13,11 +13,14 @@ public class RegisterEmployeeRequest {
 
     private String phone;
 
+    private String driverLicenseNumber;
+    private String driverLicenseExpiry;
+
     /**
-     * Finger index 0–9:
-     * left little=0 … left thumb=4, right thumb=5 … right little=9.
+     * Finger index 0–9 (ZKTeco standard):
+     * 0=Right Thumb .. 4=Right Pinky, 5=Left Thumb .. 9=Left Pinky.
      */
-    private int fingerIndex = 5;
+    private int fingerIndex = 0;
 
     public String getDeviceUserId() {
         return deviceUserId;
@@ -41,6 +44,22 @@ public class RegisterEmployeeRequest {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getDriverLicenseNumber() {
+        return driverLicenseNumber;
+    }
+
+    public void setDriverLicenseNumber(String driverLicenseNumber) {
+        this.driverLicenseNumber = driverLicenseNumber;
+    }
+
+    public String getDriverLicenseExpiry() {
+        return driverLicenseExpiry;
+    }
+
+    public void setDriverLicenseExpiry(String driverLicenseExpiry) {
+        this.driverLicenseExpiry = driverLicenseExpiry;
     }
 
     public int getFingerIndex() {

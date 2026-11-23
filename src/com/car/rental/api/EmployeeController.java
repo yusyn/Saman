@@ -71,7 +71,9 @@ public class EmployeeController {
                 body.getDeviceUserId(),
                 body.getName(),
                 body.getPhone(),
-                body.getFingerIndex());
+                body.getFingerIndex(),
+                body.getDriverLicenseNumber(),
+                body.getDriverLicenseExpiry());
         List<Integer> fingers = employeeService.getFingersForEmployee(saved.getDeviceUserId());
         return EmployeeDto.from(saved, fingers);
     }

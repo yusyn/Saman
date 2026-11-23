@@ -46,21 +46,31 @@ public class EmployeeRepository {
     }
 
     public void addEmployee(String deviceUserId, String name, String phone) throws SQLException {
-        try (Connection conn = getConnection()) { addEmployee(conn, deviceUserId, name, phone); }
+        try (Connection conn = getConnection()) { addEmployee(conn, deviceUserId, name, phone, null, null); }
+    }
+
+    public void addEmployee(String deviceUserId, String name, String phone, String driverLicenseNumber, String driverLicenseExpiry) throws SQLException {
+        try (Connection conn = getConnection()) { addEmployee(conn, deviceUserId, name, phone, driverLicenseNumber, driverLicenseExpiry); }
     }
 
     public void addEmployee(Connection conn, String deviceUserId, String name, String phone) throws SQLException {
-        String sql = "INSERT INTO EmployeeTable(device_user_id, name, phone) VALUES(?,?,?)";
+        addEmployee(conn, deviceUserId, name, phone, null, null);
+    }
+
+    public void addEmployee(Connection conn, String deviceUserId, String name, String phone, String driverLicenseNumber, String driverLicenseExpiry) throws SQLException {
+        String sql = "INSERT INTO EmployeeTable(device_user_id, name, phone, driver_license_number, driver_license_expiry) VALUES(?,?,?,?,?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, deviceUserId);
             stmt.setString(2, name);
             stmt.setString(3, phone);
+            stmt.setString(4, driverLicenseNumber);
+            stmt.setString(5, driverLicenseExpiry);
             stmt.executeUpdate();
         }
     }
 
     public Employee findById(int id) throws SQLException {
-        String sql = "SELECT id, device_user_id, name, phone, is_active, is_renting " +
+        String sql = "SELECT id, device_user_id, name, phone, is_active, is_renting, driver_license_number, driver_license_expiry " +
                 "FROM EmployeeTable WHERE id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -77,7 +87,7 @@ public class EmployeeRepository {
     }
 
     public Employee findByDeviceUserId(Connection conn, String deviceUserId) throws SQLException {
-        String sql = "SELECT id, device_user_id, name, phone, is_active, is_renting " +
+        String sql = "SELECT id, device_user_id, name, phone, is_active, is_renting, driver_license_number, driver_license_expiry " +
                 "FROM EmployeeTable WHERE device_user_id = ? AND is_active = 1";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, deviceUserId);
@@ -92,7 +102,7 @@ public class EmployeeRepository {
 
     public List<Employee> getAllEmployees() throws SQLException {
         List<Employee> list = new ArrayList<>();
-        String sql = "SELECT id, device_user_id, name, phone, is_active, is_renting " +
+        String sql = "SELECT id, device_user_id, name, phone, is_active, is_renting, driver_license_number, driver_license_expiry " +
                 "FROM EmployeeTable WHERE is_active = 1 ORDER BY name";
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement();

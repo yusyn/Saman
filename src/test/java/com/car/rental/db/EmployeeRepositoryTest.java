@@ -58,4 +58,23 @@ class EmployeeRepositoryTest {
             }
         }
     }
+
+    @Test
+    @DisplayName("addEmployee stores driver license number and expiry")
+    void testAddEmployeeWithDriverLicense() throws Exception {
+        String testId = "TEST_LIC_" + System.currentTimeMillis();
+        try {
+            employeeRepository.addEmployee(testId, "Ali Reza", "09120000000", "LIC-9988", "1406/05/01");
+            com.car.rental.model.Employee emp = employeeRepository.findByDeviceUserId(testId);
+            assertNotNull(emp);
+            assertEquals("LIC-9988", emp.getDriverLicenseNumber());
+            assertEquals("1406/05/01", emp.getDriverLicenseExpiry());
+        } finally {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement ps = conn.prepareStatement("DELETE FROM EmployeeTable WHERE device_user_id = ?")) {
+                ps.setString(1, testId);
+                ps.executeUpdate();
+            }
+        }
+    }
 }
