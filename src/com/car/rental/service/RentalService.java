@@ -39,7 +39,21 @@ public class RentalService {
             throw new IllegalArgumentException("مقصد الزامی است");
         }
         Employee employee = employees.findByDeviceUserId(deviceUserId);
-        Map<String, ?> details=Map.of("employee",employee==null?deviceUserId:employee.getName(),"employeeId",deviceUserId,
+        if (employee == null) {
+            throw new IllegalArgumentException("کارمند با شناسه " + deviceUserId + " یافت نشد");
+        }
+        String licenseNum = employee.getDriverLicenseNumber();
+        if (licenseNum == null || licenseNum.trim().isEmpty()) {
+            throw new IllegalArgumentException("کارمند فاقد شماره گواهینامه ثبت‌شده است؛ امکان تحویل وسیله وجود ندارد.");
+        }
+        String licenseExp = employee.getDriverLicenseExpiry();
+        if (licenseExp == null || licenseExp.trim().isEmpty()) {
+            throw new IllegalArgumentException("تاریخ انقضای گواهینامه کارمند ثبت نشده است؛ امکان تحویل وسیله وجود ندارد.");
+        }
+        if (com.car.rental.util.JalaliDate.isExpired(licenseExp, java.time.LocalDate.now())) {
+            throw new IllegalArgumentException("گواهینامه کارمند در تاریخ " + licenseExp + " منقضی شده است؛ امکان تحویل وسیله وجود ندارد.");
+        }
+        Map<String, ?> details=Map.of("employee",employee.getName(),"employeeId",deviceUserId,
                 "plate",vehiclePlate,"destination",destination,"pickupTime",pickupTime==null?"":pickupTime);
         systemEvents.inTransaction(
                 new SystemEventService.EventSpec("مأموریت‌ها","تحویل وسیله","وسیله برای مأموریت تحویل شد","مأموریت",deviceUserId,details),
