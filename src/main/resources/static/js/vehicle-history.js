@@ -493,7 +493,7 @@
           }
           return (
             "<tr>" +
-            "<td>" +
+            '<td class="col-type-title">' +
             icon +
             " " +
             escapeHtml(it.title) +
@@ -513,7 +513,7 @@
             "<td>" +
             thumb +
             "</td>" +
-            "<td>" +
+            '<td class="col-desc">' +
             escapeHtml(it.desc || "—") +
             "</td>" +
             "</tr>"
@@ -580,7 +580,7 @@
           }
           return (
             "<tr>" +
-            "<td>" +
+            '<td class="col-type-title">' +
             escapeHtml(it.title) +
             "</td>" +
             '<td><span class="badge badge-accident">' +
@@ -595,7 +595,7 @@
             "<td>" +
             thumb +
             "</td>" +
-            "<td>" +
+            '<td class="col-desc">' +
             escapeHtml(it.desc || "—") +
             "</td>" +
             "</tr>"
@@ -660,7 +660,7 @@
           }
           return (
             "<tr>" +
-            "<td>" +
+            '<td class="col-type-title">' +
             escapeHtml(f.type) +
             "</td>" +
             "<td>" +
@@ -672,7 +672,7 @@
             "<td>" +
             (f.paid ? "پرداخت‌شده" : '<span class="badge badge-fine">پرداخت‌نشده</span>') +
             "</td>" +
-            "<td>" +
+            '<td class="col-desc">' +
             escapeHtml(f.desc || "—") +
             "</td>" +
             "<td>" +

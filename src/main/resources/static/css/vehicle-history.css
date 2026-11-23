@@ -142,14 +142,30 @@
 
 .table-hist {
   width: 100%;
+  table-layout: auto !important;
   font-size: 0.85rem;
   border-collapse: collapse;
 }
 .table-hist th, .table-hist td {
-  padding: 0.45rem 0.5rem;
+  padding: 0.55rem 0.6rem;
   border-bottom: 1px solid var(--border);
   text-align: right;
   vertical-align: middle;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+.table-hist td[dir="ltr"] {
+  white-space: nowrap !important;
+}
+.table-hist .col-type-title {
+  min-width: 140px;
+  font-weight: 500;
+}
+.table-hist .col-desc {
+  min-width: 180px;
+  color: var(--muted);
 }
 .table-hist tr:hover td {
   background: rgba(255, 255, 255, 0.02);
