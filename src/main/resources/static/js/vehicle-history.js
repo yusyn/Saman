@@ -209,8 +209,8 @@
     rentals.forEach(function (r) {
       (r.reports || []).forEach(function (rep) {
         if (rep.reportType === "FUEL") {
-          const l = rep.liters != null && !isNaN(rep.liters) ? rep.liters : (rep.amount != null && !isNaN(rep.amount) ? rep.amount : 0);
-          const c = rep.cost != null && !isNaN(rep.cost) ? rep.cost : (rep.amount != null && !isNaN(rep.amount) && l !== rep.amount ? rep.amount : 0);
+          const l = rep.liters != null && !isNaN(rep.liters) ? rep.liters : 0;
+          const c = rep.cost != null && !isNaN(rep.cost) ? rep.cost : (rep.amount != null && !isNaN(rep.amount) ? rep.amount : 0);
           totalFuelLiters += l;
           totalFuelCost += c;
         } else if (rep.reportType === "SERVICE") {
@@ -432,7 +432,7 @@
             attachmentUrl: imgUrl,
           });
         } else if (rep.reportType === "FUEL") {
-          const litersVal = rep.liters != null && !isNaN(rep.liters) ? rep.liters : (rep.amount != null ? rep.amount : "");
+          const litersVal = rep.liters != null && !isNaN(rep.liters) ? rep.liters : "";
           items.push({
             type: "FUEL",
             title: "سوخت‌گیری (" + toPersianDigits(litersVal) + " لیتر)",

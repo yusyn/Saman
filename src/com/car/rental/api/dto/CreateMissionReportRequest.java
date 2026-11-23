@@ -21,10 +21,8 @@ public class CreateMissionReportRequest {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     public Double getAmount() {
-        if (cost != null && "FUEL".equalsIgnoreCase(reportType) && amount != null && !amount.equals(cost)) {
-            return cost;
-        }
-        return amount != null ? amount : cost;
+        if (cost != null) return cost;
+        return amount;
     }
     public void setAmount(Double amount) { this.amount = amount; }
     public Double getCost() {
@@ -32,11 +30,7 @@ public class CreateMissionReportRequest {
     }
     public void setCost(Double cost) { this.cost = cost; }
     public Double getLiters() {
-        if (liters != null) return liters;
-        if ("FUEL".equalsIgnoreCase(reportType) && cost != null && amount != null && !amount.equals(cost)) {
-            return amount;
-        }
-        return null;
+        return liters;
     }
     public void setLiters(Double liters) { this.liters = liters; }
     public String getSeverity() { return severity; }
