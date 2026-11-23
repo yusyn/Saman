@@ -704,13 +704,42 @@
     }
   });
 
+  const btnToggleRegEmp = $("#btnToggleRegisterEmployee");
+  const cardRegEmp = $("#cardRegisterEmployee");
+  const btnCloseRegEmp = $("#btnCloseRegisterEmployee");
+
+  if (btnToggleRegEmp && cardRegEmp) {
+    btnToggleRegEmp.addEventListener("click", () => {
+      cardRegEmp.classList.toggle("collapsed");
+      if (!cardRegEmp.classList.contains("collapsed")) {
+        const nameInput = cardRegEmp.querySelector('input[name="name"]');
+        if (nameInput) nameInput.focus();
+      }
+    });
+  }
+  if (btnCloseRegEmp && cardRegEmp) {
+    btnCloseRegEmp.addEventListener("click", () => {
+      cardRegEmp.classList.add("collapsed");
+    });
+  }
+
+  let regEmpLicensePicker = null;
+  const regPickerContainer = $("#regEmpLicensePicker");
+  if (regPickerContainer && window.JalaliDatePicker) {
+    regEmpLicensePicker = window.JalaliDatePicker.attach(regPickerContainer, "#regEmpLicenseExpiry");
+  }
+
   $("#formEmployee").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+    const licenseNum = (fd.get("driverLicenseNumber") || "").toString().trim();
+    const licenseExp = (fd.get("driverLicenseExpiry") || "").toString().trim();
     const body = {
       name: fd.get("name").toString().trim(),
       phone: (fd.get("phone") || "").toString().trim(),
       fingerIndex: Number(fd.get("fingerIndex")),
+      driverLicenseNumber: licenseNum || null,
+      driverLicenseExpiry: licenseExp || null,
     };
     const status = $("#empRegisterStatus");
     status.textContent = "در حال ثبت / انتظار اثر انگشت…";
@@ -719,6 +748,8 @@
       status.textContent = r.message || "ثبت شد";
       toast(r.message || "ثبت شد");
       e.target.reset();
+      if (regEmpLicensePicker) regEmpLicensePicker.clear();
+      if (cardRegEmp) cardRegEmp.classList.add("collapsed");
       loadEmployees();
     } catch (err) {
       status.textContent = err.message || "خطا";

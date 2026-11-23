@@ -174,46 +174,60 @@
       </section>
 
       <section class="view" id="view-employees">
-        <div class="split">
-          <div class="card">
-            <div class="card-head">
-              <h3>لیست کارمندان</h3>
-              <div class="card-head-actions">
-                <button type="button" class="btn btn-ghost" id="btnSyncFingers" requires-auth>همگام‌سازی با دستگاه</button>
-                <button type="button" class="btn btn-ghost" id="btnRefreshEmployees">بروزرسانی</button>
-              </div>
+        <div class="card card-collapsible collapsed" id="cardRegisterEmployee">
+          <div class="card-head">
+            <h3>ثبت کارمند جدید + اثر انگشت</h3>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnCloseRegisterEmployee">بستن ✕</button>
+          </div>
+          <form id="formEmployee" class="form" requires-auth>
+            <div class="form-row">
+              <label>نام کامل (انگلیسی)<input name="name" dir="ltr" required /></label>
+              <label>تلفن<input name="phone" dir="ltr" /></label>
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>شناسه</th><th>نام</th><th>تلفن</th><th>انگشت‌های ثبت‌شده</th><th>مأموریت</th><th>عملیات</th></tr>
-                </thead>
-                <tbody id="employeesTable"></tbody>
-              </table>
+            <div class="form-row">
+              <label>شماره گواهینامه (اختیاری)<input name="driverLicenseNumber" dir="ltr" placeholder="مثلاً ۹۸۷۶۵۴۳۲" /></label>
+              <label>انقضای گواهینامه (اختیاری)
+                <div id="regEmpLicensePicker"></div>
+                <input type="hidden" name="driverLicenseExpiry" id="regEmpLicenseExpiry" />
+              </label>
+            </div>
+            <label>انگشت اولیه برای ثبت
+              <select name="fingerIndex" id="regEmpFingerIndex">
+                <option value="0">0 — شست راست</option>
+                <option value="1" selected>1 — اشاره راست</option>
+                <option value="2">2 — میانی راست</option>
+                <option value="3">3 — انگشتری راست</option>
+                <option value="4">4 — کوچک راست</option>
+                <option value="5">5 — شست چپ</option>
+                <option value="6">6 — اشاره چپ</option>
+                <option value="7">7 — میانی چپ</option>
+                <option value="8">8 — انگشتری چپ</option>
+                <option value="9">9 — کوچک چپ</option>
+              </select>
+            </label>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="btnRegisterEmp">ثبت و دریافت اثر انگشت از دستگاه</button>
+            </div>
+          </form>
+          <p class="status-line" id="empRegisterStatus"></p>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>لیست کارمندان</h3>
+            <div class="card-head-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="btnToggleRegisterEmployee" requires-auth>ثبت کارمند جدید +</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnSyncFingers" requires-auth>همگام‌سازی با دستگاه</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnRefreshEmployees">بروزرسانی</button>
             </div>
           </div>
-          <div class="card">
-            <h3>ثبت کارمند + اثر انگشت</h3>
-            <form id="formEmployee" class="form" requires-auth>
-              <label>نام کامل (انگلیسی)<input name="name" dir="ltr" /></label>
-              <label>تلفن<input name="phone" dir="ltr" /></label>
-              <label>انگشت
-                <select name="fingerIndex">
-                  <option value="0">0 — کوچک چپ</option>
-                  <option value="1">1 — انگشتری چپ</option>
-                  <option value="2">2 — میانی چپ</option>
-                  <option value="3">3 — اشاره چپ</option>
-                  <option value="4">4 — شست چپ</option>
-                  <option value="5">5 — شست راست</option>
-                  <option value="6" selected>6 — اشاره راست</option>
-                  <option value="7">7 — میانی راست</option>
-                  <option value="8">8 — انگشتری راست</option>
-                  <option value="9">9 — کوچک راست</option>
-                </select>
-              </label>
-              <button type="submit" class="btn btn-primary" id="btnRegisterEmp">ثبت و دریافت اثر انگشت</button>
-            </form>
-            <p class="status-line" id="empRegisterStatus"></p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>شناسه</th><th>نام</th><th>تلفن</th><th>انگشت‌های ثبت‌شده</th><th>مأموریت</th><th>عملیات</th></tr>
+              </thead>
+              <tbody id="employeesTable"></tbody>
+            </table>
           </div>
         </div>
       </section>

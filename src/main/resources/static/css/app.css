@@ -196,6 +196,15 @@ body {
   box-shadow: var(--shadow);
 }
 
+.card-collapsible {
+  margin-bottom: 1rem;
+  border-color: var(--primary);
+  background: var(--panel-2);
+}
+.card-collapsible.collapsed {
+  display: none !important;
+}
+
 .card h3 { margin: 0 0 0.75rem; font-size: 1rem; }
 .card-head {
   display: flex;
