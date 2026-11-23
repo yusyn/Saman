@@ -644,7 +644,10 @@
                   <option value="OTHER">سایر</option>
                 </select>
               </label>
-              <label>تاریخ (شمسی)<input id="histServiceDate" dir="ltr" placeholder="1404-07-05" required /></label>
+              <label>تاریخ (شمسی)
+                <div id="histServiceDateWidget"></div>
+                <input type="hidden" id="histServiceDate" />
+              </label>
             </div>
             <div class="form-row">
               <label>کیلومتر<input id="histServiceOdo" dir="ltr" inputmode="numeric" /></label>
@@ -652,7 +655,17 @@
             </div>
             <div class="form-row">
               <label>سرویس بعدی (کیلومتر)<input id="histServiceNextOdo" dir="ltr" inputmode="numeric" /></label>
-              <label>انجام‌دهنده<input id="histServiceBy" /></label>
+              <label>انجام‌دهنده سرویس
+                <select id="histServiceBySelect">
+                  <option value="">— انتخاب کارمند —</option>
+                  <option value="__OTHER__">سایر / مرکز بیرونی (تعمیرگاه، کارواش...)</option>
+                </select>
+              </label>
+            </div>
+            <div id="histServiceByOtherWrap" class="hidden" style="margin-bottom: 0.5rem;">
+              <label>نام مرکز بیرونی / شخص
+                <input id="histServiceByOther" placeholder="مثلاً تعمیرگاه مرکزی..." />
+              </label>
             </div>
             <label>توضیحات<input id="histServiceDesc" /></label>
             <button type="submit" class="btn btn-primary btn-sm">ثبت سرویس</button>
@@ -733,51 +746,194 @@
   <!-- Modal for Retroactive Mission Report -->
   <div id="modalRetroReport" class="modal hidden">
     <div class="modal-backdrop" data-close="modalRetroReport"></div>
-    <div class="modal-panel">
+    <div class="modal-panel" style="max-width: 680px;">
       <div class="modal-head">
         <h3 id="retroReportTitle">ثبت گزارش برای مأموریت</h3>
         <button type="button" class="btn btn-ghost btn-sm" data-close="modalRetroReport">بستن</button>
       </div>
       <form id="formRetroReport" class="form" requires-auth>
         <input type="hidden" id="retroRentalId" />
-        <label>نوع گزارش
-          <select id="retroReportType">
-            <option value="FUEL">⛽ بنزین و سوخت</option>
-            <option value="SERVICE">🔧 خدمات و سرویس (کارواش، روغن و...)</option>
-            <option value="ACCIDENT">⚠️ تصادف و آسیب‌دیدگی</option>
-            <option value="FINE">📄 جریمه و خلافی</option>
-          </select>
-        </label>
-        <label>عنوان / شرح اولیه
-          <input id="retroReportTitleInput" placeholder="عنوان یا نوع خدمت..." />
-        </label>
-        <div class="form-row">
-          <label>میزان بنزین (لیتر - در صورت سوخت)
-            <input id="retroReportAmount" type="text" inputmode="decimal" placeholder="مثلاً ۳۰" />
-          </label>
-          <label>مبلغ / هزینه (تومان)
-            <input id="retroReportCost" type="text" inputmode="numeric" placeholder="مثلاً ۹۰۰۰۰" />
+        <input type="hidden" id="retroReportType" value="" />
+
+        <div class="retro-step-label">۱. انتخاب دسته‌بندی گزارش:</div>
+        <div class="retro-cat-grid">
+          <button type="button" class="retro-cat-card" data-cat="FUEL">
+            <span class="retro-cat-icon">⛽</span>
+            <span class="retro-cat-title">بنزین و سوخت</span>
+            <span class="retro-cat-sub">سوخت‌گیری و رسید</span>
+          </button>
+          <button type="button" class="retro-cat-card" data-cat="SERVICE">
+            <span class="retro-cat-icon">🔧</span>
+            <span class="retro-cat-title">خدمات و سرویس</span>
+            <span class="retro-cat-sub">کارواش، روغن، تعمیر</span>
+          </button>
+          <button type="button" class="retro-cat-card" data-cat="ACCIDENT">
+            <span class="retro-cat-icon">⚠️</span>
+            <span class="retro-cat-title">تصادف و آسیب</span>
+            <span class="retro-cat-sub">برخورد و خسارت</span>
+          </button>
+          <button type="button" class="retro-cat-card" data-cat="FINE">
+            <span class="retro-cat-icon">📄</span>
+            <span class="retro-cat-title">جریمه و خلافی</span>
+            <span class="retro-cat-sub">تخلفات و قبوض</span>
+          </button>
+        </div>
+
+        <div id="retroPrompt" class="retro-prompt-box">
+          لطفاً برای تکمیل گزارش، ابتدا یکی از گزینه‌های بالا را انتخاب کنید.
+        </div>
+
+        <!-- 1. FUEL Panel -->
+        <div class="retro-panel hidden" data-panel="FUEL">
+          <div class="retro-step-label">۲. اطلاعات سوخت‌گیری:</div>
+          <div class="form-row">
+            <label>حجم بنزین (لیتر)
+              <input id="retroFuelLiters" type="text" inputmode="decimal" dir="ltr" placeholder="مثلاً ۳۵.۵" />
+            </label>
+            <label>هزینه پرداختی (تومان)
+              <input id="retroFuelCost" type="text" inputmode="numeric" dir="ltr" placeholder="مثلاً ۱۰۵۰۰۰" />
+            </label>
+          </div>
+          <div class="form-row">
+            <label>تاریخ سوخت‌گیری (شمسی)
+              <div id="retroFuelDateWidget"></div>
+            </label>
+            <label>تصویر رسید پمپ‌بنزین
+              <div class="file-upload-box">
+                <label class="file-upload-btn">
+                  <span>انتخاب عکس رسید…</span>
+                  <input type="file" class="file-upload-input" id="retroFuelFile" accept="image/*" />
+                </label>
+                <div class="file-upload-preview" id="retroFuelPreview"></div>
+              </div>
+            </label>
+          </div>
+          <label>جایگاه سوخت / توضیحات
+            <input id="retroFuelDesc" placeholder="مثلاً جایگاه آزادی، بنزین سوپر..." />
           </label>
         </div>
-        <div class="form-row">
-          <label>تاریخ (شمسی)
-            <input id="retroReportDate" placeholder="۱۴۰۵/۰۱/۰۱" />
-          </label>
-          <label>تصویر فاکتور / رسید / خسارت
-            <div class="file-upload-box">
-              <label class="file-upload-btn">
-                <span>انتخاب تصویر…</span>
-                <input type="file" class="file-upload-input" id="retroReportFile" accept="image/*" />
-              </label>
-              <div class="file-upload-preview" id="retroReportPreview"></div>
-            </div>
+
+        <!-- 2. SERVICE Panel -->
+        <div class="retro-panel hidden" data-panel="SERVICE">
+          <div class="retro-step-label">۲. جزئیات خدمت و سرویس:</div>
+          <div class="form-row">
+            <label>نوع خدمت
+              <select id="retroServiceType">
+                <option value="WASH">کارواش و نظافت</option>
+                <option value="OIL_CHANGE">تعویض روغن موتور</option>
+                <option value="WIPER_FLUID">مایع شیشه‌شور / ضدیخ</option>
+                <option value="TIRE">پنچرگیری و تنظیم باد</option>
+                <option value="REPAIR">تعمیرات فنی و قطعات</option>
+                <option value="OTHER">سایر خدمات</option>
+              </select>
+            </label>
+            <label>هزینه سرویس (تومان)
+              <input id="retroServiceCost" type="text" inputmode="numeric" dir="ltr" placeholder="مثلاً ۵۰۰۰۰" />
+            </label>
+          </div>
+          <div class="form-row">
+            <label>انجام‌دهنده سرویس
+              <select id="retroServiceBySelect">
+                <option value="">— انتخاب کارمند —</option>
+                <option value="__OTHER__">سایر / مرکز بیرونی (تعمیرگاه، کارواش...)</option>
+              </select>
+            </label>
+            <label id="retroServiceByOtherWrap" class="hidden">نام مرکز بیرونی / شخص
+              <input id="retroServiceByOther" placeholder="نام تعمیرگاه یا سرویس‌کار..." />
+            </label>
+          </div>
+          <div class="form-row">
+            <label>تاریخ انجام (شمسی)
+              <div id="retroServiceDateWidget"></div>
+            </label>
+            <label>فاکتور / رسید سرویس
+              <div class="file-upload-box">
+                <label class="file-upload-btn">
+                  <span>انتخاب عکس فاکتور…</span>
+                  <input type="file" class="file-upload-input" id="retroServiceFile" accept="image/*" />
+                </label>
+                <div class="file-upload-preview" id="retroServicePreview"></div>
+              </div>
+            </label>
+          </div>
+          <label>شرح اقدامات انجام‌شده
+            <textarea id="retroServiceDesc" rows="2" placeholder="جزئیات تعویض، برند روغن یا خدمت انجام‌شده..."></textarea>
           </label>
         </div>
-        <label>توضیحات تکمیلی
-          <textarea id="retroReportDesc" rows="2" placeholder="جزئیات تکمیلی..."></textarea>
-        </label>
+
+        <!-- 3. ACCIDENT Panel -->
+        <div class="retro-panel hidden" data-panel="ACCIDENT">
+          <div class="retro-step-label">۲. جزئیات حادثه و خسارت:</div>
+          <div class="form-row">
+            <label>شدت سانحه
+              <select id="retroAccidentSeverity">
+                <option value="MINOR">جزئی (خط و خش سطحی، فرورفتگی کوچک)</option>
+                <option value="MODERATE">متوسط (آسیب به سپر، چراغ، بدنه)</option>
+                <option value="SEVERE">شدید (عدم امکان حرکت، خسارت سنگین)</option>
+              </select>
+            </label>
+            <label>برآورد هزینه خسارت (تومان)
+              <input id="retroAccidentCost" type="text" inputmode="numeric" dir="ltr" placeholder="مثلاً ۴۰۰۰۰۰" />
+            </label>
+          </div>
+          <div class="form-row">
+            <label>تاریخ وقوع حادثه (شمسی)
+              <div id="retroAccidentDateWidget"></div>
+            </label>
+            <label>عکس از محل آسیب‌دیدگی
+              <div class="file-upload-box">
+                <label class="file-upload-btn">
+                  <span>انتخاب عکس خسارت…</span>
+                  <input type="file" class="file-upload-input" id="retroAccidentFile" accept="image/*" />
+                </label>
+                <div class="file-upload-preview" id="retroAccidentPreview"></div>
+              </div>
+            </label>
+          </div>
+          <label>شرح نحوه وقوع تصادف و خسارت
+            <textarea id="retroAccidentDesc" rows="2" placeholder="محل وقوع، نحوه تصادف، بخش‌های آسیب‌دیده..."></textarea>
+          </label>
+        </div>
+
+        <!-- 4. FINE Panel -->
+        <div class="retro-panel hidden" data-panel="FINE">
+          <div class="retro-step-label">۲. اطلاعات جریمه و تخلف:</div>
+          <div class="form-row">
+            <label>نوع تخلف
+              <select id="retroFineType">
+                <option value="SPEEDING">سرعت غیرمجاز</option>
+                <option value="PARKING">پارک دوبله / پارک ممنوع</option>
+                <option value="RED_LIGHT">عبور از چراغ قرمز</option>
+                <option value="NO_BELT">عدم استفاده از کمربند ایمنی</option>
+                <option value="PHONE">استفاده از تلفن همراه حین رانندگی</option>
+                <option value="OTHER">سایر تخلفات راهنمایی و رانندگی</option>
+              </select>
+            </label>
+            <label>مبلغ جریمه (تومان)
+              <input id="retroFineCost" type="text" inputmode="numeric" dir="ltr" placeholder="مثلاً ۱۵۰۰۰۰" />
+            </label>
+          </div>
+          <div class="form-row">
+            <label>تاریخ ثبت جریمه (شمسی)
+              <div id="retroFineDateWidget"></div>
+            </label>
+            <label>تصویر برگه / پیامک جریمه
+              <div class="file-upload-box">
+                <label class="file-upload-btn">
+                  <span>انتخاب عکس قبض…</span>
+                  <input type="file" class="file-upload-input" id="retroFineFile" accept="image/*" />
+                </label>
+                <div class="file-upload-preview" id="retroFinePreview"></div>
+              </div>
+            </label>
+          </div>
+          <label>شناسه قبض / توضیحات
+            <input id="retroFineDesc" placeholder="شناسه پرداخت، شماره قبض یا محل جریمه..." />
+          </label>
+        </div>
+
         <div class="modal-actions">
-          <button type="submit" class="btn btn-primary" id="btnRetroSubmit">ثبت گزارش</button>
+          <button type="submit" class="btn btn-primary" id="btnRetroSubmit" disabled>ثبت گزارش</button>
           <button type="button" class="btn btn-ghost" data-close="modalRetroReport">انصراف</button>
         </div>
       </form>

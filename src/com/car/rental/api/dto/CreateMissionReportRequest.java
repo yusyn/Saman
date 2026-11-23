@@ -11,6 +11,7 @@ public class CreateMissionReportRequest {
     private String fineType;
     private Integer attachmentId;
     private String reportDate;
+    private String performedBy;
 
     public CreateMissionReportRequest() {}
 
@@ -37,6 +38,8 @@ public class CreateMissionReportRequest {
     public void setSeverity(String severity) { this.severity = severity; }
     public String getFineType() { return fineType; }
     public void setFineType(String fineType) { this.fineType = fineType; }
+    public String getPerformedBy() { return performedBy; }
+    public void setPerformedBy(String performedBy) { this.performedBy = performedBy; }
     public Integer getAttachmentId() { return attachmentId; }
     public void setAttachmentId(Integer attachmentId) { this.attachmentId = attachmentId; }
     public String getReportDate() { return reportDate; }

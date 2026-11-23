@@ -396,3 +396,95 @@
   align-items: center;
   gap: 0.5rem;
 }
+
+/* ── Dynamic Retroactive Report Modal (Category Cards & Panels) ── */
+.retro-step-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.retro-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .retro-cat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.retro-cat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid var(--border);
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.retro-cat-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.retro-cat-card.active {
+  background: rgba(14, 165, 233, 0.12);
+  border-color: var(--primary, #0ea5e9);
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.25);
+}
+
+.retro-cat-icon {
+  font-size: 1.6rem;
+  line-height: 1.2;
+  margin-bottom: 0.35rem;
+}
+
+.retro-cat-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.retro-cat-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.retro-prompt-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--border);
+  border-radius: 0.5rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0.5rem 0 1rem 0;
+}
+
+.retro-panel {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.85rem 0.95rem;
+  margin-bottom: 0.85rem;
+  animation: fadeInPanel 0.2s ease-in-out;
+}
+
+@keyframes fadeInPanel {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

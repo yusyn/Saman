@@ -151,7 +151,51 @@
   let historyData = null;
   let historyDocs = [];
   let vehicleFlagsCache = {};
-  let retroAttachmentId = null;
+  let histServiceDateWidget = null;
+  let retroFuelDateWidget = null;
+  let retroServiceDateWidget = null;
+  let retroAccidentDateWidget = null;
+  let retroFineDateWidget = null;
+  let activeRetroCategory = null;
+  const retroAttachments = { FUEL: null, SERVICE: null, ACCIDENT: null, FINE: null };
+
+  function getServicePerformer(selectId, otherInputId) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return "";
+    if (sel.value === "__OTHER__") {
+      const other = document.getElementById(otherInputId);
+      return other ? other.value.trim() : "";
+    }
+    return sel.value.trim();
+  }
+
+  async function populateEmployeeSelects() {
+    let emps = window.Saman && window.Saman.getEmployees ? window.Saman.getEmployees() : [];
+    if (!emps || !emps.length) {
+      try {
+        emps = await Api.employees();
+      } catch (e) {
+        emps = [];
+      }
+    }
+    ["histServiceBySelect", "retroServiceBySelect"].forEach(function (id) {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const curVal = sel.value;
+      sel.innerHTML = '<option value="">— انتخاب کارمند —</option>';
+      (emps || []).forEach(function (emp) {
+        const opt = document.createElement("option");
+        opt.value = emp.name;
+        opt.textContent = emp.name + (emp.deviceUserId ? " (کد " + toPersianDigits(emp.deviceUserId) + ")" : "");
+        sel.appendChild(opt);
+      });
+      const otherOpt = document.createElement("option");
+      otherOpt.value = "__OTHER__";
+      otherOpt.textContent = "سایر / مرکز بیرونی (تعمیرگاه، کارواش...)";
+      sel.appendChild(otherOpt);
+      if (curVal) sel.value = curVal;
+    });
+  }
 
   function switchHistoryTab(tab) {
     document.querySelectorAll(".history-tab").forEach(function (b) {
@@ -201,6 +245,9 @@
     );
     switchHistoryTab("summary");
     openModal("modalHistory");
+    populateEmployeeSelects();
+    const todayStr = window.Saman && window.Saman.getTodayJalali ? window.Saman.getTodayJalali() : "";
+    if (histServiceDateWidget) histServiceDateWidget.setValue(todayStr);
     try {
       historyData = await Api.vehicleHistory(plate);
       renderHistory(historyData);
@@ -835,6 +882,14 @@
   }
 
   function bindOnce() {
+    if (window.Saman && window.Saman.initJalaliDateWidget) {
+      histServiceDateWidget = window.Saman.initJalaliDateWidget("histServiceDateWidget");
+      retroFuelDateWidget = window.Saman.initJalaliDateWidget("retroFuelDateWidget");
+      retroServiceDateWidget = window.Saman.initJalaliDateWidget("retroServiceDateWidget");
+      retroAccidentDateWidget = window.Saman.initJalaliDateWidget("retroAccidentDateWidget");
+      retroFineDateWidget = window.Saman.initJalaliDateWidget("retroFineDateWidget");
+    }
+
     // Tab switching
     document.querySelectorAll(".history-tab").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -893,9 +948,39 @@
         if (hiddenId) hiddenId.value = rentalId;
         const form = $("#formRetroReport");
         if (form) form.reset();
-        retroAttachmentId = null;
-        const prev = $("#retroReportPreview");
-        if (prev) prev.innerHTML = "";
+
+        activeRetroCategory = null;
+        const hiddenType = $("#retroReportType");
+        if (hiddenType) hiddenType.value = "";
+
+        document.querySelectorAll(".retro-cat-card").forEach(function (c) {
+          c.classList.remove("active");
+        });
+        document.querySelectorAll(".retro-panel").forEach(function (p) {
+          p.classList.add("hidden");
+        });
+        const promptBox = $("#retroPrompt");
+        if (promptBox) promptBox.classList.remove("hidden");
+        const submitBtn = $("#btnRetroSubmit");
+        if (submitBtn) submitBtn.disabled = true;
+
+        for (let k in retroAttachments) retroAttachments[k] = null;
+        ["retroFuelPreview", "retroServicePreview", "retroAccidentPreview", "retroFinePreview"].forEach(function (id) {
+          const p = document.getElementById(id);
+          if (p) p.innerHTML = "";
+        });
+        ["retroFuelFile", "retroServiceFile", "retroAccidentFile", "retroFineFile"].forEach(function (id) {
+          const f = document.getElementById(id);
+          if (f) f.value = "";
+        });
+
+        const todayStr = window.Saman && window.Saman.getTodayJalali ? window.Saman.getTodayJalali() : "";
+        if (retroFuelDateWidget) retroFuelDateWidget.setValue(todayStr);
+        if (retroServiceDateWidget) retroServiceDateWidget.setValue(todayStr);
+        if (retroAccidentDateWidget) retroAccidentDateWidget.setValue(todayStr);
+        if (retroFineDateWidget) retroFineDateWidget.setValue(todayStr);
+
+        populateEmployeeSelects();
         openModal("modalRetroReport");
       });
 
@@ -1007,6 +1092,7 @@
       formSvc.addEventListener("submit", async function (e) {
         e.preventDefault();
         if (!historyPlate) return;
+        const sDate = histServiceDateWidget ? histServiceDateWidget.getValue() : ($("#histServiceDate") ? $("#histServiceDate").value.trim() : "");
         const body = {
           serviceType: $("#histServiceType").value,
           description: $("#histServiceDesc").value.trim(),
@@ -1016,11 +1102,11 @@
           cost: $("#histServiceCost").value
             ? parseFloat(toLatinDigits($("#histServiceCost").value))
             : 0,
-          serviceDate: $("#histServiceDate").value.trim(),
+          serviceDate: sDate,
           nextDueOdometer: $("#histServiceNextOdo").value
             ? parseInt(toLatinDigits($("#histServiceNextOdo").value), 10)
             : null,
-          performedBy: $("#histServiceBy").value.trim(),
+          performedBy: getServicePerformer("histServiceBySelect", "histServiceByOther"),
           notes: "",
         };
         if (!body.serviceDate) {
@@ -1031,6 +1117,10 @@
           await Api.addVehicleService(historyPlate, body);
           toast("سرویس ثبت شد");
           e.target.reset();
+          const todayStr = window.Saman && window.Saman.getTodayJalali ? window.Saman.getTodayJalali() : "";
+          if (histServiceDateWidget) histServiceDateWidget.setValue(todayStr);
+          const histOtherWrap = document.getElementById("histServiceByOtherWrap");
+          if (histOtherWrap) histOtherWrap.classList.add("hidden");
           historyData = await Api.vehicleHistory(historyPlate);
           renderHistory(historyData);
           await prefetchFlags();
@@ -1133,36 +1223,113 @@
       });
     }
 
-    // Retroactive file upload
-    const retroFileInput = document.getElementById("retroReportFile");
-    const retroPrev = document.getElementById("retroReportPreview");
-    if (retroFileInput && retroPrev) {
-      retroFileInput.addEventListener("change", async function (e) {
+    // Service performer dropdown custom toggles
+    const histBySel = document.getElementById("histServiceBySelect");
+    const histByWrap = document.getElementById("histServiceByOtherWrap");
+    if (histBySel && histByWrap) {
+      histBySel.addEventListener("change", function () {
+        if (histBySel.value === "__OTHER__") {
+          histByWrap.classList.remove("hidden");
+          const inp = document.getElementById("histServiceByOther");
+          if (inp) inp.focus();
+        } else {
+          histByWrap.classList.add("hidden");
+        }
+      });
+    }
+
+    const retroBySel = document.getElementById("retroServiceBySelect");
+    const retroByWrap = document.getElementById("retroServiceByOtherWrap");
+    if (retroBySel && retroByWrap) {
+      retroBySel.addEventListener("change", function () {
+        if (retroBySel.value === "__OTHER__") {
+          retroByWrap.classList.remove("hidden");
+          const inp = document.getElementById("retroServiceByOther");
+          if (inp) inp.focus();
+        } else {
+          retroByWrap.classList.add("hidden");
+        }
+      });
+    }
+
+    // Category card selection for retroactive mission report
+    function selectRetroCategory(cat) {
+      activeRetroCategory = cat;
+      const hiddenType = $("#retroReportType");
+      if (hiddenType) hiddenType.value = cat;
+
+      document.querySelectorAll(".retro-cat-card").forEach(function (c) {
+        c.classList.toggle("active", c.getAttribute("data-cat") === cat);
+      });
+
+      const promptBox = $("#retroPrompt");
+      if (promptBox) promptBox.classList.add("hidden");
+
+      document.querySelectorAll(".retro-panel").forEach(function (p) {
+        p.classList.toggle("hidden", p.getAttribute("data-panel") !== cat);
+      });
+
+      const submitBtn = $("#btnRetroSubmit");
+      if (submitBtn) submitBtn.disabled = false;
+
+      if (cat === "FUEL") {
+        const inp = $("#retroFuelLiters");
+        if (inp) inp.focus();
+      } else if (cat === "SERVICE") {
+        const inp = $("#retroServiceCost");
+        if (inp) inp.focus();
+      } else if (cat === "ACCIDENT") {
+        const inp = $("#retroAccidentCost");
+        if (inp) inp.focus();
+      } else if (cat === "FINE") {
+        const inp = $("#retroFineCost");
+        if (inp) inp.focus();
+      }
+    }
+
+    document.querySelectorAll(".retro-cat-card").forEach(function (card) {
+      card.addEventListener("click", function () {
+        const cat = card.getAttribute("data-cat");
+        if (cat) selectRetroCategory(cat);
+      });
+    });
+
+    // Retroactive file uploads helper
+    function setupRetroUpload(fileInputId, previewId, categoryKey) {
+      const input = document.getElementById(fileInputId);
+      const prev = document.getElementById(previewId);
+      if (!input || !prev) return;
+      input.addEventListener("change", async function (e) {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
-        retroPrev.innerHTML = '<span class="spinner" style="width:14px;height:14px;display:inline-block;"></span> آپلود...';
+        prev.innerHTML = '<span class="spinner" style="width:14px;height:14px;display:inline-block;"></span> آپلود...';
         try {
           const att = await Api.uploadAttachment(file);
-          retroAttachmentId = att.id;
-          retroPrev.innerHTML =
-            '<img src="' + Api.attachmentUrl(att.id) + '" alt="رسید" />' +
+          retroAttachments[categoryKey] = att.id;
+          prev.innerHTML =
+            '<img src="' + Api.attachmentUrl(att.id) + '" alt="پیوست" />' +
             '<span>' + escapeHtml(att.originalFilename || file.name) + '</span>' +
             '<button type="button" class="file-upload-remove" title="حذف">✕</button>';
-          const rm = retroPrev.querySelector(".file-upload-remove");
+          const rm = prev.querySelector(".file-upload-remove");
           if (rm) {
             rm.addEventListener("click", function () {
-              retroAttachmentId = null;
-              retroFileInput.value = "";
-              retroPrev.innerHTML = "";
+              retroAttachments[categoryKey] = null;
+              input.value = "";
+              prev.innerHTML = "";
             });
           }
         } catch (err) {
           toast(err.message || "خطا در آپلود فایل", "err");
-          retroPrev.innerHTML = "";
-          retroFileInput.value = "";
+          prev.innerHTML = "";
+          input.value = "";
         }
       });
     }
+
+    setupRetroUpload("retroFuelFile", "retroFuelPreview", "FUEL");
+    setupRetroUpload("retroServiceFile", "retroServicePreview", "SERVICE");
+    setupRetroUpload("retroAccidentFile", "retroAccidentPreview", "ACCIDENT");
+    setupRetroUpload("retroFineFile", "retroFinePreview", "FINE");
 
     // Form: Retroactive Report
     const formRetro = $("#formRetroReport");
@@ -1174,26 +1341,85 @@
           toast("شناسه مأموریت نامعتبر است", "err");
           return;
         }
-        const repType = $("#retroReportType").value;
-        const repTitle = ($("#retroReportTitleInput") ? $("#retroReportTitleInput").value : "").trim();
-        const repAmount = parseFloat(toLatinDigits($("#retroReportAmount") ? $("#retroReportAmount").value : ""));
-        const repCost = parseInt(toLatinDigits($("#retroReportCost") ? $("#retroReportCost").value : ""), 10);
-        const repDate = ($("#retroReportDate") ? $("#retroReportDate").value : "").trim();
-        const repDesc = ($("#retroReportDesc") ? $("#retroReportDesc").value : "").trim();
+        const repType = activeRetroCategory || ($("#retroReportType") ? $("#retroReportType").value : "");
+        if (!repType) {
+          toast("لطفاً ابتدا دسته‌بندی گزارش را انتخاب کنید", "err");
+          return;
+        }
 
-        const costVal = !isNaN(repCost) ? repCost : (!isNaN(repAmount) && repType !== "FUEL" ? repAmount : null);
-        const litersVal = repType === "FUEL" && !isNaN(repAmount) ? repAmount : null;
+        let body = null;
 
-        const body = {
-          reportType: repType,
-          title: repTitle || (repType === "FUEL" ? "بنزین" : repType === "SERVICE" ? "سرویس" : repType === "ACCIDENT" ? "تصادف" : "خلافی"),
-          amount: costVal,
-          cost: costVal,
-          liters: litersVal,
-          reportDate: repDate || null,
-          description: repDesc || null,
-          attachmentId: retroAttachmentId || null,
-        };
+        if (repType === "FUEL") {
+          const liters = parseFloat(toLatinDigits($("#retroFuelLiters") ? $("#retroFuelLiters").value : ""));
+          const cost = parseInt(toLatinDigits($("#retroFuelCost") ? $("#retroFuelCost").value : ""), 10);
+          const date = retroFuelDateWidget ? retroFuelDateWidget.getValue() : "";
+          const desc = ($("#retroFuelDesc") ? $("#retroFuelDesc").value : "").trim();
+          if (isNaN(liters) && isNaN(cost) && !desc && !retroAttachments.FUEL) {
+            toast("حداقل مقدار بنزین، هزینه یا تصویر رسید را وارد کنید", "err");
+            return;
+          }
+          body = {
+            reportType: "FUEL",
+            title: "بنزین",
+            liters: !isNaN(liters) ? liters : null,
+            amount: !isNaN(cost) ? cost : null,
+            cost: !isNaN(cost) ? cost : null,
+            reportDate: date || null,
+            description: desc || null,
+            attachmentId: retroAttachments.FUEL || null,
+          };
+        } else if (repType === "SERVICE") {
+          const srvType = $("#retroServiceType") ? $("#retroServiceType").value : "OTHER";
+          const cost = parseInt(toLatinDigits($("#retroServiceCost") ? $("#retroServiceCost").value : ""), 10);
+          const performedBy = getServicePerformer("retroServiceBySelect", "retroServiceByOther");
+          const date = retroServiceDateWidget ? retroServiceDateWidget.getValue() : "";
+          const desc = ($("#retroServiceDesc") ? $("#retroServiceDesc").value : "").trim();
+          let fullDesc = desc;
+          if (performedBy) {
+            fullDesc = "انجام‌دهنده: " + performedBy + (desc ? " — " + desc : "");
+          }
+          body = {
+            reportType: "SERVICE",
+            title: serviceTypeLabel(srvType),
+            amount: !isNaN(cost) ? cost : null,
+            cost: !isNaN(cost) ? cost : null,
+            reportDate: date || null,
+            description: fullDesc || null,
+            attachmentId: retroAttachments.SERVICE || null,
+          };
+        } else if (repType === "ACCIDENT") {
+          const severity = $("#retroAccidentSeverity") ? $("#retroAccidentSeverity").value : "MINOR";
+          const cost = parseInt(toLatinDigits($("#retroAccidentCost") ? $("#retroAccidentCost").value : ""), 10);
+          const date = retroAccidentDateWidget ? retroAccidentDateWidget.getValue() : "";
+          const desc = ($("#retroAccidentDesc") ? $("#retroAccidentDesc").value : "").trim();
+          body = {
+            reportType: "ACCIDENT",
+            title: severity || "MINOR",
+            severity: severity,
+            amount: !isNaN(cost) ? cost : null,
+            cost: !isNaN(cost) ? cost : null,
+            reportDate: date || null,
+            description: desc || null,
+            attachmentId: retroAttachments.ACCIDENT || null,
+          };
+        } else if (repType === "FINE") {
+          const fineType = $("#retroFineType") ? $("#retroFineType").value : "OTHER";
+          const cost = parseInt(toLatinDigits($("#retroFineCost") ? $("#retroFineCost").value : ""), 10);
+          const date = retroFineDateWidget ? retroFineDateWidget.getValue() : "";
+          const desc = ($("#retroFineDesc") ? $("#retroFineDesc").value : "").trim();
+          body = {
+            reportType: "FINE",
+            title: fineTypeLabel(fineType),
+            fineType: fineType,
+            amount: !isNaN(cost) ? cost : null,
+            cost: !isNaN(cost) ? cost : null,
+            reportDate: date || null,
+            description: desc || null,
+            attachmentId: retroAttachments.FINE || null,
+          };
+        }
+
+        if (!body) return;
 
         const btn = $("#btnRetroSubmit");
         if (btn) btn.disabled = true;
