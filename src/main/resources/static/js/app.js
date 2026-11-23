@@ -542,7 +542,7 @@
             renderPlate(c.plate, c.vehicleType) +
             "</td><td>" +
             escapeHtml(c.color) +
-            "</td><td>" +
+            '</td><td class="col-status">' +
             carStatusBadge(c.status) +
             '</td><td class="actions">' +
             '<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-plate="' +
