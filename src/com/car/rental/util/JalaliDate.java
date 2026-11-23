@@ -86,6 +86,62 @@ public final class JalaliDate {
                 j.formatDate(), t.getHour(), t.getMinute());
     }
 
+    /** Returns today's Jalali date formatted as {@code yyyy/MM/dd}. */
+    public static String today() {
+        return fromGregorian(LocalDate.now()).formatDate();
+    }
+
+    /**
+     * Normalizes a Jalali date string into zero-padded {@code yyyy/MM/dd}.
+     * Handles Persian/Arabic digits, whitespace, and alternate delimiters ('-', '.').
+     */
+    public static String normalizeDate(String dateStr) {
+        if (dateStr == null || dateStr.isBlank()) {
+            throw new IllegalArgumentException("Date string is null or empty");
+        }
+        String s = dateStr.trim();
+        // Convert Persian & Arabic-Indic digits to Latin
+        StringBuilder sb = new StringBuilder();
+        for (char c : s.toCharArray()) {
+            if (c >= '\u06F0' && c <= '\u06F9') {
+                sb.append((char) ('0' + (c - '\u06F0')));
+            } else if (c >= '\u0660' && c <= '\u0669') {
+                sb.append((char) ('0' + (c - '\u0660')));
+            } else {
+                sb.append(c);
+            }
+        }
+        String cleaned = sb.toString().replace('-', '/').replace('.', '/');
+        String[] parts = cleaned.split("/");
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("Invalid date format, expected YYYY/MM/DD: " + dateStr);
+        }
+        try {
+            int y = Integer.parseInt(parts[0].trim());
+            int m = Integer.parseInt(parts[1].trim());
+            int d = Integer.parseInt(parts[2].trim());
+            if (m < 1 || m > 12 || d < 1 || d > 31) {
+                throw new IllegalArgumentException("Date parts out of range: " + dateStr);
+            }
+            return String.format("%04d/%02d/%02d", y, m, d);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid numeric parts in date: " + dateStr, e);
+        }
+    }
+
+    /**
+     * Checks whether a Jalali date string is strictly before {@code asOf} date.
+     */
+    public static boolean isExpired(String jalaliDateStr, LocalDate asOf) {
+        if (jalaliDateStr == null || jalaliDateStr.isBlank()) {
+            return true;
+        }
+        String norm = normalizeDate(jalaliDateStr);
+        LocalDate ref = asOf != null ? asOf : LocalDate.now();
+        String todayStr = fromGregorian(ref).formatDate();
+        return norm.compareTo(todayStr) < 0;
+    }
+
     // --- jalaali-js compatible core ---
 
     private static int[] toJalaali(int gy, int gm, int gd) {
